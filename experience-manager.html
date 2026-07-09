@@ -136,7 +136,8 @@ const state = {
   ai_showHighlights: false,
 
   // page + targeting
-  pages: { 'Product page': true },
+  activePages: ['Product page'],
+  pageConditions: {},
   audience: { 'All visitors': true },
   t_brand: 'All brands',
   t_category: 'All categories',
@@ -168,9 +169,6 @@ function ringStyle(active) {
   const bc = active ? '#1976d2' : 'rgba(0,0,0,0.45)';
   return { width:'22px', height:'22px', borderRadius:'50%', border:`2px solid ${bc}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:'0' };
 }
-function boxStyle(checked) {
-  return { width:'22px', height:'22px', borderRadius:'4px', flexShrink:'0', display:'flex', alignItems:'center', justifyContent:'center', background: checked?'#1976d2':'#fff', border:`2px solid ${checked?'#1976d2':'rgba(0,0,0,0.4)'}` };
-}
 function chipStyle(checked) {
   return { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 16px', borderRadius:'9999px', fontSize:'15px', cursor:'pointer', border:`1px solid ${checked?'#1976d2':'rgba(0,0,0,0.23)'}`, background: checked?'rgba(25,118,210,0.1)':'#fff', color: checked?'#1565c0':'rgba(0,0,0,0.75)', fontWeight: checked?500:400 };
 }
@@ -201,8 +199,8 @@ function fTextarea(val, onInput, opts={}) {
   ta.value = val;
   return ta;
 }
-function fSelect(val, options, onInput) {
-  const sel = h('select', { onInput });
+function fSelect(val, options, onInput, style) {
+  const sel = h('select', { onInput, style: style||{} });
   options.forEach(o => {
     const opt = h('option', { value:o }, o);
     if (o === val) opt.selected = true;
@@ -387,7 +385,7 @@ function buildListView(s) {
       h('div',{},'Component Name'), h('div',{},'Supported Pages'), h('div',{},'Last Modified'), h('div',{},'Active Variants'),
     ),
     ...compsData.map(([id,name,pages,more,variants]) =>
-      h('div', { class:'row', onClick:()=>setState({ view:'editor', componentTitle:name==='PDP Line'?'PDPLine':name, tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'' }),
+      h('div', { class:'row', onClick:()=>setState({ view:'editor', componentTitle:name==='PDP Line'?'PDPLine':name, tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'', activePages:pages, pageConditions:{} }),
         style:{ display:'grid', gridTemplateColumns:'90px 1fr 1fr 220px 150px', gap:'16px', padding:'20px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', cursor:'pointer', alignItems:'center', transition:'background 150ms' }},
         h('div',{style:{color:'rgba(0,0,0,0.6)'}},id),
         h('div',{},name),
@@ -448,12 +446,15 @@ function buildVariantPanel(s) {
       h('div', { onClick:()=>setState({variantTab:'archived'}), style:art.s }, 'Archived', h('span',{style:art.b},archivedVs.length)),
     ),
     h('div', { style:{ flex:'1', overflowY:'auto' }},
-      ...shownVs.map(v =>
-        h('div', { onClick:()=>setState({selectedVariantId:v.id}),
-          style:{ padding:'16px 18px', borderRadius:'8px', fontSize:'16px', cursor:'pointer', marginBottom:'8px', border:`1px solid ${v.id===s.selectedVariantId?'#90caf9':'rgba(0,0,0,0.12)'}`, background:v.id===s.selectedVariantId?'#e9f3fc':'#fff', transition:'background 150ms' }},
-          v.name || 'New Variant'
-        )
-      ),
+      ...shownVs.map((v, idx) => {
+        const selected = v.id === s.selectedVariantId;
+        const isLast = idx === shownVs.length - 1;
+        return h('div', { onClick:()=>setState({selectedVariantId:v.id}),
+          style: selected
+            ? { padding:'14px 17px', fontSize:'16px', cursor:'pointer', border:'1.5px solid #1976d2', borderRadius:'8px', background:'#e9f3fc' }
+            : { padding:'15px 18px', fontSize:'16px', cursor:'pointer', borderBottom: isLast?'none':'1px solid rgba(0,0,0,0.12)', background:'#fff', transition:'background 150ms' }
+        }, v.name || 'New Variant');
+      }),
       shownVs.length===0 ? h('div',{style:{padding:'24px 8px',fontSize:'14px',color:'rgba(0,0,0,0.5)'}},'No variants found.') : null
     )
   );
@@ -638,17 +639,49 @@ function buildAiTemplate(s) {
 }
 
 // ─── PAGE TAB ─────────────────────────────────────────────────────────────────
+const ATTRIBUTE_OPTIONS = ['By Audience','Category Relation','Category Relation (Backoffice Name)','Collection','Discount Percentage','Expedited Production days','Grouped parent SKU','Material','Parent SKUs','Price','Product Type','Production days','ShippingByFactory','Shop For','SKU','Stock Status','Stone'];
+const OPERATOR_OPTIONS = ['IsOneOf','IsNoneOf'];
+
+function addCondition(pageName) {
+  setState(prev => ({ pageConditions: { ...prev.pageConditions, [pageName]: [...(prev.pageConditions[pageName]||[]), { attribute:'Parent SKUs', operator:'IsOneOf', value:'' }] } }));
+}
+function updateCondition(pageName, i, patch) {
+  setState(prev => ({ pageConditions: { ...prev.pageConditions, [pageName]: prev.pageConditions[pageName].map((c,j)=> j===i ? {...c, ...patch} : c) } }));
+}
+function removeCondition(pageName, i) {
+  setState(prev => ({ pageConditions: { ...prev.pageConditions, [pageName]: prev.pageConditions[pageName].filter((_,j)=>j!==i) } }));
+}
+function addConditionsBtn(pageName) {
+  return h('div', { onClick:()=>addCondition(pageName), style:{ display:'inline-flex', alignItems:'center', gap:'6px', color:'#1976d2', fontSize:'14px', fontWeight:'600', letterSpacing:'.3px', cursor:'pointer' }},
+    icon('add',{fontSize:'20px'}), 'ADD CONDITIONS'
+  );
+}
+function conditionRow(pageName, cond, i) {
+  return h('div', { style:{ display:'flex', gap:'12px', alignItems:'center', marginBottom:'14px' }},
+    fSelect(cond.attribute, ATTRIBUTE_OPTIONS, e=>updateCondition(pageName,i,{attribute:e.target.value}), {minWidth:'220px'}),
+    fSelect(cond.operator, OPERATOR_OPTIONS, e=>updateCondition(pageName,i,{operator:e.target.value}), {minWidth:'150px'}),
+    fInput(cond.value, e=>updateCondition(pageName,i,{value:e.target.value}), { placeholder:`Select ${cond.attribute}`, style:{ flex:'1' }}),
+    h('div', { class:'tb', onClick:()=>removeCondition(pageName,i), style:{ width:'36px', height:'36px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.45)', flexShrink:'0' }}, icon('close',{fontSize:'20px'}))
+  );
+}
+function buildPageSection(s, pageName) {
+  const conditions = s.pageConditions[pageName] || [];
+  return h('div', { style:{ marginBottom:'40px' }},
+    h('div', { style:{ fontSize:'18px', fontWeight:'700', marginBottom:'14px' }}, pageName + ':'),
+    conditions.length === 0
+      ? h('div', {},
+          h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)', marginBottom:'16px' }}, `No filters selected. The variant will appear for all ${pageName}s.`),
+          addConditionsBtn(pageName)
+        )
+      : h('div', {},
+          ...conditions.map((cond,i) => conditionRow(pageName, cond, i)),
+          addConditionsBtn(pageName)
+        )
+  );
+}
 function buildPageTab(s) {
-  const pageList = ['Home page','Category page','Product page','Cart page','Search results','Checkout','Contact information','Order confirmation'];
-  return h('div', { style:{ maxWidth:'640px' }},
-    h('div', { style:{ fontSize:'18px', fontWeight:'600', marginBottom:'6px' }}, 'Supported pages'),
-    h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)', marginBottom:'22px' }}, 'Choose which pages this component is allowed to render on.'),
-    ...pageList.map(n => {
-      const checked = !!s.pages[n];
-      return h('div', { class:'panelitem', onClick:()=>setState(prev=>({pages:{...prev.pages,[n]:!prev.pages[n]}})), style:{ display:'flex', alignItems:'center', gap:'14px', padding:'11px 8px', borderRadius:'6px', cursor:'pointer', fontSize:'16px' }},
-        h('span',{style:boxStyle(checked)}, checked?icon('check',{fontSize:'18px',color:'#fff'}):null), n
-      );
-    })
+  return h('div', { style:{ maxWidth:'900px' }},
+    ...s.activePages.map(pageName => buildPageSection(s, pageName))
   );
 }
 
