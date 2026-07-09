@@ -73,7 +73,7 @@ const state = {
   selectedVariantId: 1,
   variantTab: 'active',
   variantSearch: '',
-  secondaryCollapsed: false,
+  secondaryCollapsed: true,
   tab: 'content',
   template: 'default',
   status: 'Live',
@@ -257,7 +257,7 @@ function buildRail(s) {
   return h('div', { style:{ width:'96px', flexShrink:'0', background:'#1a1a1a', color:'#fff', display:'flex', flexDirection:'column', padding:'16px 0', gap:'2px', overflowY:'auto' }},
     ...items.map(([ico, label]) => {
       const active = label === 'Experiences';
-      return h('div', { class:'navitem', onClick: active ? () => setState({ view:'list', secondaryCollapsed:false }) : undefined, style: railStyle(active) },
+      return h('div', { class:'navitem', onClick: active ? () => setState({ view:'list' }) : undefined, style: railStyle(active) },
         icon(ico, { fontSize:'24px' }),
         h('span', { style:{ fontSize:'11px' }}, label)
       );
@@ -273,7 +273,7 @@ function buildSecondary(s) {
     style:{ width: collapsed ? '68px' : '236px', flexShrink:'0', background:'#fff', borderRight:'1px solid rgba(0,0,0,0.12)', display:'flex', flexDirection:'column', padding:`22px ${collapsed ? 10 : 14}px`, transition:'width 200ms', cursor:'pointer' }},
     ...items.map(([ico, label]) => {
       const active = label === 'Content';
-      return h('div', { class:'panelitem', onClick: active ? (e) => { e.stopPropagation(); setState({ view:'list', secondaryCollapsed: false }); } : undefined,
+      return h('div', { class:'panelitem', onClick: active ? (e) => { e.stopPropagation(); setState({ view:'list' }); } : undefined,
         style:{ display:'flex', alignItems:'center', gap: collapsed ? '0' : '14px', justifyContent: collapsed ? 'center' : 'flex-start', padding:`11px ${collapsed ? 0 : 12}px`, borderRadius:'8px', cursor:'pointer', marginBottom:'2px', background: active ? 'rgba(25,118,210,0.1)' : 'transparent' }},
         icon(ico, { fontSize:'22px', color: active ? '#1976d2' : 'rgba(0,0,0,0.55)' }),
         !collapsed ? h('span', { style:{ fontSize:'15px', fontWeight: active ? 500 : 400, color: active ? '#1976d2' : 'rgba(0,0,0,0.75)' }}, label) : null
@@ -359,7 +359,7 @@ function buildVariantPanel(s) {
   return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
     // back + add
     h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'6px' }},
-      h('div', { class:'tb', onClick: () => setState({ view:'list', secondaryCollapsed:false }), style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
+      h('div', { class:'tb', onClick: () => setState({ view:'list' }), style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
       h('div', { onClick: () => setState(prev => {
           const id = Math.max(0, ...prev.variants.map(v => v.id)) + 1;
           return { variants:[...prev.variants, { id, name:'', status:'active' }], selectedVariantId:id, variantTab:'active' };
@@ -452,7 +452,7 @@ function buildFormCard(s) {
     h('div', { style:{ borderTop:'1px solid rgba(0,0,0,0.12)', padding:'18px 40px', display:'flex', alignItems:'center' }},
       h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:'rgba(0,0,0,0.55)' }}, icon('history', { fontSize:'20px' }), 'last updated at: 10 minutes ago'),
       h('div', { style:{ marginLeft:'auto', display:'flex', gap:'14px' }},
-        h('div', { onClick: () => setState({ view:'list', secondaryCollapsed:false }), style:{ padding:'10px 22px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'rgba(0,0,0,0.6)', cursor:'pointer' }}, 'CANCEL'),
+        h('div', { onClick: () => setState({ view:'list' }), style:{ padding:'10px 22px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'rgba(0,0,0,0.6)', cursor:'pointer' }}, 'CANCEL'),
         h('div', { onClick: () => {
             setState({ saveLabel:'SAVED ✓' });
             clearTimeout(_saveTimer);
