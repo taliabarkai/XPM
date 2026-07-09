@@ -11,17 +11,34 @@
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; color: rgba(0,0,0,0.87); background: #f4f6f8; }
   a { color: #1976d2; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; font-feature-settings: 'liga'; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
-  input { font-family: inherit; }
-  .hover-bg:hover { background: rgba(0,0,0,0.04); }
+  .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
+  input, textarea { font-family: inherit; }
+  textarea { resize: vertical; }
   .navitem:hover { background: rgba(255,255,255,0.08); }
   .panelitem:hover { background: rgba(0,0,0,0.04); }
   .tb:hover { background: rgba(0,0,0,0.06); }
   .scroll { scrollbar-width: thin; overflow-y: auto; }
   [contenteditable]:focus { outline: none; }
-  .fade { transition: background 150ms; }
   .row:hover { background: rgba(0,0,0,0.04); }
+  /* color picker */
+  .hex-wrap { position: relative; display: inline-flex; align-items: center; border: 1px solid rgba(0,0,0,0.23); border-radius: 6px; overflow: visible; min-width: 160px; }
+  .hex-label { position: absolute; top: -9px; left: 10px; font-size: 11px; color: rgba(0,0,0,0.55); background: #fff; padding: 0 3px; pointer-events: none; }
+  .hex-swatch { width: 30px; height: 30px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); cursor: pointer; flex-shrink: 0; margin: 8px 10px 8px 10px; }
+  .hex-input { border: none; outline: none; font-size: 14px; font-family: inherit; background: transparent; width: 90px; padding: 8px 10px 8px 0; color: rgba(0,0,0,0.87); }
+  input[type=color] { position: absolute; opacity: 0; width: 30px; height: 30px; cursor: pointer; left: 10px; top: 8px; padding: 0; border: none; }
+  /* select dropdown */
+  select { font-family: inherit; font-size: 15px; border: 1px solid rgba(0,0,0,0.23); border-radius: 6px; padding: 0 32px 0 14px; height: 46px; appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Cpath fill='rgba(0,0,0,0.54)' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 8px center; cursor: pointer; }
+  select:focus { outline: 2px solid #1976d2; outline-offset: -1px; }
+  /* accordion */
+  .accordion { border: 1px solid rgba(0,0,0,0.18); border-radius: 8px; overflow: hidden; max-width: 900px; }
+  .accordion-item { border-bottom: 1px solid rgba(0,0,0,0.12); }
+  .accordion-item:last-child { border-bottom: none; }
+  .accordion-header { display: flex; align-items: center; gap: 8px; padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 15px; }
+  .accordion-body { padding: 0 20px 20px; display: grid; grid-template-columns: 160px 1fr; gap: 18px 20px; align-items: start; }
+  .add-item-row { display: flex; align-items: center; margin-top: 14px; max-width: 900px; }
+  .add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border: 1px solid rgba(25,118,210,0.5); border-radius: 6px; color: #1976d2; font-size: 14px; font-weight: 500; letter-spacing: .4px; cursor: pointer; }
+  .add-btn:hover { background: rgba(25,118,210,0.06); }
+  .section-title { font-size: 16px; font-weight: 700; margin: 28px 0 16px; }
 </style>
 </head>
 <body>
@@ -29,7 +46,6 @@
 
 <script>
 // ─── tiny reactive framework ──────────────────────────────────────────────────
-let _currentApp = null;
 function h(tag, attrs, ...children) {
   const el = document.createElement(tag);
   if (attrs) {
@@ -44,10 +60,12 @@ function h(tag, attrs, ...children) {
         el.setAttribute('contenteditable', v);
       } else if (k === 'placeholder') {
         el.placeholder = v;
-      } else if (k === 'value' && (tag === 'INPUT' || tag === 'input')) {
+      } else if (k === 'value' && (tag === 'INPUT' || tag === 'input' || tag === 'TEXTAREA' || tag === 'textarea')) {
         el.value = v ?? '';
       } else if (k === 'class') {
         el.className = v;
+      } else if (k === 'type') {
+        el.type = v;
       } else if (v !== false && v !== null && v !== undefined) {
         el.setAttribute(k, v);
       }
@@ -78,42 +96,57 @@ const state = {
   template: 'default',
   status: 'Live',
   statusOpen: false,
-  iconLink: 'https://cdn.oakandluna.com/digital-asset/banners/delivery_icon_oal.svg',
-  klaviyoMB: '',
-  klaviyoDT: '',
-  addImage: false,
-  imageLink: '',
-  imagePlacement: 'left',
-  f_origin: 'PDP Line — Default',
-  f_replacement: 'PDP Line — Holiday 2026',
-  f_start: '2026-02-10',
-  f_end: '2026-02-28',
-  f_fallback: 'Free shipping on all orders',
-  f_minRating: '4 stars & up',
-  f_count: '6',
-  f_sort: 'Most recent',
-  f_verified: true,
-  f_empty: 'No reviews yet. Be the first to review this product.',
-  f_tone: 'Concise',
-  f_maxlen: '60',
-  f_cadence: 'Weekly',
-  f_sources: '250',
-  f_disclaimer: 'Summary generated from verified customer reviews.',
+
+  // ── Default template ──
+  d_mainText: '',
+  d_supporting: '',
+  d_iconLink: 'https://cdn.oakandluna.com/digital-asset/banners/delivery_icon_oal.svg',
+  d_bgColor: '#693d3d',
+  d_textColor: '#ffffff',
+  d_fontWeight: 'Normal',
+  d_textDecoration: 'None',
+  d_addImage: false,
+  d_imageLink: '',
+  d_imagePlacement: 'left',
+
+  // ── Switch PDPline template ──
+  sw_mainText: '',
+  sw_supporting: '',
+  sw_iconLink: 'https://cdn.oakandluna.com/digital-asset/banners/delivery_icon_oal.svg',
+  sw_bgColor: '#693d3d',
+  sw_textColor: '#ffffff',
+  sw_fontWeight: 'Normal',
+  sw_textDecoration: 'None',
+  sw_switchId: '',
+
+  // ── Reviews template ──
+  rv_iconLink: 'https://cdn.oakandluna.com/digital-asset/banners/delivery_icon_oal.svg',
+  rv_bgColor: '#693d3d',
+  rv_textColor: '#ffffff',
+  rv_slides: [{ quote: '', customerName: '', open: true }],
+
+  // ── AI Review Summary template ──
+  ai_summaryHTML: '',
+  ai_showOnReviews: false,
+  ai_panelTitle: '',
+  ai_basedOn: '',
+  ai_disclaimer: '',
+  ai_ctaText: '',
+  ai_topics: [{ topic: '', summary: '', mention: '', open: true }],
+  ai_showHighlights: false,
+
+  // page + targeting
   pages: { 'Product page': true },
   audience: { 'All visitors': true },
   t_brand: 'All brands',
   t_category: 'All categories',
   t_sku: '',
-  pm_imgLeft: '',
-  pm_imgRight: '',
-  pm_bgColor: '',
-  pm_borderColor: '',
-  pm_media: [{ type: 'video', url: '', vimeo: '' }],
+
   saveLabel: 'SAVE',
 };
 
 let _saveTimer = null;
-let _richHTML = '<div style="font-size:20px;font-weight:700;margin-bottom:8px">Welcome to the Rich Text Editor!</div><div style="color:rgba(0,0,0,0.65)">Lorem ipsum dolor sit amet consectetur adipiscing elit. Ut et massa mi. Aliquam in hendrerit urna. Pellentesque sit amet sapien.</div>';
+let _aiRichHTML = '';
 
 function setState(patch) {
   if (typeof patch === 'function') patch = patch(state);
@@ -125,92 +158,145 @@ function setState(patch) {
 function icon(name, style) {
   return h('span', { class: 'ms', style: style || {} }, name);
 }
-
 function railStyle(active) {
   return { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', padding:'12px 4px', cursor:'pointer', borderRadius:'8px', margin:'0 10px', color: active ? '#4aa3ff' : 'rgba(255,255,255,0.75)', transition:'background 150ms' };
 }
-
 function tabStyle(active) {
-  return `display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 0;cursor:pointer;font-size:15px;font-weight:500;letter-spacing:.6px;color:${active ? '#1976d2' : 'rgba(0,0,0,0.6)'};border-bottom:3px solid ${active ? '#1976d2' : 'transparent'};transition:color 150ms`;
+  return `display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 0;cursor:pointer;font-size:15px;font-weight:500;letter-spacing:.6px;color:${active?'#1976d2':'rgba(0,0,0,0.6)'};border-bottom:3px solid ${active?'#1976d2':'transparent'};transition:color 150ms`;
 }
-
-function ringStyle(active, disabled) {
-  const bc = disabled ? 'rgba(0,0,0,0.22)' : (active ? '#1976d2' : 'rgba(0,0,0,0.45)');
+function ringStyle(active) {
+  const bc = active ? '#1976d2' : 'rgba(0,0,0,0.45)';
   return { width:'22px', height:'22px', borderRadius:'50%', border:`2px solid ${bc}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:'0' };
 }
-
 function boxStyle(checked) {
-  return { width:'22px', height:'22px', borderRadius:'4px', flexShrink:'0', display:'flex', alignItems:'center', justifyContent:'center', background: checked ? '#1976d2' : '#fff', border: `2px solid ${checked ? '#1976d2' : 'rgba(0,0,0,0.4)'}` };
+  return { width:'22px', height:'22px', borderRadius:'4px', flexShrink:'0', display:'flex', alignItems:'center', justifyContent:'center', background: checked?'#1976d2':'#fff', border:`2px solid ${checked?'#1976d2':'rgba(0,0,0,0.4)'}` };
 }
-
 function chipStyle(checked) {
-  return { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 16px', borderRadius:'9999px', fontSize:'15px', cursor:'pointer', border:`1px solid ${checked ? '#1976d2' : 'rgba(0,0,0,0.23)'}`, background: checked ? 'rgba(25,118,210,0.1)' : '#fff', color: checked ? '#1565c0' : 'rgba(0,0,0,0.75)', fontWeight: checked ? 500 : 400 };
+  return { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 16px', borderRadius:'9999px', fontSize:'15px', cursor:'pointer', border:`1px solid ${checked?'#1976d2':'rgba(0,0,0,0.23)'}`, background: checked?'rgba(25,118,210,0.1)':'#fff', color: checked?'#1565c0':'rgba(0,0,0,0.75)', fontWeight: checked?500:400 };
 }
-
 function switchTrack(on) {
-  return { width:'44px', height:'24px', borderRadius:'9999px', background: on ? '#4aa3ff' : 'rgba(0,0,0,0.26)', position:'relative', cursor:'pointer', transition:'background 200ms', padding:'2px', display:'flex', alignItems:'center' };
+  return { width:'44px', height:'24px', borderRadius:'9999px', background:on?'#4aa3ff':'rgba(0,0,0,0.26)', position:'relative', cursor:'pointer', transition:'background 200ms', padding:'2px', display:'flex', alignItems:'center' };
 }
-
 function switchThumb(on) {
-  return { display:'block', width:'20px', height:'20px', borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,0.3)', transform:`translateX(${on ? '20px' : '0'})`, transition:'transform 200ms', flexShrink:'0' };
+  return { display:'block', width:'20px', height:'20px', borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,0.3)', transform:`translateX(${on?'20px':'0'})`, transition:'transform 200ms', flexShrink:'0' };
 }
+function execCmd(cmd, val) { try { document.execCommand(cmd, false, val||null); } catch(e) {} }
 
-function execCmd(cmd, val) {
-  try { document.execCommand(cmd, false, val || null); } catch(e) {}
-}
-
-// ─── STATUS COLORS ────────────────────────────────────────────────────────────
 const statusColors = {
-  Live:      { bg: 'rgba(46,125,50,0.14)',    fg: '#2e7d32', dot: '#2e7d32' },
-  Draft:     { bg: 'rgba(0,0,0,0.08)',         fg: 'rgba(0,0,0,0.7)', dot: 'rgba(0,0,0,0.5)' },
-  Scheduled: { bg: 'rgba(2,136,209,0.14)',     fg: '#0277bd', dot: '#0288d1' },
-  Archived:  { bg: 'rgba(0,0,0,0.08)',         fg: 'rgba(0,0,0,0.55)', dot: 'rgba(0,0,0,0.4)' },
+  Live:      { bg:'rgba(46,125,50,0.14)',  fg:'#2e7d32',         dot:'#2e7d32' },
+  Draft:     { bg:'rgba(0,0,0,0.08)',       fg:'rgba(0,0,0,0.7)', dot:'rgba(0,0,0,0.5)' },
+  Scheduled: { bg:'rgba(2,136,209,0.14)',   fg:'#0277bd',         dot:'#0288d1' },
+  Archived:  { bg:'rgba(0,0,0,0.08)',       fg:'rgba(0,0,0,0.55)',dot:'rgba(0,0,0,0.4)' },
 };
 
-// ─── RICH TEXT TOOLBAR ────────────────────────────────────────────────────────
-function richToolbar() {
-  const btn = (ico, cmd, val) => h('div', { class:'tb', onClick: () => execCmd(cmd, val), style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer' } }, icon(ico, { fontSize:'22px' }));
-  const sep = () => h('div', { style:{ width:'1px', height:'24px', background:'rgba(0,0,0,0.12)', margin:'0 6px' }});
-  return h('div', { style:{ display:'flex', alignItems:'center', gap:'2px', padding:'8px 10px', borderBottom:'1px solid rgba(0,0,0,0.12)' }},
-    h('div', { style:{ display:'flex', alignItems:'center', gap:'6px', padding:'6px 10px', border:'1px solid rgba(0,0,0,0.15)', borderRadius:'5px', fontSize:'14px', marginRight:'10px', cursor:'default' }}, 'Default Regular', icon('arrow_drop_down', { fontSize:'20px' })),
-    h('div', { class:'tb', onClick: () => execCmd('foreColor','#1976d2'), style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer' }}, h('span', { style:{ width:'16px', height:'16px', borderRadius:'50%', background:'#334155', display:'block' }})),
+// ─── shared form components ───────────────────────────────────────────────────
+function fLabel(txt) {
+  return h('div', { style:{ fontSize:'16px', paddingTop:'12px' }}, txt);
+}
+function fInput(val, onInput, opts={}) {
+  return h('input', { value:val, onInput, placeholder:opts.placeholder||'', style:{ width:'100%', height:'50px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', color: opts.color||'inherit', ...opts.style }});
+}
+function fTextarea(val, onInput, opts={}) {
+  const ta = h('textarea', { onInput, placeholder:opts.placeholder||'', style:{ width:'100%', minHeight:'90px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', padding:'12px 14px', fontSize:'15px', lineHeight:'1.5', ...opts.style }});
+  ta.value = val;
+  return ta;
+}
+function fSelect(val, options, onInput) {
+  const sel = h('select', { onInput });
+  options.forEach(o => {
+    const opt = h('option', { value:o }, o);
+    if (o === val) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  return sel;
+}
+function hexColorPicker(label, color, onColorChange, onHexInput) {
+  const wrap = h('div', { class:'hex-wrap' },
+    h('span', { class:'hex-label' }, 'HEX Color'),
+    h('input', { type:'color', value:color,
+      onInput: e => onColorChange(e.target.value) }),
+    h('div', { class:'hex-swatch', style:{ background:color }, onClick:()=>{} }),
+    h('input', { class:'hex-input', value:color,
+      onInput: e => onHexInput(e.target.value) })
+  );
+  return wrap;
+}
+function toggle(on, onClick) {
+  return h('div', { onClick, style: switchTrack(on) }, h('span', { style: switchThumb(on) }));
+}
+
+// ─── rich text toolbar (AI style) ─────────────────────────────────────────────
+function aiRichToolbar() {
+  const btn = (ico, cmd, val, title) => h('div', { class:'tb', title:title||'', onClick:()=>execCmd(cmd,val), style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer' }}, icon(ico, { fontSize:'20px' }));
+  const sep = () => h('div', { style:{ width:'1px', height:'22px', background:'rgba(0,0,0,0.15)', margin:'0 4px' }});
+  return h('div', { style:{ display:'flex', alignItems:'center', gap:'2px', padding:'6px 10px', borderBottom:'1px solid rgba(0,0,0,0.12)', flexWrap:'wrap' }},
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'4px', padding:'4px 8px', border:'1px solid rgba(0,0,0,0.15)', borderRadius:'4px', fontSize:'13px', marginRight:'6px', cursor:'default', minWidth:'70px' }}, 'text1', icon('arrow_drop_down',{fontSize:'18px'})),
+    btn('format_italic','italic',null,'Italic'),
+    btn('format_underlined','underline',null,'Underline'),
+    h('div', { class:'tb', onClick:()=>execCmd('foreColor','#1976d2'), style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer', position:'relative' }},
+      h('span', { style:{ fontSize:'20px', fontFamily:'inherit', fontStyle:'italic', fontWeight:'700', textDecoration:'underline', textDecorationColor:'#e53935', lineHeight:'1', color:'rgba(0,0,0,0.75)' }}, 'A')
+    ),
     sep(),
-    btn('format_bold','bold'), btn('format_italic','italic'), btn('format_underlined','underline'),
+    h('div', { class:'tb', onClick:()=>execCmd('justifyLeft'), style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer' }}, icon('format_align_left',{fontSize:'20px'})),
+    h('div', { class:'tb', style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'default', color:'rgba(0,0,0,0.4)' }}, icon('arrow_drop_down',{fontSize:'18px'})),
     sep(),
-    btn('format_align_left','justifyLeft'), btn('format_align_center','justifyCenter'), btn('format_align_right','justifyRight'),
+    btn('format_list_bulleted','insertUnorderedList',null,'Bullet list'),
+    btn('format_list_numbered','insertOrderedList',null,'Numbered list'),
     sep(),
-    btn('format_list_bulleted','insertUnorderedList'),
-    h('div', { class:'tb', onClick: () => { const u = window.prompt('Link URL'); if(u) execCmd('createLink', u); }, style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer', marginLeft:'auto' }}, icon('link')),
+    h('div', { class:'tb', onClick:()=>{ const u=window.prompt('Link URL'); if(u) execCmd('createLink',u); }, style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer' }}, icon('link',{fontSize:'20px'})),
   );
 }
 
-function richEditor(id) {
-  return h('div', { contenteditable:'true',
-    ref: (el) => { if(el && !el.dataset.bound) { el.dataset.bound='1'; el.innerHTML = _richHTML; }},
-    onInput: (e) => { _richHTML = e.currentTarget.innerHTML; },
-    style:{ minHeight:'170px', background:'#fff', padding:'18px 20px', fontSize:'16px', lineHeight:'1.5' }
-  });
+// ─── accordion component ──────────────────────────────────────────────────────
+function accordion(items, renderBody, onToggle, onRemove) {
+  return h('div', { class:'accordion' },
+    ...items.map((item, i) =>
+      h('div', { class:'accordion-item' },
+        h('div', { class:'accordion-header', onClick:()=>onToggle(i) },
+          icon(item.open ? 'expand_less' : 'expand_more', { fontSize:'20px', color:'rgba(0,0,0,0.54)' }),
+          'Slide ' + (i+1),
+          items.length > 1 ? h('div', { class:'tb', onClick:(e)=>{ e.stopPropagation(); onRemove(i); }, style:{ marginLeft:'auto', width:'30px', height:'30px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', cursor:'pointer', color:'rgba(0,0,0,0.45)' }}, icon('close',{fontSize:'18px'})) : null
+        ),
+        item.open ? h('div', { class:'accordion-body' }, ...renderBody(item, i)) : null
+      )
+    )
+  );
+}
+function addItemRow(count, max, label, onClick) {
+  const disabled = count >= max;
+  return h('div', { class:'add-item-row' },
+    h('div', { class: disabled ? '' : 'add-btn', onClick: disabled ? undefined : onClick,
+      style: disabled ? { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 20px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.35)', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'not-allowed' } : {}
+    }, icon('add',{fontSize:'18px'}), 'ADD ITEM'),
+    h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'rgba(0,0,0,0.6)' }}, `${count} of ${max} items added`)
+  );
+}
+
+// ─── fieldgrid ────────────────────────────────────────────────────────────────
+function fieldGrid(...rows) {
+  return h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'start', maxWidth:'900px', marginTop:'24px' }},
+    ...rows.flat(2)
+  );
 }
 
 // ─── COMPONENTS DATA ──────────────────────────────────────────────────────────
 const compsData = [
-  [1,  'PDP Line',               ['Product page'],                                                           0, 69],
-  [2,  'Header carousel',        ['Category page','Cart page','Home page'],                                  1, 13],
-  [3,  'A2C Messaging',          ['Product page'],                                                           0, 17],
-  [4,  'Category Images',        ['Category page'],                                                          0, 21],
-  [6,  'Topline',                ['Contact informatio…','Product page','Category page'],                     9, 12],
-  [7,  'UGC carousel',           ['Product page'],                                                           0, 21],
-  [8,  'USP Messages',           ['Cart page','Product page'],                                               0, 17],
-  [11, 'Primary Carousel - PDP', ['Product page'],                                                           0, 50],
-  [14, 'Secondary Carousel - PDP',['Product page'],                                                          0,  1],
+  [1,  'PDP Line',               ['Product page'],                                 0, 69],
+  [2,  'Header carousel',        ['Category page','Cart page','Home page'],         1, 13],
+  [3,  'A2C Messaging',          ['Product page'],                                  0, 17],
+  [4,  'Category Images',        ['Category page'],                                 0, 21],
+  [6,  'Topline',                ['Contact informatio…','Product page','Category page'], 9, 12],
+  [7,  'UGC carousel',           ['Product page'],                                  0, 21],
+  [8,  'USP Messages',           ['Cart page','Product page'],                      0, 17],
+  [11, 'Primary Carousel - PDP', ['Product page'],                                  0, 50],
+  [14, 'Secondary Carousel - PDP',['Product page'],                                 0,  1],
 ];
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function render() {
-  const s = state;
   const root = document.getElementById('app');
   root.innerHTML = '';
-  root.appendChild(buildApp(s));
+  root.appendChild(buildApp(state));
 }
 
 function buildApp(s) {
@@ -228,19 +314,18 @@ function buildApp(s) {
 
 // ─── TOP BAR ─────────────────────────────────────────────────────────────────
 function buildTopBar() {
-  return h('div', { style:{ height:'64px', flexShrink:'0', background:'#1a1a1a', color:'#fff', display:'flex', alignItems:'center', padding:'0 20px 0 0', gap:'0' }},
+  return h('div', { style:{ height:'64px', flexShrink:'0', background:'#1a1a1a', color:'#fff', display:'flex', alignItems:'center', padding:'0 20px 0 0' }},
     h('div', { style:{ width:'96px', flexShrink:'0', display:'flex', alignItems:'center', justifyContent:'center', height:'64px' }},
       h('div', { style:{ width:'44px', height:'44px', border:'1.5px solid #fff', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', fontSize:'18px', letterSpacing:'-1px' }}, 'TG')
     ),
     h('div', { style:{ fontWeight:'700', fontSize:'20px', letterSpacing:'8px' }}, 'TENENGROUP'),
     h('div', { style:{ display:'flex', alignItems:'center', gap:'12px', marginLeft:'40px' }},
       h('span', { style:{ fontWeight:'500', fontSize:'19px', letterSpacing:'.3px' }}, 'Experience Manager'),
-      h('span', { style:{ display:'inline-flex', alignItems:'center', gap:'5px', background:'#e53232', color:'#fff', fontSize:'12px', fontWeight:'600', padding:'3px 9px', borderRadius:'6px' }}, icon('rocket_launch', { fontSize:'15px' }), 'Prod'),
+      h('span', { style:{ display:'inline-flex', alignItems:'center', gap:'5px', background:'#e53232', color:'#fff', fontSize:'12px', fontWeight:'600', padding:'3px 9px', borderRadius:'6px' }}, icon('rocket_launch',{fontSize:'15px'}), 'Prod'),
     ),
     h('div', { style:{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'18px' }},
       h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', width:'280px', height:'40px', padding:'0 10px 0 16px', border:'1px solid rgba(255,255,255,0.35)', borderRadius:'5px', fontSize:'15px', cursor:'pointer' }},
-        'TGR US',
-        icon('arrow_drop_down', { fontSize:'22px', color:'rgba(255,255,255,0.7)' })
+        'TGR US', icon('arrow_drop_down',{fontSize:'22px', color:'rgba(255,255,255,0.7)'})
       ),
       h('div', { style:{ width:'38px', height:'38px', borderRadius:'50%', background:'#5a5a5a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:'500', cursor:'pointer' }}, 'TB'),
     )
@@ -249,17 +334,13 @@ function buildTopBar() {
 
 // ─── RAIL ─────────────────────────────────────────────────────────────────────
 function buildRail(s) {
-  const items = [
-    ['home','Home'], ['receipt_long','Orders'], ['grid_view','Category'],
-    ['shopping_cart','Carts'], ['local_shipping','Shipment'], ['account_circle','Accounts'],
-    ['storefront','Catalog'], ['laptop_mac','Experiences'], ['payments','Payments'],
-  ];
+  const items = [['home','Home'],['receipt_long','Orders'],['grid_view','Category'],['shopping_cart','Carts'],['local_shipping','Shipment'],['account_circle','Accounts'],['storefront','Catalog'],['laptop_mac','Experiences'],['payments','Payments']];
   return h('div', { style:{ width:'96px', flexShrink:'0', background:'#1a1a1a', color:'#fff', display:'flex', flexDirection:'column', padding:'16px 0', gap:'2px', overflowY:'auto' }},
     ...items.map(([ico, label]) => {
       const active = label === 'Experiences';
-      return h('div', { class:'navitem', onClick: active ? () => setState({ view:'list' }) : undefined, style: railStyle(active) },
-        icon(ico, { fontSize:'24px' }),
-        h('span', { style:{ fontSize:'11px' }}, label)
+      return h('div', { class:'navitem', onClick: active ? ()=>setState({view:'list'}) : undefined, style: railStyle(active) },
+        icon(ico,{fontSize:'24px'}),
+        h('span', {style:{fontSize:'11px'}}, label)
       );
     })
   );
@@ -269,19 +350,19 @@ function buildRail(s) {
 function buildSecondary(s) {
   const collapsed = s.secondaryCollapsed;
   const items = [['grid_view','Content'],['view_carousel','Banners'],['sell','Promotions'],['science','Experiments']];
-  return h('div', { onClick: () => setState(p => ({ secondaryCollapsed: !p.secondaryCollapsed })),
-    style:{ width: collapsed ? '68px' : '236px', flexShrink:'0', background:'#fff', borderRight:'1px solid rgba(0,0,0,0.12)', display:'flex', flexDirection:'column', padding:`22px ${collapsed ? 10 : 14}px`, transition:'width 200ms', cursor:'pointer' }},
-    ...items.map(([ico, label]) => {
+  return h('div', { onClick:()=>setState(p=>({secondaryCollapsed:!p.secondaryCollapsed})),
+    style:{ width:collapsed?'68px':'236px', flexShrink:'0', background:'#fff', borderRight:'1px solid rgba(0,0,0,0.12)', display:'flex', flexDirection:'column', padding:`22px ${collapsed?10:14}px`, transition:'width 200ms', cursor:'pointer' }},
+    ...items.map(([ico,label]) => {
       const active = label === 'Content';
-      return h('div', { class:'panelitem', onClick: active ? (e) => { e.stopPropagation(); setState({ view:'list' }); } : undefined,
-        style:{ display:'flex', alignItems:'center', gap: collapsed ? '0' : '14px', justifyContent: collapsed ? 'center' : 'flex-start', padding:`11px ${collapsed ? 0 : 12}px`, borderRadius:'8px', cursor:'pointer', marginBottom:'2px', background: active ? 'rgba(25,118,210,0.1)' : 'transparent' }},
-        icon(ico, { fontSize:'22px', color: active ? '#1976d2' : 'rgba(0,0,0,0.55)' }),
-        !collapsed ? h('span', { style:{ fontSize:'15px', fontWeight: active ? 500 : 400, color: active ? '#1976d2' : 'rgba(0,0,0,0.75)' }}, label) : null
+      return h('div', { class:'panelitem', onClick: active?(e)=>{ e.stopPropagation(); setState({view:'list'}); }:undefined,
+        style:{ display:'flex', alignItems:'center', gap:collapsed?'0':'14px', justifyContent:collapsed?'center':'flex-start', padding:`11px ${collapsed?0:12}px`, borderRadius:'8px', cursor:'pointer', marginBottom:'2px', background:active?'rgba(25,118,210,0.1)':'transparent' }},
+        icon(ico,{fontSize:'22px', color:active?'#1976d2':'rgba(0,0,0,0.55)'}),
+        !collapsed ? h('span',{style:{fontSize:'15px',fontWeight:active?500:400,color:active?'#1976d2':'rgba(0,0,0,0.75)'}},label) : null
       );
     }),
-    h('div', { class:'panelitem', style:{ marginTop:'auto', display:'flex', justifyContent: collapsed ? 'center' : 'flex-start', padding:'8px', cursor:'pointer', borderRadius:'8px' }},
+    h('div', { class:'panelitem', style:{ marginTop:'auto', display:'flex', justifyContent:collapsed?'center':'flex-start', padding:'8px', cursor:'pointer', borderRadius:'8px' }},
       h('span', { style:{ display:'inline-flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(0,0,0,0.12)', borderRadius:'50%', padding:'2px' }},
-        icon(collapsed ? 'chevron_right' : 'chevron_left', { fontSize:'22px', color:'rgba(0,0,0,0.4)' })
+        icon(collapsed?'chevron_right':'chevron_left',{fontSize:'22px',color:'rgba(0,0,0,0.4)'})
       )
     )
   );
@@ -290,146 +371,119 @@ function buildSecondary(s) {
 // ─── LIST VIEW ────────────────────────────────────────────────────────────────
 function buildListView(s) {
   return h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)' }},
-    // header
     h('div', { style:{ display:'flex', alignItems:'center', gap:'24px', padding:'26px 32px 20px' }},
       h('h1', { style:{ margin:'0', fontSize:'30px', fontWeight:'400', flexShrink:'0' }}, 'Content Components'),
       h('div', { style:{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'18px' }},
         h('div', { style:{ display:'flex', alignItems:'center', gap:'10px', width:'420px', height:'44px', padding:'0 14px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.4)', cursor:'text' }},
-          icon('search', { fontSize:'22px' }),
-          h('span', { style:{ fontSize:'15px' }}, 'Search by name, id, or supported page')
+          icon('search',{fontSize:'22px'}), h('span',{style:{fontSize:'15px'}},'Search by name, id, or supported page')
         ),
         h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', height:'44px', padding:'0 14px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', fontSize:'15px', color:'rgba(0,0,0,0.6)', cursor:'pointer' }},
-          'Supported pages: ', h('span', { style:{ color:'rgba(0,0,0,0.87)' }}, 'All pages'), icon('arrow_drop_down', { fontSize:'22px' })
+          'Supported pages: ', h('span',{style:{color:'rgba(0,0,0,0.87)'}},'All pages'), icon('arrow_drop_down',{fontSize:'22px'})
         ),
       )
     ),
-    // table header
     h('div', { style:{ display:'grid', gridTemplateColumns:'90px 1fr 1fr 220px 150px', gap:'16px', padding:'12px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', fontWeight:'500' }},
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'4px' }}, 'ID', icon('arrow_upward', { fontSize:'18px', color:'rgba(0,0,0,0.6)' })),
-      h('div', {}, 'Component Name'),
-      h('div', {}, 'Supported Pages'),
-      h('div', {}, 'Last Modified'),
-      h('div', {}, 'Active Variants'),
+      h('div', { style:{ display:'flex', alignItems:'center', gap:'4px' }}, 'ID', icon('arrow_upward',{fontSize:'18px',color:'rgba(0,0,0,0.6)'})),
+      h('div',{},'Component Name'), h('div',{},'Supported Pages'), h('div',{},'Last Modified'), h('div',{},'Active Variants'),
     ),
-    // rows
-    ...compsData.map(([id, name, pages, more, variants]) =>
-      h('div', { class:'row fade', onClick: () => {
-          setState({ view:'editor', componentTitle: name === 'PDP Line' ? 'PDPLine' : name, tab:'content', secondaryCollapsed:true, selectedVariantId:1, variantTab:'active', variantSearch:'' });
-        }, style:{ display:'grid', gridTemplateColumns:'90px 1fr 1fr 220px 150px', gap:'16px', padding:'20px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', cursor:'pointer', alignItems:'center' }},
-        h('div', { style:{ color:'rgba(0,0,0,0.6)' }}, id),
-        h('div', {}, name),
-        h('div', { style:{ display:'flex', flexWrap:'wrap', gap:'8px' }},
-          ...pages.map(p => h('span', { style:{ background:'rgba(0,0,0,0.07)', borderRadius:'9999px', padding:'5px 12px', fontSize:'13px', color:'rgba(0,0,0,0.75)', whiteSpace:'nowrap' }}, p)),
-          more > 0 ? h('span', { style:{ background:'rgba(0,0,0,0.07)', borderRadius:'9999px', padding:'5px 12px', fontSize:'13px', color:'rgba(0,0,0,0.75)' }}, '+' + more) : null
+    ...compsData.map(([id,name,pages,more,variants]) =>
+      h('div', { class:'row', onClick:()=>setState({ view:'editor', componentTitle:name==='PDP Line'?'PDPLine':name, tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'' }),
+        style:{ display:'grid', gridTemplateColumns:'90px 1fr 1fr 220px 150px', gap:'16px', padding:'20px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', cursor:'pointer', alignItems:'center', transition:'background 150ms' }},
+        h('div',{style:{color:'rgba(0,0,0,0.6)'}},id),
+        h('div',{},name),
+        h('div',{style:{display:'flex',flexWrap:'wrap',gap:'8px'}},
+          ...pages.map(p=>h('span',{style:{background:'rgba(0,0,0,0.07)',borderRadius:'9999px',padding:'5px 12px',fontSize:'13px',color:'rgba(0,0,0,0.75)',whiteSpace:'nowrap'}},p)),
+          more>0?h('span',{style:{background:'rgba(0,0,0,0.07)',borderRadius:'9999px',padding:'5px 12px',fontSize:'13px',color:'rgba(0,0,0,0.75)'}},'+'+more):null
         ),
-        h('div', { style:{ color:'rgba(0,0,0,0.7)' }}, '02/06/2026 10:59'),
-        h('div', {}, variants),
+        h('div',{style:{color:'rgba(0,0,0,0.7)'}},'02/06/2026 10:59'),
+        h('div',{},variants),
       )
     ),
-    // pagination
     h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'26px', padding:'16px 32px', fontSize:'14px', color:'rgba(0,0,0,0.6)' }},
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'6px' }}, 'Rows per page:', h('span', { style:{ color:'rgba(0,0,0,0.87)' }}, '15'), icon('arrow_drop_down', { fontSize:'20px' })),
-      h('div', {}, '1–9 of 9'),
-      h('div', { style:{ display:'flex', gap:'8px' }}, icon('chevron_left', { style:{}, style2: null, fontSize:'22px', color:'rgba(0,0,0,0.26)' }), icon('chevron_right', { fontSize:'22px', color:'rgba(0,0,0,0.26)' })),
+      h('div',{style:{display:'flex',alignItems:'center',gap:'6px'}},'Rows per page:',h('span',{style:{color:'rgba(0,0,0,0.87)'}},'15'),icon('arrow_drop_down',{fontSize:'20px'})),
+      h('div',{},'1–9 of 9'),
+      h('div',{style:{display:'flex',gap:'8px'}},icon('chevron_left',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}),icon('chevron_right',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}))
     )
   );
 }
 
 // ─── EDITOR VIEW ─────────────────────────────────────────────────────────────
 function buildEditorView(s) {
-  return h('div', { style:{ display:'flex', gap:'24px', alignItems:'flex-start' }},
+  return h('div', {style:{display:'flex',gap:'24px',alignItems:'flex-start'}},
     buildVariantPanel(s),
     buildFormCard(s),
   );
 }
 
 function buildVariantPanel(s) {
-  const activeVs = s.variants.filter(v => v.status === 'active');
-  const archivedVs = s.variants.filter(v => v.status === 'archived');
+  const activeVs = s.variants.filter(v=>v.status==='active');
+  const archivedVs = s.variants.filter(v=>v.status==='archived');
   const q = s.variantSearch.trim().toLowerCase();
-  const shownVs = (s.variantTab === 'active' ? activeVs : archivedVs).filter(v => !q || (v.name||'new variant').toLowerCase().includes(q));
-
-  function mkTabStyle(key) {
-    const on = s.variantTab === key;
-    return { style:`display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:9999px;font-size:14px;font-weight:500;cursor:pointer;background:${on ? '#1976d2' : 'transparent'};color:${on ? '#fff' : 'rgba(0,0,0,0.6)'}`,
-             badge:`min-width:20px;height:20px;padding:0 6px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:${on ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)'};color:${on ? '#fff' : 'rgba(0,0,0,0.6)'}` };
+  const shownVs = (s.variantTab==='active'?activeVs:archivedVs).filter(v=>!q||(v.name||'new variant').toLowerCase().includes(q));
+  function mkTab(key) {
+    const on = s.variantTab===key;
+    return { s:`display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:9999px;font-size:14px;font-weight:500;cursor:pointer;background:${on?'#1976d2':'transparent'};color:${on?'#fff':'rgba(0,0,0,0.6)'}`,
+             b:`min-width:20px;height:20px;padding:0 6px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:${on?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.1)'};color:${on?'#fff':'rgba(0,0,0,0.6)'}` };
   }
-  const at = mkTabStyle('active'), art = mkTabStyle('archived');
-
+  const at=mkTab('active'), art=mkTab('archived');
   return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
-    // back + add
     h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'6px' }},
-      h('div', { class:'tb', onClick: () => setState({ view:'list' }), style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
-      h('div', { onClick: () => setState(prev => {
-          const id = Math.max(0, ...prev.variants.map(v => v.id)) + 1;
-          return { variants:[...prev.variants, { id, name:'', status:'active' }], selectedVariantId:id, variantTab:'active' };
-        }), style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
-        icon('add', { fontSize:'20px' }), 'ADD VARIANT'
+      h('div', { class:'tb', onClick:()=>setState({view:'list'}), style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
+      h('div', { onClick:()=>setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active'}], selectedVariantId:id, variantTab:'active' }; }),
+        style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
+        icon('add',{fontSize:'20px'}), 'ADD VARIANT'
       )
     ),
     h('h1', { style:{ margin:'6px 0 20px', fontSize:'30px', fontWeight:'700' }}, s.componentTitle),
-    // search
     h('div', { style:{ display:'flex', alignItems:'center', gap:'10px', height:'48px', padding:'0 14px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.45)', marginBottom:'22px' }},
-      icon('search', { fontSize:'22px' }),
-      h('input', { value: s.variantSearch, onInput: e => setState({ variantSearch: e.target.value }), placeholder:'Search by variant name or SKU', style:{ border:'none', outline:'none', flex:'1', fontSize:'15px', background:'transparent', color:'rgba(0,0,0,0.87)' }})
+      icon('search',{fontSize:'22px'}),
+      h('input', { value:s.variantSearch, onInput:e=>setState({variantSearch:e.target.value}), placeholder:'Search by variant name or SKU', style:{ border:'none', outline:'none', flex:'1', fontSize:'15px', background:'transparent', color:'rgba(0,0,0,0.87)' }})
     ),
-    // variant header
     h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'14px' }},
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'6px', fontSize:'15px', fontWeight:'600', color:'rgba(0,0,0,0.7)' }}, 'Variant', icon('info', { fontSize:'18px', color:'rgba(0,0,0,0.4)' })),
-      h('div', { style:{ marginLeft:'auto', display:'flex', gap:'8px', color:'rgba(0,0,0,0.5)' }}, icon('sort', { fontSize:'22px' }), icon('filter_list', { fontSize:'22px' })),
+      h('div', { style:{ display:'flex', alignItems:'center', gap:'6px', fontSize:'15px', fontWeight:'600', color:'rgba(0,0,0,0.7)' }}, 'Variant', icon('info',{fontSize:'18px',color:'rgba(0,0,0,0.4)'})),
+      h('div', { style:{ marginLeft:'auto', display:'flex', gap:'8px', color:'rgba(0,0,0,0.5)' }}, icon('sort',{fontSize:'22px'}), icon('filter_list',{fontSize:'22px'})),
     ),
-    // tabs
     h('div', { style:{ display:'flex', gap:'10px', marginBottom:'16px' }},
-      h('div', { onClick: () => setState({ variantTab:'active' }), style: at.style },
-        'Active', h('span', { style: at.badge }, activeVs.length)
-      ),
-      h('div', { onClick: () => setState({ variantTab:'archived' }), style: art.style },
-        'Archived', h('span', { style: art.badge }, archivedVs.length)
-      ),
+      h('div', { onClick:()=>setState({variantTab:'active'}), style:at.s }, 'Active', h('span',{style:at.b},activeVs.length)),
+      h('div', { onClick:()=>setState({variantTab:'archived'}), style:art.s }, 'Archived', h('span',{style:art.b},archivedVs.length)),
     ),
-    // variant list
     h('div', { style:{ flex:'1', overflowY:'auto' }},
       ...shownVs.map(v =>
-        h('div', { onClick: () => setState({ selectedVariantId: v.id }),
-          style:{ padding:'16px 18px', borderRadius:'8px', fontSize:'16px', cursor:'pointer', marginBottom:'8px', border:`1px solid ${v.id===s.selectedVariantId ? '#90caf9' : 'rgba(0,0,0,0.12)'}`, background: v.id===s.selectedVariantId ? '#e9f3fc' : '#fff', color:'rgba(0,0,0,0.87)', transition:'background 150ms' }},
+        h('div', { onClick:()=>setState({selectedVariantId:v.id}),
+          style:{ padding:'16px 18px', borderRadius:'8px', fontSize:'16px', cursor:'pointer', marginBottom:'8px', border:`1px solid ${v.id===s.selectedVariantId?'#90caf9':'rgba(0,0,0,0.12)'}`, background:v.id===s.selectedVariantId?'#e9f3fc':'#fff', transition:'background 150ms' }},
           v.name || 'New Variant'
         )
       ),
-      shownVs.length === 0 ? h('div', { style:{ padding:'24px 8px', fontSize:'14px', color:'rgba(0,0,0,0.5)' }}, 'No variants found.') : null
+      shownVs.length===0 ? h('div',{style:{padding:'24px 8px',fontSize:'14px',color:'rgba(0,0,0,0.5)'}},'No variants found.') : null
     )
   );
 }
 
 function buildFormCard(s) {
-  const selV = s.variants.find(v => v.id === s.selectedVariantId);
+  const selV = s.variants.find(v=>v.id===s.selectedVariantId);
   const sc = statusColors[s.status];
-  const statusPillStyle = `display:inline-flex;align-items:center;gap:4px;padding:8px 10px 8px 16px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;background:${sc.bg};color:${sc.fg}`;
-
   return h('div', { style:{ flex:'1', minWidth:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)', display:'flex', flexDirection:'column' }},
-    // form header
+    // header
     h('div', { style:{ padding:'22px 40px 0' }},
       h('div', { style:{ display:'flex', alignItems:'center', gap:'20px', flexWrap:'wrap', rowGap:'14px' }},
         h('div', { style:{ display:'flex', alignItems:'center', gap:'16px', flex:'1', minWidth:'0' }},
           h('div', { style:{ fontSize:'18px', fontWeight:'600', flexShrink:'0' }}, 'Variant Name:'),
-          h('input', { value: selV ? selV.name : '', placeholder:'Variant name', onInput: e => {
-              const v = e.target.value;
-              setState(prev => ({ variants: prev.variants.map(x => x.id===prev.selectedVariantId ? {...x, name:v} : x) }));
-            }, style:{ flex:'1', maxWidth:'440px', height:'48px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'16px' }})
+          h('input', { value:selV?selV.name:'', placeholder:'Variant name', onInput:e=>{ const v=e.target.value; setState(prev=>({ variants:prev.variants.map(x=>x.id===prev.selectedVariantId?{...x,name:v}:x) })); }, style:{ flex:'1', maxWidth:'440px', height:'48px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'16px' }})
         ),
         h('div', { style:{ flexShrink:'0', display:'flex', alignItems:'center', gap:'6px' }},
           ...['library_add','visibility','edit_calendar','archive'].map(ico =>
-            h('div', { class:'tb', style:{ width:'40px', height:'40px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.55)' }}, icon(ico, { fontSize:'23px' }))
+            h('div', { class:'tb', style:{ width:'40px', height:'40px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.55)' }}, icon(ico,{fontSize:'23px'}))
           ),
           h('div', { style:{ width:'1px', height:'26px', background:'rgba(0,0,0,0.15)', margin:'0 8px' }}),
           h('div', { style:{ position:'relative' }},
-            h('div', { onClick: () => setState(p => ({ statusOpen: !p.statusOpen })), style: statusPillStyle },
-              s.status, icon('arrow_drop_down', { fontSize:'20px' })
+            h('div', { onClick:()=>setState(p=>({statusOpen:!p.statusOpen})),
+              style:{ display:'inline-flex', alignItems:'center', gap:'4px', padding:'8px 10px 8px 16px', borderRadius:'8px', fontSize:'15px', fontWeight:'600', cursor:'pointer', background:sc.bg, color:sc.fg }},
+              s.status, icon('arrow_drop_down',{fontSize:'20px'})
             ),
             s.statusOpen ? h('div', { style:{ position:'absolute', top:'44px', right:'0', background:'#fff', borderRadius:'6px', boxShadow:'0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14)', padding:'6px 0', minWidth:'150px', zIndex:'20' }},
               ...['Live','Draft','Scheduled','Archived'].map(k =>
-                h('div', { class:'panelitem', onClick: () => setState({ status:k, statusOpen:false }), style:{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', fontSize:'14px', cursor:'pointer' }},
-                  h('span', { style:{ width:'9px', height:'9px', borderRadius:'50%', background: statusColors[k].dot, display:'block', flexShrink:'0' }}),
-                  k
+                h('div', { class:'panelitem', onClick:()=>setState({status:k,statusOpen:false}), style:{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', fontSize:'14px', cursor:'pointer' }},
+                  h('span',{style:{width:'9px',height:'9px',borderRadius:'50%',background:statusColors[k].dot,display:'block',flexShrink:'0'}}), k
                 )
               )
             ) : null
@@ -439,9 +493,9 @@ function buildFormCard(s) {
     ),
     // tabs
     h('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid rgba(0,0,0,0.12)', margin:'22px 0 0' }},
-      h('div', { onClick: () => setState({ tab:'content' }), style: tabStyle(s.tab==='content') }, icon('article', { fontSize:'22px' }), 'CONTENT'),
-      h('div', { onClick: () => setState({ tab:'page' }), style: tabStyle(s.tab==='page') }, icon('web_asset', { fontSize:'22px' }), 'PAGE'),
-      h('div', { onClick: () => setState({ tab:'targeting' }), style: tabStyle(s.tab==='targeting') }, icon('ads_click', { fontSize:'22px' }), 'TARGETING'),
+      h('div', { onClick:()=>setState({tab:'content'}), style:tabStyle(s.tab==='content') }, icon('article',{fontSize:'22px'}), 'CONTENT'),
+      h('div', { onClick:()=>setState({tab:'page'}), style:tabStyle(s.tab==='page') }, icon('web_asset',{fontSize:'22px'}), 'PAGE'),
+      h('div', { onClick:()=>setState({tab:'targeting'}), style:tabStyle(s.tab==='targeting') }, icon('ads_click',{fontSize:'22px'}), 'TARGETING'),
     ),
     h('div', { style:{ flex:'1', padding:'32px 40px', overflowY:'auto' }},
       s.tab==='content'  ? buildContentTab(s) :
@@ -450,16 +504,10 @@ function buildFormCard(s) {
     ),
     // footer
     h('div', { style:{ borderTop:'1px solid rgba(0,0,0,0.12)', padding:'18px 40px', display:'flex', alignItems:'center' }},
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:'rgba(0,0,0,0.55)' }}, icon('history', { fontSize:'20px' }), 'last updated at: 10 minutes ago'),
+      h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:'rgba(0,0,0,0.55)' }}, icon('history',{fontSize:'20px'}), 'last updated at: 10 minutes ago'),
       h('div', { style:{ marginLeft:'auto', display:'flex', gap:'14px' }},
-        h('div', { onClick: () => setState({ view:'list' }), style:{ padding:'10px 22px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'rgba(0,0,0,0.6)', cursor:'pointer' }}, 'CANCEL'),
-        h('div', { onClick: () => {
-            setState({ saveLabel:'SAVED ✓' });
-            clearTimeout(_saveTimer);
-            _saveTimer = setTimeout(() => setState({ saveLabel:'SAVE' }), 1600);
-          }, style:{ padding:'10px 30px', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'#fff', background:'#1976d2', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
-          s.saveLabel
-        )
+        h('div', { onClick:()=>setState({view:'list'}), style:{ padding:'10px 22px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'rgba(0,0,0,0.6)', cursor:'pointer' }}, 'CANCEL'),
+        h('div', { onClick:()=>{ setState({saveLabel:'SAVED ✓'}); clearTimeout(_saveTimer); _saveTimer=setTimeout(()=>setState({saveLabel:'SAVE'}),1600); }, style:{ padding:'10px 30px', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'#fff', background:'#1976d2', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }}, s.saveLabel)
       )
     )
   );
@@ -468,176 +516,123 @@ function buildFormCard(s) {
 // ─── CONTENT TAB ─────────────────────────────────────────────────────────────
 function buildContentTab(s) {
   const templates = [
-    ['default','Text'], ['switch','Product Switch'], ['reviews','Reviews'], ['ai','AI Review Summary'], ['popup','Popup Media'],
+    ['default','Default'], ['switch','Switch PDPline'], ['reviews','Reviews'], ['ai','AI Review Summary'],
   ];
-  const disabled = k => k === 'switch' || k === 'reviews' || k === 'ai';
-
-  return h('div', {},
-    h('div', { style:{ display:'flex', alignItems:'center', gap:'36px', marginBottom:'8px' }},
-      h('div', { style:{ fontSize:'18px', fontWeight:'600', width:'110px', flexShrink:'0' }}, 'Template:'),
-      h('div', { style:{ display:'flex', gap:'34px', flexWrap:'wrap' }},
-        ...templates.map(([key, label]) =>
-          h('div', { onClick: disabled(key) ? undefined : () => setState({ template:key }),
-            style:{ display:'flex', alignItems:'center', gap:'9px', fontSize:'17px', cursor: disabled(key) ? 'not-allowed' : 'pointer', color: disabled(key) ? 'rgba(0,0,0,0.35)' : 'inherit' }},
-            h('span', { style: ringStyle(s.template===key, disabled(key)) },
-              s.template===key && !disabled(key) ? h('span', { style:{ width:'11px', height:'11px', borderRadius:'50%', background:'#1976d2', display:'block' }}) : null
+  return h('div',{},
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'28px', flexWrap:'wrap', marginBottom:'4px' }},
+      h('div', { style:{ fontSize:'16px', fontWeight:'600', flexShrink:'0' }}, 'Template:'),
+      h('div', { style:{ display:'flex', gap:'28px', flexWrap:'wrap' }},
+        ...templates.map(([key,label]) =>
+          h('div', { onClick:()=>setState({template:key}),
+            style:{ display:'flex', alignItems:'center', gap:'9px', fontSize:'16px', cursor:'pointer' }},
+            h('span', { style:ringStyle(s.template===key) },
+              s.template===key ? h('span',{style:{width:'11px',height:'11px',borderRadius:'50%',background:'#1976d2',display:'block'}}) : null
             ),
             label
           )
         )
       )
     ),
-    s.template === 'default' ? buildDefaultTemplate(s) :
-    s.template === 'switch'  ? buildSwitchTemplate(s) :
-    s.template === 'reviews' ? buildReviewsTemplate(s) :
-    s.template === 'ai'      ? buildAiTemplate(s) :
-    s.template === 'popup'   ? buildPopupTemplate(s) : null
+    s.template==='default'  ? buildDefaultTemplate(s) :
+    s.template==='switch'   ? buildSwitchTemplate(s) :
+    s.template==='reviews'  ? buildReviewsTemplate(s) :
+    s.template==='ai'       ? buildAiTemplate(s) : null
   );
 }
 
-function fieldGrid(...rows) {
-  return h('div', { style:{ display:'grid', gridTemplateColumns:'150px 1fr', gap:'26px 24px', alignItems:'start', marginTop:'30px', maxWidth:'1180px' }},
-    ...rows.flat()
-  );
-}
-function label(txt) { return h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, txt); }
-function textInput(val, onInput, extra) {
-  return h('input', { value: val, onInput, style:{ width:'100%', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', ...extra }});
-}
-function dropdown(val) {
-  return h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', maxWidth:'520px', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', cursor:'pointer' }},
-    val, icon('arrow_drop_down', { fontSize:'22px', color:'rgba(0,0,0,0.5)' })
-  );
+// helper: color field updater
+function setColor(key, hex) {
+  // normalize: if no # prefix add it
+  const val = hex.startsWith('#') ? hex : '#'+hex;
+  setState({[key]: val});
 }
 
+// ── DEFAULT template ──────────────────────────────────────────────────────────
 function buildDefaultTemplate(s) {
   return fieldGrid(
-    [h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Text*:'),
-     h('div', { style:{ border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', overflow:'hidden' }},
-       richToolbar(), richEditor()
-     )],
-    [label('Icon link:'),
-     h('input', { value:s.iconLink, onInput:e=>setState({iconLink:e.target.value}), style:{ width:'100%', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', color:'#1976d2' }})],
-    [label('Klaviyo form MB:'), textInput(s.klaviyoMB, e=>setState({klaviyoMB:e.target.value}))],
-    [label('Klaviyo form DT:'), textInput(s.klaviyoDT, e=>setState({klaviyoDT:e.target.value}))],
-    [h('div', { style:{ fontSize:'17px', paddingTop:'6px' }}, 'Add Image:'),
-     h('div', { onClick:()=>setState(p=>({addImage:!p.addImage})), style: switchTrack(s.addImage) },
-       h('span', { style: switchThumb(s.addImage) })
-     )],
-    s.addImage ? [
-      [label('Image link:'),
-       h('div', {},
-         textInput(s.imageLink, e=>setState({imageLink:e.target.value})),
-         h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.55)', marginTop:'7px' }}, 'Images must be between 24px to 100px')
-       )],
-      [h('div', { style:{ fontSize:'17px', paddingTop:'2px' }}, 'Image placement:'),
-       h('div', { style:{ display:'flex', alignItems:'center', gap:'34px' }},
-         ...(['left','right','full width']).map((k, i) => {
-           const key = ['left','right','full'][i];
-           return h('div', { onClick:()=>setState({imagePlacement:key}), style:{ display:'flex', alignItems:'center', gap:'9px', cursor:'pointer', fontSize:'17px' }},
-             h('span', { style: ringStyle(s.imagePlacement===key) },
-               s.imagePlacement===key ? h('span', { style:{ width:'11px', height:'11px', borderRadius:'50%', background:'#1976d2', display:'block' }}) : null
-             ),
-             k.charAt(0).toUpperCase()+k.slice(1)
-           );
-         })
-       )]
-    ] : []
+    [fLabel('Main Text*:'), fInput(s.d_mainText, e=>setState({d_mainText:e.target.value}))],
+    [fLabel('Supporting text:'), fInput(s.d_supporting, e=>setState({d_supporting:e.target.value}))],
+    [fLabel('Icon link:'), fInput(s.d_iconLink, e=>setState({d_iconLink:e.target.value}), {color:'#1976d2'})],
+    [fLabel('Background Color*:'), hexColorPicker('Background Color*', s.d_bgColor, c=>setState({d_bgColor:c}), c=>setColor('d_bgColor',c))],
+    [fLabel('Text color:'), hexColorPicker('Text color', s.d_textColor, c=>setState({d_textColor:c}), c=>setColor('d_textColor',c))],
+    [fLabel('Font weight*:'), fSelect(s.d_fontWeight, ['Normal','Bold','Light'], e=>setState({d_fontWeight:e.target.value}))],
+    [fLabel('Text decoration*:'), fSelect(s.d_textDecoration, ['None','Underline','Line-through'], e=>setState({d_textDecoration:e.target.value}))],
   );
 }
 
+// ── SWITCH PDPLINE template ───────────────────────────────────────────────────
 function buildSwitchTemplate(s) {
   return fieldGrid(
-    [label('Original PDP line:'), dropdown(s.f_origin)],
-    [label('Replacement PDP line:'), dropdown(s.f_replacement)],
-    [label('Switch start date:'), textInput(s.f_start, e=>setState({f_start:e.target.value}), {maxWidth:'260px'})],
-    [label('Switch end date:'), textInput(s.f_end, e=>setState({f_end:e.target.value}), {maxWidth:'260px'})],
-    [label('Fallback text:'), textInput(s.f_fallback, e=>setState({f_fallback:e.target.value}))],
+    [fLabel('Main Text*:'), fInput(s.sw_mainText, e=>setState({sw_mainText:e.target.value}))],
+    [fLabel('Supporting text:'), fInput(s.sw_supporting, e=>setState({sw_supporting:e.target.value}))],
+    [fLabel('Icon link:'), fInput(s.sw_iconLink, e=>setState({sw_iconLink:e.target.value}), {color:'#1976d2'})],
+    [fLabel('Background Color*:'), hexColorPicker('Background Color*', s.sw_bgColor, c=>setState({sw_bgColor:c}), c=>setColor('sw_bgColor',c))],
+    [fLabel('Text color:'), hexColorPicker('Text color', s.sw_textColor, c=>setState({sw_textColor:c}), c=>setColor('sw_textColor',c))],
+    [fLabel('Font weight*:'), fSelect(s.sw_fontWeight, ['Normal','Bold','Light'], e=>setState({sw_fontWeight:e.target.value}))],
+    [fLabel('Text decoration*:'), fSelect(s.sw_textDecoration, ['None','Underline','Line-through'], e=>setState({sw_textDecoration:e.target.value}))],
+    [fLabel('Switch ID:'), fInput(s.sw_switchId, e=>setState({sw_switchId:e.target.value}))],
   );
 }
 
+// ── REVIEWS template ──────────────────────────────────────────────────────────
 function buildReviewsTemplate(s) {
-  return fieldGrid(
-    [label('Minimum rating:'), h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', maxWidth:'260px', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', cursor:'pointer' }}, s.f_minRating, icon('arrow_drop_down', { fontSize:'22px', color:'rgba(0,0,0,0.5)' }))],
-    [label('Reviews to display:'), textInput(s.f_count, e=>setState({f_count:e.target.value}), {maxWidth:'160px'})],
-    [label('Sort by:'), h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', maxWidth:'320px', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', cursor:'pointer' }}, s.f_sort, icon('arrow_drop_down', { fontSize:'22px', color:'rgba(0,0,0,0.5)' }))],
-    [h('div', { style:{ fontSize:'17px', paddingTop:'6px' }}, 'Verified badge:'), h('div', { onClick:()=>setState(p=>({f_verified:!p.f_verified})), style:switchTrack(s.f_verified) }, h('span', { style:switchThumb(s.f_verified) }))],
-    [label('Empty state text:'), textInput(s.f_empty, e=>setState({f_empty:e.target.value}))],
-  );
-}
-
-function buildAiTemplate(s) {
-  return fieldGrid(
-    [label('Summary tone:'), h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', maxWidth:'320px', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', cursor:'pointer' }}, s.f_tone, icon('arrow_drop_down', { fontSize:'22px', color:'rgba(0,0,0,0.5)' }))],
-    [label('Max length (words):'), textInput(s.f_maxlen, e=>setState({f_maxlen:e.target.value}), {maxWidth:'160px'})],
-    [label('Refresh cadence:'), h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', maxWidth:'320px', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', cursor:'pointer' }}, s.f_cadence, icon('arrow_drop_down', { fontSize:'22px', color:'rgba(0,0,0,0.5)' }))],
-    [label('Source reviews:'), textInput(s.f_sources, e=>setState({f_sources:e.target.value}), {maxWidth:'160px'})],
-    [label('Disclaimer text:'), textInput(s.f_disclaimer, e=>setState({f_disclaimer:e.target.value}))],
-  );
-}
-
-function buildPopupTemplate(s) {
-  const ringEl = (active) => h('span', { style: ringStyle(active) }, active ? h('span', { style:{ width:'11px', height:'11px', borderRadius:'50%', background:'#1976d2', display:'block' }}) : null);
-
   return h('div', {},
-    h('div', { style:{ fontSize:'20px', fontWeight:'600', margin:'8px 0 26px' }}, 'PDP Content'),
-    h('div', { style:{ display:'grid', gridTemplateColumns:'150px 1fr', gap:'26px 24px', alignItems:'start', maxWidth:'1180px' }},
-      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Text:'),
-      h('div', { style:{ border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', overflow:'hidden' }}, richToolbar(), richEditor()),
-      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Image Link (left):'),
-      h('div', {},
-        textInput(s.pm_imgLeft, e=>setState({pm_imgLeft:e.target.value})),
-        h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.55)', marginTop:'7px' }}, 'Images must be between 24px and 100px')
-      ),
-      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Image Link (right):'),
-      h('div', {},
-        textInput(s.pm_imgRight, e=>setState({pm_imgRight:e.target.value})),
-        h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.55)', marginTop:'7px' }}, 'Images must be between 24px and 100px')
-      ),
-      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Background Color:'),
-      textInput(s.pm_bgColor, e=>setState({pm_bgColor:e.target.value})),
-      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Border Color:'),
-      textInput(s.pm_borderColor, e=>setState({pm_borderColor:e.target.value})),
+    fieldGrid(
+      [fLabel('Icon link:'), fInput(s.rv_iconLink, e=>setState({rv_iconLink:e.target.value}), {color:'#1976d2'})],
+      [fLabel('Background Color*:'), hexColorPicker('Background Color*', s.rv_bgColor, c=>setState({rv_bgColor:c}), c=>setColor('rv_bgColor',c))],
+      [fLabel('Text color:'), hexColorPicker('Text color', s.rv_textColor, c=>setState({rv_textColor:c}), c=>setColor('rv_textColor',c))],
     ),
-    h('div', { style:{ height:'1px', background:'rgba(0,0,0,0.12)', margin:'36px 0' }}),
-    h('div', { style:{ fontSize:'20px', fontWeight:'600', margin:'0 0 24px' }}, 'Popup Content'),
-    h('div', { style:{ border:'1px solid rgba(0,0,0,0.18)', borderRadius:'8px', maxWidth:'1180px', overflow:'hidden' }},
-      ...s.pm_media.map((m, i) =>
-        h('div', { style:{ padding:'24px 28px', borderBottom:'1px solid rgba(0,0,0,0.12)' }},
-          h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'20px' }},
-            h('div', { style:{ fontSize:'14px', fontWeight:'700', letterSpacing:'.5px' }}, 'MEDIA #' + (i+1)),
-            s.pm_media.length > 1 ? h('div', { class:'tb', onClick: () => setState(prev => ({ pm_media: prev.pm_media.filter((_,idx)=>idx!==i) })), style:{ marginLeft:'auto', width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer', color:'rgba(0,0,0,0.45)' }}, icon('close', { fontSize:'22px' })) : null
-          ),
-          h('div', { style:{ display:'grid', gridTemplateColumns:'150px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'1000px' }},
-            h('div', { style:{ fontSize:'17px' }}, 'Media Type:'),
-            h('div', { style:{ display:'flex', gap:'44px' }},
-              h('div', { onClick:()=>setState(prev=>({ pm_media: prev.pm_media.map((x,idx)=>idx===i?{...x,type:'video'}:x) })), style:{ display:'flex', alignItems:'center', gap:'9px', cursor:'pointer', fontSize:'17px' }}, ringEl(m.type==='video'), 'Video'),
-              h('div', { onClick:()=>setState(prev=>({ pm_media: prev.pm_media.map((x,idx)=>idx===i?{...x,type:'image'}:x) })), style:{ display:'flex', alignItems:'center', gap:'9px', cursor:'pointer', fontSize:'17px' }}, ringEl(m.type==='image'), 'Image'),
-            ),
-            m.type==='video' ? [
-              h('div', { style:{ fontSize:'17px' }}, 'Vimeo ID:'),
-              h('div', {},
-                h('input', { value:m.vimeo||'', onInput:e=>{const v=e.target.value;setState(prev=>({pm_media:prev.pm_media.map((x,idx)=>idx===i?{...x,vimeo:v}:x)}))}, style:{ width:'100%', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px' }}),
-                h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.55)', marginTop:'7px' }}, 'Video aspect ratio should be 1080 × 1920')
-              )
-            ] : [
-              h('div', { style:{ fontSize:'17px' }}, 'URL:'),
-              h('div', {},
-                h('input', { value:m.url||'', onInput:e=>{const v=e.target.value;setState(prev=>({pm_media:prev.pm_media.map((x,idx)=>idx===i?{...x,url:v}:x)}))}, style:{ width:'100%', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px' }}),
-                h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.55)', marginTop:'7px' }}, 'Image aspect ratio should be 1080 × 1920')
-              )
-            ]
-          )
-        )
-      ),
-      h('div', { style:{ padding:'20px 28px', display:'flex', alignItems:'center' }},
-        h('div', { onClick: s.pm_media.length>=6 ? undefined : ()=>setState(prev=>({ pm_media:[...prev.pm_media,{type:'image',url:'',vimeo:''}] })),
-          style: s.pm_media.length>=6
-            ? { display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 22px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'5px', color:'rgba(0,0,0,0.35)', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'not-allowed' }
-            : { display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 22px', border:'1px solid rgba(25,118,210,0.5)', borderRadius:'5px', color:'#1976d2', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer' }
-        }, icon('add', { fontSize:'20px' }), 'ADD MEDIA'),
-        h('div', { style:{ marginLeft:'auto', fontSize:'15px', color:'rgba(0,0,0,0.6)' }}, s.pm_media.length + ' of 6 media')
-      )
+    h('div', { class:'section-title' }, 'Reviews*:'),
+    accordion(
+      s.rv_slides,
+      (item, i) => [
+        fLabel('Quote:'), fInput(item.quote, e=>{ const v=e.target.value; setState(p=>({ rv_slides:p.rv_slides.map((x,j)=>j===i?{...x,quote:v}:x) })); }),
+        fLabel('Customer name:'), fInput(item.customerName, e=>{ const v=e.target.value; setState(p=>({ rv_slides:p.rv_slides.map((x,j)=>j===i?{...x,customerName:v}:x) })); }),
+      ],
+      (i) => setState(p=>({ rv_slides:p.rv_slides.map((x,j)=>j===i?{...x,open:!x.open}:x) })),
+      (i) => setState(p=>({ rv_slides:p.rv_slides.filter((_,j)=>j!==i) }))
+    ),
+    addItemRow(s.rv_slides.length, 8, 'reviews', ()=>setState(p=>({ rv_slides:[...p.rv_slides,{quote:'',customerName:'',open:true}] })))
+  );
+}
+
+// ── AI REVIEW SUMMARY template ────────────────────────────────────────────────
+function buildAiTemplate(s) {
+  return h('div', {},
+    h('div', { class:'section-title' }, 'PDP Content:'),
+    fieldGrid(
+      [fLabel('Summary Text*:'),
+       h('div', { style:{ border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', overflow:'hidden' }},
+         aiRichToolbar(),
+         h('div', { contenteditable:'true',
+           ref:(el)=>{ if(el&&!el.dataset.bound){ el.dataset.bound='1'; el.innerHTML=_aiRichHTML; }},
+           onInput:(e)=>{ _aiRichHTML=e.currentTarget.innerHTML; },
+           style:{ minHeight:'140px', background:'#fff', padding:'14px 16px', fontSize:'15px', lineHeight:'1.5' }
+         })
+       )],
+      [fLabel('Show on Product Reviews:'), toggle(s.ai_showOnReviews, ()=>setState(p=>({ai_showOnReviews:!p.ai_showOnReviews})))],
+    ),
+    h('div', { class:'section-title' }, 'Panel Content:'),
+    fieldGrid(
+      [fLabel('Title*:'), fInput(s.ai_panelTitle, e=>setState({ai_panelTitle:e.target.value}), {placeholder:'e.g "Customers Are Saying"'})],
+      [fLabel('Based on text*:'), fInput(s.ai_basedOn, e=>setState({ai_basedOn:e.target.value}), {placeholder:'Based on {{numberOfReviews}} reviews'})],
+      [fLabel('AI Disclaimer*:'), fInput(s.ai_disclaimer, e=>setState({ai_disclaimer:e.target.value}), {placeholder:'e.g "AI Generated from Customer Reviews"'})],
+      [fLabel('CTA Text*:'), fInput(s.ai_ctaText, e=>setState({ai_ctaText:e.target.value}), {placeholder:'Read All Reviews'})],
+    ),
+    h('div', { class:'section-title' }, 'Topics:'),
+    accordion(
+      s.ai_topics,
+      (item, i) => [
+        fLabel('Topic:'), fInput(item.topic, e=>{ const v=e.target.value; setState(p=>({ ai_topics:p.ai_topics.map((x,j)=>j===i?{...x,topic:v}:x) })); }, {placeholder:'e.g., "Quality"'}),
+        fLabel('Summary:'), fTextarea(item.summary, e=>{ const v=e.target.value; setState(p=>({ ai_topics:p.ai_topics.map((x,j)=>j===i?{...x,summary:v}:x) })); }, {placeholder:'Enter topic summary...'}),
+        fLabel('Mention Text:'), fInput(item.mention, e=>{ const v=e.target.value; setState(p=>({ ai_topics:p.ai_topics.map((x,j)=>j===i?{...x,mention:v}:x) })); }, {placeholder:'e.g., "Mentioned in 120 reviews"'}),
+      ],
+      (i)=>setState(p=>({ ai_topics:p.ai_topics.map((x,j)=>j===i?{...x,open:!x.open}:x) })),
+      (i)=>setState(p=>({ ai_topics:p.ai_topics.filter((_,j)=>j!==i) }))
+    ),
+    addItemRow(s.ai_topics.length, 5, 'topics', ()=>setState(p=>({ ai_topics:[...p.ai_topics,{topic:'',summary:'',mention:'',open:true}] }))),
+    h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'900px', marginTop:'28px' }},
+      fLabel('Show Review Highlights:'), toggle(s.ai_showHighlights, ()=>setState(p=>({ai_showHighlights:!p.ai_showHighlights})))
     )
   );
 }
@@ -650,9 +645,8 @@ function buildPageTab(s) {
     h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)', marginBottom:'22px' }}, 'Choose which pages this component is allowed to render on.'),
     ...pageList.map(n => {
       const checked = !!s.pages[n];
-      return h('div', { class:'panelitem', onClick:()=>setState(prev=>({ pages:{...prev.pages,[n]:!prev.pages[n]} })), style:{ display:'flex', alignItems:'center', gap:'14px', padding:'11px 8px', borderRadius:'6px', cursor:'pointer', fontSize:'16px' }},
-        h('span', { style: boxStyle(checked) }, checked ? icon('check', { fontSize:'18px', color:'#fff' }) : null),
-        n
+      return h('div', { class:'panelitem', onClick:()=>setState(prev=>({pages:{...prev.pages,[n]:!prev.pages[n]}})), style:{ display:'flex', alignItems:'center', gap:'14px', padding:'11px 8px', borderRadius:'6px', cursor:'pointer', fontSize:'16px' }},
+        h('span',{style:boxStyle(checked)}, checked?icon('check',{fontSize:'18px',color:'#fff'}):null), n
       );
     })
   );
@@ -667,20 +661,20 @@ function buildTargetingTab(s) {
     h('div', { style:{ display:'flex', flexWrap:'wrap', gap:'12px', marginBottom:'38px' }},
       ...audList.map(n => {
         const checked = !!s.audience[n];
-        return h('div', { onClick:()=>setState(prev=>({ audience:{...prev.audience,[n]:!prev.audience[n]} })), style: chipStyle(checked) },
-          checked ? icon('check', { fontSize:'18px' }) : null, n
+        return h('div', { onClick:()=>setState(prev=>({audience:{...prev.audience,[n]:!prev.audience[n]}})), style:chipStyle(checked) },
+          checked ? icon('check',{fontSize:'18px'}) : null, n
         );
       })
     ),
     h('div', { style:{ fontSize:'18px', fontWeight:'600', marginBottom:'6px' }}, 'Product & catalog rules'),
     h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)', marginBottom:'20px' }}, 'Limit the products this variant applies to.'),
     h('div', { style:{ display:'grid', gridTemplateColumns:'150px 1fr', gap:'22px 24px', alignItems:'center', maxWidth:'640px' }},
-      h('div', { style:{ fontSize:'16px' }}, 'Brand:'),
-      h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', cursor:'pointer' }}, s.t_brand, icon('arrow_drop_down', { fontSize:'22px', color:'rgba(0,0,0,0.5)' })),
-      h('div', { style:{ fontSize:'16px' }}, 'Category:'),
-      h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', cursor:'pointer' }}, s.t_category, icon('arrow_drop_down', { fontSize:'22px', color:'rgba(0,0,0,0.5)' })),
-      h('div', { style:{ fontSize:'16px' }}, 'SKU list:'),
-      h('input', { value:s.t_sku, onInput:e=>setState({t_sku:e.target.value}), placeholder:'Comma-separated SKUs', style:{ height:'52px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'15px' }})
+      h('div',{style:{fontSize:'16px'}},'Brand:'),
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:'52px',border:'1px solid rgba(0,0,0,0.18)',borderRadius:'6px',padding:'0 14px',fontSize:'15px',cursor:'pointer'}},s.t_brand,icon('arrow_drop_down',{fontSize:'22px',color:'rgba(0,0,0,0.5)'})),
+      h('div',{style:{fontSize:'16px'}},'Category:'),
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:'52px',border:'1px solid rgba(0,0,0,0.18)',borderRadius:'6px',padding:'0 14px',fontSize:'15px',cursor:'pointer'}},s.t_category,icon('arrow_drop_down',{fontSize:'22px',color:'rgba(0,0,0,0.5)'})),
+      h('div',{style:{fontSize:'16px'}},'SKU list:'),
+      h('input',{value:s.t_sku,onInput:e=>setState({t_sku:e.target.value}),placeholder:'Comma-separated SKUs',style:{height:'52px',border:'1px solid rgba(0,0,0,0.18)',borderRadius:'6px',padding:'0 14px',fontSize:'15px'}})
     )
   );
 }
