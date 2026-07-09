@@ -30,12 +30,12 @@
   select { font-family: inherit; font-size: 15px; border: 1px solid rgba(0,0,0,0.23); border-radius: 6px; padding: 0 32px 0 14px; height: 46px; appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Cpath fill='rgba(0,0,0,0.54)' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 8px center; cursor: pointer; }
   select:focus { outline: 2px solid #1976d2; outline-offset: -1px; }
   /* accordion */
-  .accordion { border: 1px solid rgba(0,0,0,0.18); border-radius: 8px; overflow: hidden; max-width: 900px; }
+  .accordion { border: 1px solid rgba(0,0,0,0.18); border-radius: 8px; overflow: hidden; max-width: 1200px; }
   .accordion-item { border-bottom: 1px solid rgba(0,0,0,0.12); }
   .accordion-item:last-child { border-bottom: none; }
   .accordion-header { display: flex; align-items: center; gap: 8px; padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 15px; }
   .accordion-body { padding: 0 20px 20px; display: grid; grid-template-columns: 160px 1fr; gap: 18px 20px; align-items: start; }
-  .add-item-row { display: flex; align-items: center; margin-top: 14px; max-width: 900px; }
+  .add-item-row { display: flex; align-items: center; margin-top: 14px; max-width: 1200px; }
   .add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border: 1px solid rgba(25,118,210,0.5); border-radius: 6px; color: #1976d2; font-size: 14px; font-weight: 500; letter-spacing: .4px; cursor: pointer; }
   .add-btn:hover { background: rgba(25,118,210,0.06); }
   .section-title { font-size: 16px; font-weight: 700; margin: 28px 0 16px; }
@@ -91,6 +91,8 @@ function h(tag, attrs, ...children) {
 // ─── state ────────────────────────────────────────────────────────────────────
 const state = {
   view: 'list',
+  section: 'content',
+  experimentsTab: 'all',
   componentTitle: 'PDPLine',
   variants: [
     { id: 1, name: 'PDP reviews', status: 'active', pubStatus: 'Live' },
@@ -186,15 +188,15 @@ function chipStyle(checked) {
   return { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 16px', borderRadius:'9999px', fontSize:'15px', cursor:'pointer', border:`1px solid ${checked?'#1976d2':'rgba(0,0,0,0.23)'}`, background: checked?'rgba(25,118,210,0.1)':'#fff', color: checked?'#1565c0':'rgba(0,0,0,0.75)', fontWeight: checked?500:400 };
 }
 function switchTrack(on) {
-  return { width:'44px', height:'24px', borderRadius:'9999px', background:on?'#4aa3ff':'rgba(0,0,0,0.26)', position:'relative', cursor:'pointer', transition:'background 200ms', padding:'2px', display:'flex', alignItems:'center' };
+  return { width:'34px', height:'14px', borderRadius:'7px', background: on ? 'rgba(25,118,210,0.5)' : 'rgba(0,0,0,0.38)', position:'relative', cursor:'pointer', transition:'background 200ms', flexShrink:'0', display:'inline-block' };
 }
 function switchThumb(on) {
-  return { display:'block', width:'20px', height:'20px', borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,0.3)', transform:`translateX(${on?'20px':'0'})`, transition:'transform 200ms', flexShrink:'0' };
+  return { position:'absolute', top:'50%', left:'0', width:'20px', height:'20px', borderRadius:'50%', background: on ? '#1976d2' : '#fafafa', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)', transform: `translate(${on?'16px':'-3px'}, -50%)`, transition:'transform 200ms, background 200ms' };
 }
 function execCmd(cmd, val) { try { document.execCommand(cmd, false, val||null); } catch(e) {} }
 
 const statusColors = {
-  Live:      { bg:'rgba(46,125,50,0.14)',  fg:'#2e7d32',         dot:'#2e7d32' },
+  Live:      { bg:'#e6f4ea',               fg:'#137333',         dot:'#137333' },
   Draft:     { bg:'rgba(0,0,0,0.08)',       fg:'rgba(0,0,0,0.7)', dot:'rgba(0,0,0,0.5)' },
   Scheduled: { bg:'rgba(2,136,209,0.14)',   fg:'#0277bd',         dot:'#0288d1' },
   Archived:  { bg:'rgba(0,0,0,0.08)',       fg:'rgba(0,0,0,0.55)',dot:'rgba(0,0,0,0.4)' },
@@ -207,6 +209,12 @@ function statusChip(status) {
 // ─── shared form components ───────────────────────────────────────────────────
 function fLabel(txt) {
   return h('div', { style:{ fontSize:'16px', paddingTop:'12px' }}, txt);
+}
+function centerRow(txt, valueNode) {
+  return [
+    h('div', { style:{ fontSize:'16px', alignSelf:'center' }}, txt),
+    h('div', { style:{ alignSelf:'center' }}, valueNode),
+  ];
 }
 function fInput(val, onInput, opts={}) {
   return h('input', { value:val, onInput, placeholder:opts.placeholder||'', style:{ width:'100%', height:'50px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', color: opts.color||'inherit', ...opts.style }});
@@ -291,7 +299,7 @@ function addItemRow(count, max, label, onClick) {
 
 // ─── fieldgrid ────────────────────────────────────────────────────────────────
 function fieldGrid(...rows) {
-  return h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'start', maxWidth:'900px', marginTop:'24px' }},
+  return h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'start', maxWidth:'1200px', marginTop:'24px' }},
     ...rows.flat(2)
   );
 }
@@ -309,6 +317,62 @@ const compsData = [
   [14, 'Secondary Carousel - PDP',['Product page'],                                 0,  1],
 ];
 
+const bannersData = [
+  [16, 'Hero Banner',           ['Home page'], 0, 7],
+  [19, 'Middle Banner',         ['Home page'], 0, 5],
+  [20, 'Bottom Banner',         ['Home page'], 0, 1],
+  [21, 'Box Banners',           ['Home page'], 0, 0],
+  [22, 'Category Blocks',       ['Home page'], 0, 7],
+  [23, 'Featured Collections',  ['Home page'], 0, 6],
+  [24, 'Featured Categories',   ['Home page'], 0, 3],
+  [25, 'Featured Articles',     ['Home page'], 0, 1],
+];
+
+const promotionsData = [
+  [5,  'Free Gift',                ['Cart page'],                                             0, 4],
+  [10, 'Binary popup',             ['Cart page'],                                              0, 21],
+  [12, 'Smart Message',            ['Cart page','Product page'],                               0, 2],
+  [13, 'Nested Products',          ['Product page','Cart item'],                               0, 39],
+  [15, 'Featured Cart Promotion',  ['Product page','Category page','Cart page'],                1, 1],
+  [17, 'Floating Cart',            ['Checkout confirma…','Product page','Category page'],       2, 28],
+  [18, 'Post Sale Promotion',      ['Checkout confirma…'],                                       0, 0],
+];
+
+const LIST_SECTIONS = {
+  content:    { title: 'Content Components',    data: compsData },
+  banners:    { title: 'Banners Components',    data: bannersData },
+  promotions: { title: 'Promotions Components', data: promotionsData },
+};
+
+const experimentsData = [
+  { name:'Warranty_WOMEN_floating_cart', code:'TEST_WOMEN_Warranty_with/without', component:'Floating Cart', date:'Created on Jul 9, 2026', status:'Editing' },
+  { name:'Floating NestedPIP Nova Balance Blossom', code:'TEST_NestedPips_Balance/Nova/Blossom', component:'Floating Cart', date:'Stopped on Jul 9, 2026', status:'Stopped: Winner' },
+  { name:'Floating nestedPIPs Coco Bee Oval photo', code:'TEST_NestedPips_Coco/Bee/Oval_photo', component:'Floating Cart', date:'Started on Jun 19, 2026', status:'Running' },
+  { name:'Warranty_MEN_test', code:'Warranty_test_MEN', component:'Nested Products', date:'Started on May 28, 2026', status:'Running' },
+];
+
+const EXPERIMENT_STATUS_COLORS = {
+  'Editing':         { bg:'#fff3cd', fg:'#8a6d1a' },
+  'Stopped: Winner': { bg:'rgba(229,57,53,0.12)', fg:'#c62828' },
+  'Running':         { bg:'rgba(46,125,50,0.14)', fg:'#2e7d32' },
+};
+
+const EXPERIMENTS_TABS = [
+  ['all', 'All Experiments', 4],
+  ['running', 'Running', 2],
+  ['editing', 'Editing', 1],
+  ['stopped', 'Stopped', 1],
+  ['archived', 'Archived', 15],
+];
+
+function filterExperiments(tab) {
+  if (tab === 'running')  return experimentsData.filter(e => e.status === 'Running');
+  if (tab === 'editing')  return experimentsData.filter(e => e.status === 'Editing');
+  if (tab === 'stopped')  return experimentsData.filter(e => e.status.startsWith('Stopped'));
+  if (tab === 'archived') return [];
+  return experimentsData;
+}
+
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function render() {
   const root = document.getElementById('app');
@@ -323,7 +387,7 @@ function buildApp(s) {
       buildRail(s),
       buildSecondary(s),
       h('div', { class:'scroll', style:{ flex:'1', minWidth:'0', overflowY:'auto', padding:'24px' }},
-        s.view === 'list' ? buildListView(s) : buildEditorView(s)
+        s.view === 'list' ? buildListView(s) : s.view === 'experiments' ? buildExperimentsView(s) : buildEditorView(s)
       )
     )
   );
@@ -352,10 +416,10 @@ function buildTopBar() {
 // ─── RAIL ─────────────────────────────────────────────────────────────────────
 function buildRail(s) {
   const items = [['home','Home'],['receipt_long','Orders'],['grid_view','Category'],['shopping_cart','Carts'],['local_shipping','Shipment'],['account_circle','Accounts'],['storefront','Catalog'],['laptop_mac','Experiences'],['payments','Payments']];
-  return h('div', { style:{ width:'96px', flexShrink:'0', background:'#1a1a1a', color:'#fff', display:'flex', flexDirection:'column', padding:'16px 0', gap:'2px', overflowY:'auto' }},
+  return h('div', { style:{ width:'96px', flexShrink:'0', background:'#1a1a1a', color:'#fff', display:'flex', flexDirection:'column', padding:'16px 0', gap:'2px' }},
     ...items.map(([ico, label]) => {
       const active = label === 'Experiences';
-      return h('div', { class:'navitem', onClick: active ? ()=>setState({view:'list'}) : undefined, style: railStyle(active) },
+      return h('div', { class:'navitem', onClick: active ? ()=>setState({view:'list', section:'content'}) : undefined, style: railStyle(active) },
         icon(ico,{fontSize:'24px'}),
         h('span', {style:{fontSize:'11px'}}, label)
       );
@@ -366,18 +430,19 @@ function buildRail(s) {
 // ─── SECONDARY PANEL ─────────────────────────────────────────────────────────
 function buildSecondary(s) {
   const collapsed = s.secondaryCollapsed;
-  const items = [['grid_view','Content'],['view_carousel','Banners'],['sell','Promotions'],['science','Experiments']];
+  const items = [['grid_view','Content','content'],['view_carousel','Banners','banners'],['sell','Promotions','promotions'],['science','Experiments','experiments']];
   return h('div', { onClick:()=>setState(p=>({secondaryCollapsed:!p.secondaryCollapsed})),
     style:{ width:collapsed?'68px':'236px', flexShrink:'0', background:'#fff', borderRight:'1px solid rgba(0,0,0,0.12)', display:'flex', flexDirection:'column', padding:`22px ${collapsed?10:14}px`, transition:'width 200ms', cursor:'pointer' }},
-    ...items.map(([ico,label]) => {
-      const active = label === 'Content';
-      return h('div', { class:'panelitem', onClick: active?(e)=>{ e.stopPropagation(); setState({view:'list'}); }:undefined,
+    ...items.map(([ico,label,section]) => {
+      const active = section === 'experiments' ? s.view === 'experiments' : (section !== null && s.section === section);
+      return h('div', { class: collapsed?'panelitem icon-tooltip':'panelitem', 'data-tooltip': collapsed?label:undefined,
+        onClick: (e) => { e.stopPropagation(); if (section === 'experiments') setState({view:'experiments'}); else if (section) setState({view:'list', section}); },
         style:{ display:'flex', alignItems:'center', gap:collapsed?'0':'14px', justifyContent:collapsed?'center':'flex-start', padding:`11px ${collapsed?0:12}px`, borderRadius:'8px', cursor:'pointer', marginBottom:'2px', background:active?'rgba(25,118,210,0.1)':'transparent' }},
         icon(ico,{fontSize:'22px', color:active?'#1976d2':'rgba(0,0,0,0.55)'}),
         !collapsed ? h('span',{style:{fontSize:'15px',fontWeight:active?500:400,color:active?'#1976d2':'rgba(0,0,0,0.75)'}},label) : null
       );
     }),
-    h('div', { class:'panelitem', style:{ marginTop:'auto', display:'flex', justifyContent:collapsed?'center':'flex-start', padding:'8px', cursor:'pointer', borderRadius:'8px' }},
+    h('div', { class:'panelitem', onClick:(e)=>{ e.stopPropagation(); setState(p=>({secondaryCollapsed:!p.secondaryCollapsed})); }, style:{ marginTop:'auto', display:'flex', justifyContent:collapsed?'center':'flex-start', padding:'8px', cursor:'pointer', borderRadius:'8px' }},
       h('span', { style:{ display:'inline-flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(0,0,0,0.12)', borderRadius:'50%', padding:'2px' }},
         icon(collapsed?'chevron_right':'chevron_left',{fontSize:'22px',color:'rgba(0,0,0,0.4)'})
       )
@@ -387,9 +452,10 @@ function buildSecondary(s) {
 
 // ─── LIST VIEW ────────────────────────────────────────────────────────────────
 function buildListView(s) {
-  return h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)' }},
+  const { title, data } = LIST_SECTIONS[s.section] || LIST_SECTIONS.content;
+  return h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)', display:'flex', flexDirection:'column' }},
     h('div', { style:{ display:'flex', alignItems:'center', gap:'24px', padding:'26px 32px 20px' }},
-      h('h1', { style:{ margin:'0', fontSize:'30px', fontWeight:'400', flexShrink:'0' }}, 'Content Components'),
+      h('h1', { style:{ margin:'0', fontSize:'30px', fontWeight:'400', flexShrink:'0' }}, title),
       h('div', { style:{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'18px' }},
         h('div', { style:{ display:'flex', alignItems:'center', gap:'10px', width:'420px', height:'44px', padding:'0 14px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.4)', cursor:'text' }},
           icon('search',{fontSize:'22px'}), h('span',{style:{fontSize:'15px'}},'Search by name, id, or supported page')
@@ -403,7 +469,7 @@ function buildListView(s) {
       h('div', { style:{ display:'flex', alignItems:'center', gap:'4px' }}, 'ID', icon('arrow_upward',{fontSize:'18px',color:'rgba(0,0,0,0.6)'})),
       h('div',{},'Component Name'), h('div',{},'Supported Pages'), h('div',{},'Last Modified'), h('div',{},'Active Variants'),
     ),
-    ...compsData.map(([id,name,pages,more,variants]) =>
+    ...data.map(([id,name,pages,more,variants]) =>
       h('div', { class:'row', onClick:()=>setState({ view:'editor', componentTitle:name==='PDP Line'?'PDPLine':name, tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'', activePages:pages, pageConditions:{} }),
         style:{ display:'grid', gridTemplateColumns:'90px 1fr 1fr 220px 150px', gap:'16px', padding:'20px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', cursor:'pointer', alignItems:'center', transition:'background 150ms' }},
         h('div',{style:{color:'rgba(0,0,0,0.6)'}},id),
@@ -416,10 +482,63 @@ function buildListView(s) {
         h('div',{},variants),
       )
     ),
-    h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'26px', padding:'16px 32px', fontSize:'14px', color:'rgba(0,0,0,0.6)' }},
+    h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'26px', padding:'16px 32px', fontSize:'14px', color:'rgba(0,0,0,0.6)', marginTop:'auto' }},
       h('div',{style:{display:'flex',alignItems:'center',gap:'6px'}},'Rows per page:',h('span',{style:{color:'rgba(0,0,0,0.87)'}},'15'),icon('arrow_drop_down',{fontSize:'20px'})),
-      h('div',{},'1–9 of 9'),
+      h('div',{},`1–${data.length} of ${data.length}`),
       h('div',{style:{display:'flex',gap:'8px'}},icon('chevron_left',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}),icon('chevron_right',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}))
+    )
+  );
+}
+
+// ─── EXPERIMENTS VIEW ─────────────────────────────────────────────────────────
+function buildExperimentsView(s) {
+  const rows = filterExperiments(s.experimentsTab);
+  return h('div', { style:{ display:'flex', flexDirection:'column', minHeight:'calc(100vh - 112px)' }},
+    h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', padding:'28px 32px' }},
+      h('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'24px' }},
+        h('div', {},
+          h('h1', { style:{ margin:'0 0 8px', fontSize:'32px', fontWeight:'400' }}, 'Experiments'),
+          h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)' }}, 'Test multiple variations of your content and find which one converts the best.')
+        ),
+        h('div', { style:{ display:'inline-flex', alignItems:'center', gap:'8px', padding:'12px 22px', borderRadius:'6px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'600', letterSpacing:'.3px', cursor:'pointer', flexShrink:'0', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
+          icon('add',{fontSize:'20px'}), 'Create New Test'
+        )
+      ),
+      h('div', { style:{ display:'flex', alignItems:'center', gap:'10px', height:'46px', padding:'0 16px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.4)', margin:'22px 0 4px', cursor:'text' }},
+        icon('search',{fontSize:'22px'}), h('span',{style:{fontSize:'15px'}}, 'Search...')
+      )
+    ),
+    h('div', { style:{ display:'flex', gap:'10px', flexWrap:'wrap', padding:'20px 4px' }},
+      ...EXPERIMENTS_TABS.map(([key,label,count]) => {
+        const active = s.experimentsTab === key;
+        return h('div', { onClick:()=>setState({experimentsTab:key}),
+          style:{ display:'inline-flex', alignItems:'center', gap:'8px', padding:'10px 18px', borderRadius:'9999px', fontSize:'14px', fontWeight:'600', cursor:'pointer', background:active?'#1976d2':'rgba(0,0,0,0.06)', color:active?'#fff':'rgba(0,0,0,0.7)' }},
+          `${label} (${count})`
+        );
+      })
+    ),
+    h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', flex:'1', display:'flex', flexDirection:'column' }},
+      h('div', { style:{ display:'grid', gridTemplateColumns:'1fr 200px 220px 170px 50px', gap:'16px', padding:'16px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', fontWeight:'500' }},
+        h('div',{},'Test Name'), h('div',{},'Component'), h('div',{},'Date'), h('div',{},'Status'), h('div',{})
+      ),
+      ...rows.map(row => {
+        const sc = EXPERIMENT_STATUS_COLORS[row.status] || { bg:'rgba(0,0,0,0.08)', fg:'rgba(0,0,0,0.6)' };
+        return h('div', { class:'row', style:{ display:'grid', gridTemplateColumns:'1fr 200px 220px 170px 50px', gap:'16px', padding:'18px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', alignItems:'center', cursor:'pointer' }},
+          h('div', {},
+            h('div', { style:{ fontWeight:'600' }}, row.name),
+            h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.5)', marginTop:'2px' }}, row.code)
+          ),
+          h('div', { style:{ color:'rgba(0,0,0,0.75)' }}, row.component),
+          h('div', { style:{ color:'rgba(0,0,0,0.7)' }}, row.date),
+          h('div', {}, h('span', { style:{ display:'inline-flex', alignItems:'center', padding:'4px 14px', borderRadius:'100px', fontSize:'13px', fontWeight:'600', background:sc.bg, color:sc.fg }}, row.status)),
+          h('div', { class:'tb', style:{ width:'34px', height:'34px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.5)' }}, icon('more_vert',{fontSize:'20px'})),
+        );
+      }),
+      rows.length === 0 ? h('div', { style:{ padding:'40px 32px', fontSize:'14px', color:'rgba(0,0,0,0.5)' }}, 'No experiments in this filter.') : null,
+      h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'8px', padding:'16px 32px', fontSize:'14px', color:'rgba(0,0,0,0.6)', marginTop:'auto' }},
+        h('div',{}, `1–${rows.length} of ${rows.length}`),
+        h('div',{style:{display:'flex',gap:'8px'}},icon('chevron_left',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}),icon('chevron_right',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}))
+      )
     )
   );
 }
@@ -443,7 +562,7 @@ function buildVariantPanel(s) {
              b:`min-width:20px;height:20px;padding:0 6px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:${on?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.1)'};color:${on?'#fff':'rgba(0,0,0,0.6)'}` };
   }
   const at=mkTab('active'), art=mkTab('archived');
-  return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
+  return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 112px)', overflow:'hidden', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
     h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'6px' }},
       h('div', { class:'tb', onClick:()=>setState({view:'list'}), style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
       h('div', { onClick:()=>setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active' }; }),
@@ -451,7 +570,7 @@ function buildVariantPanel(s) {
         icon('add',{fontSize:'20px'}), 'ADD VARIANT'
       )
     ),
-    h('h1', { style:{ margin:'6px 0 20px', fontSize:'30px', fontWeight:'700' }}, s.componentTitle),
+    h('h1', { style:{ margin:'6px 0 20px', fontSize:'24px', fontWeight:'400' }}, s.componentTitle),
     h('div', { style:{ display:'flex', alignItems:'center', gap:'10px', height:'48px', padding:'0 14px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.45)', marginBottom:'22px' }},
       icon('search',{fontSize:'22px'}),
       h('input', { value:s.variantSearch, onInput:e=>setState({variantSearch:e.target.value}), placeholder:'Search by variant name or SKU', style:{ border:'none', outline:'none', flex:'1', fontSize:'15px', background:'transparent', color:'rgba(0,0,0,0.87)' }})
@@ -464,7 +583,7 @@ function buildVariantPanel(s) {
       h('div', { onClick:()=>setState({variantTab:'active'}), style:at.s }, 'Active', h('span',{style:at.b},activeVs.length)),
       h('div', { onClick:()=>setState({variantTab:'archived'}), style:art.s }, 'Archived', h('span',{style:art.b},archivedVs.length)),
     ),
-    h('div', { style:{ flex:'1', overflowY:'auto' }},
+    h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto' }},
       ...shownVs.map((v, idx) => {
         const selected = v.id === s.selectedVariantId;
         const isLast = idx === shownVs.length - 1;
@@ -485,7 +604,7 @@ function buildFormCard(s) {
   const selV = s.variants.find(v=>v.id===s.selectedVariantId);
   const currentStatus = selV ? selV.pubStatus : 'Draft';
   const sc = statusColors[currentStatus];
-  return h('div', { style:{ flex:'1', minWidth:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)', display:'flex', flexDirection:'column' }},
+  return h('div', { style:{ flex:'1', minWidth:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 112px)', overflow:'hidden', display:'flex', flexDirection:'column' }},
     // header
     h('div', { style:{ padding:'22px 40px 0' }},
       h('div', { style:{ display:'flex', alignItems:'center', gap:'20px', flexWrap:'wrap', rowGap:'14px' }},
@@ -500,8 +619,8 @@ function buildFormCard(s) {
           h('div', { style:{ width:'1px', height:'26px', background:'rgba(0,0,0,0.15)', margin:'0 8px' }}),
           h('div', { style:{ position:'relative' }},
             h('div', { onClick:()=>setState(p=>({statusOpen:!p.statusOpen})),
-              style:{ display:'inline-flex', alignItems:'center', gap:'4px', padding:'8px 10px 8px 16px', borderRadius:'100px', fontSize:'15px', fontWeight:'600', cursor:'pointer', background:sc.bg, color:sc.fg }},
-              currentStatus, icon('arrow_drop_down',{fontSize:'20px'})
+              style:{ display:'inline-flex', alignItems:'center', gap:'2px', padding:'5px 6px 5px 12px', borderRadius:'100px', fontSize:'13px', fontWeight:'600', cursor:'pointer', background:sc.bg, color:sc.fg }},
+              currentStatus, icon('arrow_drop_down',{fontSize:'17px'})
             ),
             s.statusOpen ? h('div', { style:{ position:'absolute', top:'44px', right:'0', background:'#fff', borderRadius:'6px', boxShadow:'0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14)', padding:'6px 0', minWidth:'150px', zIndex:'20' }},
               ...['Live','Draft','Scheduled','Archived'].map(k =>
@@ -520,7 +639,7 @@ function buildFormCard(s) {
       h('div', { onClick:()=>setState({tab:'page'}), style:tabStyle(s.tab==='page') }, icon('web_asset',{fontSize:'22px'}), 'PAGE'),
       h('div', { onClick:()=>setState({tab:'targeting'}), style:tabStyle(s.tab==='targeting') }, icon('ads_click',{fontSize:'22px'}), 'TARGETING'),
     ),
-    h('div', { style:{ flex:'1', padding:'32px 40px', overflowY:'auto' }},
+    h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto', padding:'32px 40px' }},
       s.tab==='content'  ? buildContentTab(s) :
       s.tab==='page'     ? buildPageTab(s) :
                            buildTargetingTab(s)
@@ -542,8 +661,8 @@ function buildContentTab(s) {
     ['default','Default'], ['switch','Switch PDPline'], ['reviews','Reviews'], ['ai','AI Review Summary'], ['popup','Popup Media'],
   ];
   return h('div',{},
-    h('div', { style:{ display:'flex', alignItems:'center', gap:'28px', flexWrap:'wrap', marginBottom:'4px' }},
-      h('div', { style:{ fontSize:'16px', fontWeight:'600', flexShrink:'0' }}, 'Template:'),
+    h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'1200px' }},
+      h('div', { style:{ fontSize:'16px', fontWeight:'600' }}, 'Template:'),
       h('div', { style:{ display:'flex', gap:'28px', flexWrap:'wrap' }},
         ...templates.map(([key,label]) =>
           h('div', { onClick:()=>setState({template:key}),
@@ -582,10 +701,10 @@ function buildDefaultTemplate(s) {
     [fLabel('Icon link:'), fInput(s.d_iconLink, e=>setState({d_iconLink:e.target.value}), {color:'#1976d2'})],
     [fLabel('Klaviyo form MB:'), fInput(s.d_klaviyoMB, e=>setState({d_klaviyoMB:e.target.value}))],
     [fLabel('Klaviyo form DT:'), fInput(s.d_klaviyoDT, e=>setState({d_klaviyoDT:e.target.value}))],
-    [fLabel('Add Image:'), toggle(s.d_addImage, ()=>setState(p=>({d_addImage:!p.d_addImage})))],
+    centerRow('Add Image:', toggle(s.d_addImage, ()=>setState(p=>({d_addImage:!p.d_addImage})))),
     s.d_addImage ? [
       [fLabel('Image link:'), fInput(s.d_imageLink, e=>setState({d_imageLink:e.target.value}))],
-      [fLabel('Image Location:'),
+      centerRow('Image Location:',
        h('div', { style:{ display:'flex', alignItems:'center', gap:'34px' }},
          ...[['left','Left'],['right','Right'],['full','Full']].map(([key,label]) =>
            h('div', { onClick:()=>setState({d_imagePlacement:key}), style:{ display:'flex', alignItems:'center', gap:'9px', cursor:'pointer', fontSize:'16px' }},
@@ -593,7 +712,7 @@ function buildDefaultTemplate(s) {
              label
            )
          )
-       )]
+       ))
     ] : []
   );
 }
@@ -648,7 +767,7 @@ function buildAiTemplate(s) {
            style:{ minHeight:'140px', background:'#fff', padding:'14px 16px', fontSize:'15px', lineHeight:'1.5' }
          })
        )],
-      [fLabel('Show on Product Reviews:'), toggle(s.ai_showOnReviews, ()=>setState(p=>({ai_showOnReviews:!p.ai_showOnReviews})))],
+      centerRow('Show on Product Reviews:', toggle(s.ai_showOnReviews, ()=>setState(p=>({ai_showOnReviews:!p.ai_showOnReviews})))),
     ),
     h('div', { class:'section-title' }, 'Panel Content:'),
     fieldGrid(
@@ -669,8 +788,8 @@ function buildAiTemplate(s) {
       (i)=>setState(p=>({ ai_topics:p.ai_topics.filter((_,j)=>j!==i) }))
     ),
     addItemRow(s.ai_topics.length, 5, 'topics', ()=>setState(p=>({ ai_topics:[...p.ai_topics,{topic:'',summary:'',mention:'',open:true}] }))),
-    h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'900px', marginTop:'28px' }},
-      fLabel('Show Review Highlights:'), toggle(s.ai_showHighlights, ()=>setState(p=>({ai_showHighlights:!p.ai_showHighlights})))
+    h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'1200px', marginTop:'28px' }},
+      ...centerRow('Show Review Highlights:', toggle(s.ai_showHighlights, ()=>setState(p=>({ai_showHighlights:!p.ai_showHighlights}))))
     )
   );
 }
@@ -818,7 +937,7 @@ function buildPageSection(s, pageName) {
   );
 }
 function buildPageTab(s) {
-  return h('div', { style:{ maxWidth:'900px' }},
+  return h('div', { style:{ maxWidth:'1200px' }},
     ...s.activePages.map(pageName => buildPageSection(s, pageName))
   );
 }
