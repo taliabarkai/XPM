@@ -39,6 +39,16 @@
   .add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border: 1px solid rgba(25,118,210,0.5); border-radius: 6px; color: #1976d2; font-size: 14px; font-weight: 500; letter-spacing: .4px; cursor: pointer; }
   .add-btn:hover { background: rgba(25,118,210,0.06); }
   .section-title { font-size: 16px; font-weight: 700; margin: 28px 0 16px; }
+  /* icon tooltip */
+  .icon-tooltip { position: relative; }
+  .icon-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute; top: 46px; left: 50%; transform: translateX(-50%);
+    background: #616161; color: #fff; font-size: 12px; font-weight: 500;
+    padding: 5px 10px; border-radius: 4px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 120ms; z-index: 30;
+  }
+  .icon-tooltip:hover::after { opacity: 1; }
 </style>
 </head>
 <body>
@@ -83,10 +93,10 @@ const state = {
   view: 'list',
   componentTitle: 'PDPLine',
   variants: [
-    { id: 1, name: 'PDP reviews', status: 'active' },
-    { id: 2, name: 'Delivery banner', status: 'active' },
-    { id: 3, name: 'Holiday promo 2026', status: 'active' },
-    { id: 4, name: 'Summer 2025', status: 'archived' },
+    { id: 1, name: 'PDP reviews', status: 'active', pubStatus: 'Live' },
+    { id: 2, name: 'Delivery banner', status: 'active', pubStatus: 'Live' },
+    { id: 3, name: 'Holiday promo 2026', status: 'active', pubStatus: 'Draft' },
+    { id: 4, name: 'Summer 2025', status: 'archived', pubStatus: 'Archived' },
   ],
   selectedVariantId: 1,
   variantTab: 'active',
@@ -94,7 +104,6 @@ const state = {
   secondaryCollapsed: true,
   tab: 'content',
   template: 'default',
-  status: 'Live',
   statusOpen: false,
 
   // ── Default template ──
@@ -190,6 +199,10 @@ const statusColors = {
   Scheduled: { bg:'rgba(2,136,209,0.14)',   fg:'#0277bd',         dot:'#0288d1' },
   Archived:  { bg:'rgba(0,0,0,0.08)',       fg:'rgba(0,0,0,0.55)',dot:'rgba(0,0,0,0.4)' },
 };
+function statusChip(status) {
+  const sc = statusColors[status] || statusColors.Draft;
+  return h('span', { style:{ display:'inline-flex', alignItems:'center', padding:'3px 12px', borderRadius:'100px', fontSize:'12px', fontWeight:'600', background:sc.bg, color:sc.fg, flexShrink:'0' }}, status);
+}
 
 // ─── shared form components ───────────────────────────────────────────────────
 function fLabel(txt) {
@@ -433,7 +446,7 @@ function buildVariantPanel(s) {
   return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
     h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'6px' }},
       h('div', { class:'tb', onClick:()=>setState({view:'list'}), style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
-      h('div', { onClick:()=>setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active'}], selectedVariantId:id, variantTab:'active' }; }),
+      h('div', { onClick:()=>setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active' }; }),
         style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
         icon('add',{fontSize:'20px'}), 'ADD VARIANT'
       )
@@ -455,11 +468,13 @@ function buildVariantPanel(s) {
       ...shownVs.map((v, idx) => {
         const selected = v.id === s.selectedVariantId;
         const isLast = idx === shownVs.length - 1;
-        return h('div', { onClick:()=>setState({selectedVariantId:v.id}),
-          style: selected
-            ? { padding:'14px 17px', fontSize:'16px', cursor:'pointer', border:'1.5px solid #1976d2', borderRadius:'8px', background:'#e9f3fc' }
-            : { padding:'15px 18px', fontSize:'16px', cursor:'pointer', borderBottom: isLast?'none':'1px solid rgba(0,0,0,0.12)', background:'#fff', transition:'background 150ms' }
-        }, v.name || 'New Variant');
+        const rowStyle = selected
+          ? { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'14px 17px', fontSize:'16px', cursor:'pointer', border:'1.5px solid #1976d2', borderRadius:'8px', background:'#e9f3fc' }
+          : { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'15px 18px', fontSize:'16px', cursor:'pointer', borderBottom: isLast?'none':'1px solid rgba(0,0,0,0.12)', background:'#fff', transition:'background 150ms' };
+        return h('div', { onClick:()=>setState({selectedVariantId:v.id}), style: rowStyle },
+          h('span', {}, v.name || 'New Variant'),
+          statusChip(v.pubStatus)
+        );
       }),
       shownVs.length===0 ? h('div',{style:{padding:'24px 8px',fontSize:'14px',color:'rgba(0,0,0,0.5)'}},'No variants found.') : null
     )
@@ -468,7 +483,8 @@ function buildVariantPanel(s) {
 
 function buildFormCard(s) {
   const selV = s.variants.find(v=>v.id===s.selectedVariantId);
-  const sc = statusColors[s.status];
+  const currentStatus = selV ? selV.pubStatus : 'Draft';
+  const sc = statusColors[currentStatus];
   return h('div', { style:{ flex:'1', minWidth:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)', display:'flex', flexDirection:'column' }},
     // header
     h('div', { style:{ padding:'22px 40px 0' }},
@@ -478,18 +494,18 @@ function buildFormCard(s) {
           h('input', { value:selV?selV.name:'', placeholder:'Variant name', onInput:e=>{ const v=e.target.value; setState(prev=>({ variants:prev.variants.map(x=>x.id===prev.selectedVariantId?{...x,name:v}:x) })); }, style:{ flex:'1', maxWidth:'440px', height:'48px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'16px' }})
         ),
         h('div', { style:{ flexShrink:'0', display:'flex', alignItems:'center', gap:'6px' }},
-          ...['library_add','visibility','edit_calendar','archive'].map(ico =>
-            h('div', { class:'tb', style:{ width:'40px', height:'40px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.55)' }}, icon(ico,{fontSize:'23px'}))
+          ...[['library_add','Clone'],['visibility','Preview'],['edit_calendar','Schedule'],['archive','Archive']].map(([ico,label]) =>
+            h('div', { class:'tb icon-tooltip', 'data-tooltip':label, style:{ width:'40px', height:'40px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.55)' }}, icon(ico,{fontSize:'23px', fontVariationSettings:"'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"}))
           ),
           h('div', { style:{ width:'1px', height:'26px', background:'rgba(0,0,0,0.15)', margin:'0 8px' }}),
           h('div', { style:{ position:'relative' }},
             h('div', { onClick:()=>setState(p=>({statusOpen:!p.statusOpen})),
-              style:{ display:'inline-flex', alignItems:'center', gap:'4px', padding:'8px 10px 8px 16px', borderRadius:'8px', fontSize:'15px', fontWeight:'600', cursor:'pointer', background:sc.bg, color:sc.fg }},
-              s.status, icon('arrow_drop_down',{fontSize:'20px'})
+              style:{ display:'inline-flex', alignItems:'center', gap:'4px', padding:'8px 10px 8px 16px', borderRadius:'100px', fontSize:'15px', fontWeight:'600', cursor:'pointer', background:sc.bg, color:sc.fg }},
+              currentStatus, icon('arrow_drop_down',{fontSize:'20px'})
             ),
             s.statusOpen ? h('div', { style:{ position:'absolute', top:'44px', right:'0', background:'#fff', borderRadius:'6px', boxShadow:'0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14)', padding:'6px 0', minWidth:'150px', zIndex:'20' }},
               ...['Live','Draft','Scheduled','Archived'].map(k =>
-                h('div', { class:'panelitem', onClick:()=>setState({status:k,statusOpen:false}), style:{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', fontSize:'14px', cursor:'pointer' }},
+                h('div', { class:'panelitem', onClick:()=>setState(prev=>({ statusOpen:false, variants: prev.variants.map(v=>v.id===prev.selectedVariantId?{...v,pubStatus:k}:v) })), style:{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', fontSize:'14px', cursor:'pointer' }},
                   h('span',{style:{width:'9px',height:'9px',borderRadius:'50%',background:statusColors[k].dot,display:'block',flexShrink:'0'}}), k
                 )
               )
@@ -693,7 +709,7 @@ function buildPopupTemplate(s) {
   const ringEl = (active) => h('span', { style:ringStyle(active) }, active ? h('span',{style:{width:'11px',height:'11px',borderRadius:'50%',background:'#1976d2',display:'block'}}) : null);
 
   return h('div', {},
-    h('div', { style:{ fontSize:'20px', fontWeight:'600', margin:'8px 0 26px' }}, 'PDP Content'),
+    h('div', { class:'section-title' }, 'PDP Content'),
     h('div', { style:{ display:'grid', gridTemplateColumns:'150px 1fr', gap:'26px 24px', alignItems:'start', maxWidth:'1180px' }},
       h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Text:'),
       h('div', { style:{ border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', overflow:'hidden' }},
@@ -718,7 +734,7 @@ function buildPopupTemplate(s) {
 
     h('div', { style:{ height:'1px', background:'rgba(0,0,0,0.12)', margin:'36px 0' }}),
 
-    h('div', { style:{ fontSize:'20px', fontWeight:'600', margin:'0 0 24px' }}, 'Popup Content'),
+    h('div', { class:'section-title' }, 'Popup Content'),
     h('div', { style:{ border:'1px solid rgba(0,0,0,0.18)', borderRadius:'8px', maxWidth:'1180px', overflow:'hidden' }},
       ...s.pm_media.map((m,i) =>
         h('div', { style:{ padding:'24px 28px', borderBottom:'1px solid rgba(0,0,0,0.12)' }},
