@@ -14,7 +14,6 @@
   .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
   input, textarea { font-family: inherit; }
   textarea { resize: vertical; }
-  .navitem:hover { background: rgba(255,255,255,0.08); }
   .panelitem:hover { background: rgba(0,0,0,0.04); }
   .tb:hover { background: rgba(0,0,0,0.06); }
   .scroll { scrollbar-width: thin; overflow-y: auto; }
@@ -152,10 +151,8 @@ const state = {
   // page + targeting
   activePages: ['Product page'],
   pageConditions: {},
-  audience: { 'All visitors': true },
-  t_brand: 'All brands',
-  t_category: 'All categories',
-  t_sku: '',
+  targetingOpen: { user: true, cart: true },
+  targetingConditions: { user: [], cart: [] },
 
   saveLabel: 'SAVE',
 };
@@ -174,18 +171,12 @@ function setState(patch) {
 function icon(name, style) {
   return h('span', { class: 'ms', style: style || {} }, name);
 }
-function railStyle(active) {
-  return { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', padding:'12px 4px', cursor:'pointer', borderRadius:'8px', margin:'0 10px', color: active ? '#4aa3ff' : 'rgba(255,255,255,0.75)', transition:'background 150ms' };
-}
 function tabStyle(active) {
   return `display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 0;cursor:pointer;font-size:15px;font-weight:500;letter-spacing:.6px;color:${active?'#1976d2':'rgba(0,0,0,0.6)'};border-bottom:3px solid ${active?'#1976d2':'transparent'};transition:color 150ms`;
 }
 function ringStyle(active) {
   const bc = active ? '#1976d2' : 'rgba(0,0,0,0.45)';
   return { width:'22px', height:'22px', borderRadius:'50%', border:`2px solid ${bc}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:'0' };
-}
-function chipStyle(checked) {
-  return { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 16px', borderRadius:'9999px', fontSize:'15px', cursor:'pointer', border:`1px solid ${checked?'#1976d2':'rgba(0,0,0,0.23)'}`, background: checked?'rgba(25,118,210,0.1)':'#fff', color: checked?'#1565c0':'rgba(0,0,0,0.75)', fontWeight: checked?500:400 };
 }
 function switchTrack(on) {
   return { width:'34px', height:'14px', borderRadius:'7px', background: on ? 'rgba(25,118,210,0.5)' : 'rgba(0,0,0,0.38)', position:'relative', cursor:'pointer', transition:'background 200ms', flexShrink:'0', display:'inline-block' };
@@ -385,49 +376,11 @@ function render() {
 }
 
 function buildApp(s) {
-  return h('div', { style:{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }},
-    buildTopBar(),
-    h('div', { style:{ flex:'1', display:'flex', minHeight:'0' }},
-      buildRail(s),
-      buildSecondary(s),
-      h('div', { class:'scroll', style:{ flex:'1', minWidth:'0', overflowY:'auto', padding:'24px' }},
-        s.view === 'list' ? buildListView(s) : s.view === 'experiments' ? buildExperimentsView(s) : buildEditorView(s)
-      )
+  return h('div', { style:{ display:'flex', height:'100vh', overflow:'hidden' }},
+    buildSecondary(s),
+    h('div', { class:'scroll', style:{ flex:'1', minWidth:'0', overflowY:'auto', padding:'24px' }},
+      s.view === 'list' ? buildListView(s) : s.view === 'experiments' ? buildExperimentsView(s) : buildEditorView(s)
     )
-  );
-}
-
-// ─── TOP BAR ─────────────────────────────────────────────────────────────────
-function buildTopBar() {
-  return h('div', { style:{ height:'64px', flexShrink:'0', background:'#1a1a1a', color:'#fff', display:'flex', alignItems:'center', padding:'0 20px 0 0' }},
-    h('div', { style:{ width:'96px', flexShrink:'0', display:'flex', alignItems:'center', justifyContent:'center', height:'64px' }},
-      h('div', { style:{ width:'44px', height:'44px', border:'1.5px solid #fff', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', fontSize:'18px', letterSpacing:'-1px' }}, 'TG')
-    ),
-    h('div', { style:{ fontWeight:'700', fontSize:'20px', letterSpacing:'8px' }}, 'TENENGROUP'),
-    h('div', { style:{ display:'flex', alignItems:'center', gap:'12px', marginLeft:'40px' }},
-      h('span', { style:{ fontWeight:'500', fontSize:'19px', letterSpacing:'.3px' }}, 'Experience Manager'),
-      h('span', { style:{ display:'inline-flex', alignItems:'center', gap:'5px', background:'#e53232', color:'#fff', fontSize:'12px', fontWeight:'600', padding:'3px 9px', borderRadius:'6px' }}, icon('rocket_launch',{fontSize:'15px'}), 'Prod'),
-    ),
-    h('div', { style:{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'18px' }},
-      h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', width:'280px', height:'40px', padding:'0 10px 0 16px', border:'1px solid rgba(255,255,255,0.35)', borderRadius:'5px', fontSize:'15px', cursor:'pointer' }},
-        'TGR US', icon('arrow_drop_down',{fontSize:'22px', color:'rgba(255,255,255,0.7)'})
-      ),
-      h('div', { style:{ width:'38px', height:'38px', borderRadius:'50%', background:'#5a5a5a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:'500', cursor:'pointer' }}, 'TB'),
-    )
-  );
-}
-
-// ─── RAIL ─────────────────────────────────────────────────────────────────────
-function buildRail(s) {
-  const items = [['home','Home'],['receipt_long','Orders'],['grid_view','Category'],['shopping_cart','Carts'],['local_shipping','Shipment'],['account_circle','Accounts'],['storefront','Catalog'],['laptop_mac','Experiences'],['payments','Payments']];
-  return h('div', { style:{ width:'96px', flexShrink:'0', background:'#1a1a1a', color:'#fff', display:'flex', flexDirection:'column', padding:'16px 0', gap:'2px' }},
-    ...items.map(([ico, label]) => {
-      const active = label === 'Experiences';
-      return h('div', { class:'navitem', onClick: active ? ()=>setState({view:'list', section:'content'}) : undefined, style: railStyle(active) },
-        icon(ico,{fontSize:'24px'}),
-        h('span', {style:{fontSize:'11px'}}, label)
-      );
-    })
   );
 }
 
@@ -457,7 +410,7 @@ function buildSecondary(s) {
 // ─── LIST VIEW ────────────────────────────────────────────────────────────────
 function buildListView(s) {
   const { title, data } = LIST_SECTIONS[s.section] || LIST_SECTIONS.content;
-  return h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 112px)', display:'flex', flexDirection:'column' }},
+  return h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 48px)', display:'flex', flexDirection:'column' }},
     h('div', { style:{ display:'flex', alignItems:'center', gap:'24px', padding:'26px 32px 20px' }},
       h('h1', { style:{ margin:'0', fontSize:'30px', fontWeight:'400', flexShrink:'0' }}, title),
       h('div', { style:{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'18px' }},
@@ -497,7 +450,7 @@ function buildListView(s) {
 // ─── EXPERIMENTS VIEW ─────────────────────────────────────────────────────────
 function buildExperimentsView(s) {
   const rows = filterExperiments(s.experimentsTab);
-  return h('div', { style:{ display:'flex', flexDirection:'column', minHeight:'calc(100vh - 112px)' }},
+  return h('div', { style:{ display:'flex', flexDirection:'column', minHeight:'calc(100vh - 48px)' }},
     h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', padding:'28px 32px' }},
       h('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'24px' }},
         h('div', {},
@@ -566,7 +519,7 @@ function buildVariantPanel(s) {
              b:`min-width:20px;height:20px;padding:0 6px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:${on?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.1)'};color:${on?'#fff':'rgba(0,0,0,0.6)'}` };
   }
   const at=mkTab('active'), art=mkTab('archived');
-  return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 112px)', overflow:'hidden', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
+  return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 48px)', overflow:'hidden', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
     h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'6px' }},
       h('div', { class:'tb', onClick:()=>setState({view:'list'}), style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
       h('div', { onClick:()=>setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active' }; }),
@@ -608,7 +561,7 @@ function buildFormCard(s) {
   const selV = s.variants.find(v=>v.id===s.selectedVariantId);
   const currentStatus = selV ? selV.pubStatus : 'Draft';
   const sc = statusColors[currentStatus];
-  return h('div', { style:{ flex:'1', minWidth:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 112px)', overflow:'hidden', display:'flex', flexDirection:'column' }},
+  return h('div', { style:{ flex:'1', minWidth:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 48px)', overflow:'hidden', display:'flex', flexDirection:'column' }},
     // header
     h('div', { style:{ padding:'22px 40px 0' }},
       h('div', { style:{ display:'flex', alignItems:'center', gap:'20px', flexWrap:'wrap', rowGap:'14px' }},
@@ -903,6 +856,20 @@ function buildPopupTemplate(s) {
 const ATTRIBUTE_OPTIONS = ['By Audience','Category Relation','Category Relation (Backoffice Name)','Collection','Discount Percentage','Expedited Production days','Grouped parent SKU','Material','Parent SKUs','Price','Product Type','Production days','ShippingByFactory','Shop For','SKU','Stock Status','Stone'];
 const OPERATOR_OPTIONS = ['IsOneOf','IsNoneOf'];
 
+function renderAddConditionsBtn(onClick) {
+  return h('div', { onClick, style:{ display:'inline-flex', alignItems:'center', gap:'6px', color:'#1976d2', fontSize:'14px', fontWeight:'600', letterSpacing:'.3px', cursor:'pointer' }},
+    icon('add',{fontSize:'20px'}), 'ADD CONDITIONS'
+  );
+}
+function renderConditionRow(cond, attributeOptions, onAttr, onOperator, onValue, onRemove) {
+  return h('div', { style:{ display:'flex', gap:'12px', alignItems:'center', marginBottom:'14px' }},
+    fSelect(cond.attribute, attributeOptions, onAttr, {minWidth:'220px'}),
+    fSelect(cond.operator, OPERATOR_OPTIONS, onOperator, {minWidth:'150px'}),
+    fInput(cond.value, onValue, { placeholder:`Select ${cond.attribute}`, style:{ flex:'1' }}),
+    h('div', { class:'tb', onClick:onRemove, style:{ width:'36px', height:'36px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.45)', flexShrink:'0' }}, icon('close',{fontSize:'20px'}))
+  );
+}
+
 function addCondition(pageName) {
   setState(prev => ({ pageConditions: { ...prev.pageConditions, [pageName]: [...(prev.pageConditions[pageName]||[]), { attribute:'Parent SKUs', operator:'IsOneOf', value:'' }] } }));
 }
@@ -912,19 +879,6 @@ function updateCondition(pageName, i, patch) {
 function removeCondition(pageName, i) {
   setState(prev => ({ pageConditions: { ...prev.pageConditions, [pageName]: prev.pageConditions[pageName].filter((_,j)=>j!==i) } }));
 }
-function addConditionsBtn(pageName) {
-  return h('div', { onClick:()=>addCondition(pageName), style:{ display:'inline-flex', alignItems:'center', gap:'6px', color:'#1976d2', fontSize:'14px', fontWeight:'600', letterSpacing:'.3px', cursor:'pointer' }},
-    icon('add',{fontSize:'20px'}), 'ADD CONDITIONS'
-  );
-}
-function conditionRow(pageName, cond, i) {
-  return h('div', { style:{ display:'flex', gap:'12px', alignItems:'center', marginBottom:'14px' }},
-    fSelect(cond.attribute, ATTRIBUTE_OPTIONS, e=>updateCondition(pageName,i,{attribute:e.target.value}), {minWidth:'220px'}),
-    fSelect(cond.operator, OPERATOR_OPTIONS, e=>updateCondition(pageName,i,{operator:e.target.value}), {minWidth:'150px'}),
-    fInput(cond.value, e=>updateCondition(pageName,i,{value:e.target.value}), { placeholder:`Select ${cond.attribute}`, style:{ flex:'1' }}),
-    h('div', { class:'tb', onClick:()=>removeCondition(pageName,i), style:{ width:'36px', height:'36px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.45)', flexShrink:'0' }}, icon('close',{fontSize:'20px'}))
-  );
-}
 function buildPageSection(s, pageName) {
   const conditions = s.pageConditions[pageName] || [];
   return h('div', { style:{ marginBottom:'40px' }},
@@ -932,11 +886,16 @@ function buildPageSection(s, pageName) {
     conditions.length === 0
       ? h('div', {},
           h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)', marginBottom:'16px' }}, `No filters selected. The variant will appear for all ${pageName}s.`),
-          addConditionsBtn(pageName)
+          renderAddConditionsBtn(()=>addCondition(pageName))
         )
       : h('div', {},
-          ...conditions.map((cond,i) => conditionRow(pageName, cond, i)),
-          addConditionsBtn(pageName)
+          ...conditions.map((cond,i) => renderConditionRow(cond, ATTRIBUTE_OPTIONS,
+            e=>updateCondition(pageName,i,{attribute:e.target.value}),
+            e=>updateCondition(pageName,i,{operator:e.target.value}),
+            e=>updateCondition(pageName,i,{value:e.target.value}),
+            ()=>removeCondition(pageName,i)
+          )),
+          renderAddConditionsBtn(()=>addCondition(pageName))
         )
   );
 }
@@ -947,28 +906,62 @@ function buildPageTab(s) {
 }
 
 // ─── TARGETING TAB ────────────────────────────────────────────────────────────
-function buildTargetingTab(s) {
-  const audList = ['All visitors','New customers','Returning customers','VIP / Loyalty members','Cart abandoners','Newsletter subscribers'];
-  return h('div', { style:{ maxWidth:'760px' }},
-    h('div', { style:{ fontSize:'18px', fontWeight:'600', marginBottom:'6px' }}, 'Audience segments'),
-    h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)', marginBottom:'16px' }}, 'Show this variant only to the selected customer groups.'),
-    h('div', { style:{ display:'flex', flexWrap:'wrap', gap:'12px', marginBottom:'38px' }},
-      ...audList.map(n => {
-        const checked = !!s.audience[n];
-        return h('div', { onClick:()=>setState(prev=>({audience:{...prev.audience,[n]:!prev.audience[n]}})), style:chipStyle(checked) },
-          checked ? icon('check',{fontSize:'18px'}) : null, n
-        );
-      })
+const USER_ATTRIBUTE_OPTIONS = ['Customer Type','Email Domain','Order Count','Total Spent','Loyalty Tier','Location','Signed In Status','Newsletter Subscriber'];
+const CART_ATTRIBUTE_OPTIONS = ['Cart Value','Item Count','Contains SKU','Contains Category','Discount Applied','Currency'];
+const TARGETING_SECTIONS = [
+  { group:'user', icon:'person',         title:'User Properties', noun:'user', attributeOptions:USER_ATTRIBUTE_OPTIONS },
+  { group:'cart', icon:'shopping_cart',   title:'Cart Properties', noun:'cart', attributeOptions:CART_ATTRIBUTE_OPTIONS },
+];
+
+function toggleTargetingSection(group) {
+  setState(prev => ({ targetingOpen: { ...prev.targetingOpen, [group]: !prev.targetingOpen[group] } }));
+}
+function addTargetingCondition(group, defaultAttr) {
+  setState(prev => ({ targetingConditions: { ...prev.targetingConditions, [group]: [...prev.targetingConditions[group], { attribute:defaultAttr, operator:'IsOneOf', value:'' }] } }));
+}
+function updateTargetingCondition(group, i, patch) {
+  setState(prev => ({ targetingConditions: { ...prev.targetingConditions, [group]: prev.targetingConditions[group].map((c,j)=>j===i?{...c,...patch}:c) } }));
+}
+function removeTargetingCondition(group, i) {
+  setState(prev => ({ targetingConditions: { ...prev.targetingConditions, [group]: prev.targetingConditions[group].filter((_,j)=>j!==i) } }));
+}
+
+function buildTargetingSection(s, section) {
+  const { group, icon:ico, title, noun, attributeOptions } = section;
+  const open = s.targetingOpen[group];
+  const conditions = s.targetingConditions[group];
+  return h('div', {},
+    h('div', { onClick:()=>toggleTargetingSection(group), style:{ display:'flex', alignItems:'center', gap:'10px', cursor:'pointer', marginBottom: open?'14px':'0' }},
+      icon(open?'expand_more':'chevron_right', {fontSize:'20px', color:'rgba(0,0,0,0.6)'}),
+      icon(ico, {fontSize:'20px', color:'rgba(0,0,0,0.6)'}),
+      h('div', { style:{ fontSize:'17px', fontWeight:'700' }}, title + ':')
     ),
-    h('div', { style:{ fontSize:'18px', fontWeight:'600', marginBottom:'6px' }}, 'Product & catalog rules'),
-    h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)', marginBottom:'20px' }}, 'Limit the products this variant applies to.'),
-    h('div', { style:{ display:'grid', gridTemplateColumns:'150px 1fr', gap:'22px 24px', alignItems:'center', maxWidth:'640px' }},
-      h('div',{style:{fontSize:'16px'}},'Brand:'),
-      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:'52px',border:'1px solid rgba(0,0,0,0.18)',borderRadius:'6px',padding:'0 14px',fontSize:'15px',cursor:'pointer'}},s.t_brand,icon('arrow_drop_down',{fontSize:'22px',color:'rgba(0,0,0,0.5)'})),
-      h('div',{style:{fontSize:'16px'}},'Category:'),
-      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:'52px',border:'1px solid rgba(0,0,0,0.18)',borderRadius:'6px',padding:'0 14px',fontSize:'15px',cursor:'pointer'}},s.t_category,icon('arrow_drop_down',{fontSize:'22px',color:'rgba(0,0,0,0.5)'})),
-      h('div',{style:{fontSize:'16px'}},'SKU list:'),
-      h('input',{value:s.t_sku,onInput:e=>setState({t_sku:e.target.value}),placeholder:'Comma-separated SKUs',style:{height:'52px',border:'1px solid rgba(0,0,0,0.18)',borderRadius:'6px',padding:'0 14px',fontSize:'15px'}})
+    open ? (
+      conditions.length === 0
+        ? h('div', {},
+            h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)', marginBottom:'16px' }}, `No ${noun} filters selected. The variant will be shown to all ${noun}s.`),
+            renderAddConditionsBtn(()=>addTargetingCondition(group, attributeOptions[0]))
+          )
+        : h('div', {},
+            ...conditions.map((cond,i) => renderConditionRow(cond, attributeOptions,
+              e=>updateTargetingCondition(group,i,{attribute:e.target.value}),
+              e=>updateTargetingCondition(group,i,{operator:e.target.value}),
+              e=>updateTargetingCondition(group,i,{value:e.target.value}),
+              ()=>removeTargetingCondition(group,i)
+            )),
+            renderAddConditionsBtn(()=>addTargetingCondition(group, attributeOptions[0]))
+          )
+    ) : null
+  );
+}
+
+function buildTargetingTab(s) {
+  return h('div', { style:{ maxWidth:'1200px' }},
+    ...TARGETING_SECTIONS.map((section, idx) =>
+      h('div', {},
+        buildTargetingSection(s, section),
+        idx < TARGETING_SECTIONS.length - 1 ? h('div', { style:{ height:'1px', background:'rgba(0,0,0,0.1)', margin:'24px 0 28px' }}) : null
+      )
     )
   );
 }
