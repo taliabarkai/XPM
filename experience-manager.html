@@ -376,8 +376,12 @@ function filterExperiments(tab) {
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function render() {
   const root = document.getElementById('app');
+  const scrollPositions = Array.from(root.querySelectorAll('.scroll')).map(el => el.scrollTop);
   root.innerHTML = '';
   root.appendChild(buildApp(state));
+  Array.from(root.querySelectorAll('.scroll')).forEach((el, i) => {
+    if (scrollPositions[i] != null) el.scrollTop = scrollPositions[i];
+  });
 }
 
 function buildApp(s) {
