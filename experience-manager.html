@@ -135,6 +135,13 @@ const state = {
   ai_topics: [{ topic: '', summary: '', mention: '', open: true }],
   ai_showHighlights: false,
 
+  // ── Popup Media template ──
+  pm_imgLeft: '',
+  pm_imgRight: '',
+  pm_bgColor: '',
+  pm_borderColor: '',
+  pm_media: [{ type: 'video', url: '', vimeo: '' }],
+
   // page + targeting
   activePages: ['Product page'],
   pageConditions: {},
@@ -517,7 +524,7 @@ function buildFormCard(s) {
 // ─── CONTENT TAB ─────────────────────────────────────────────────────────────
 function buildContentTab(s) {
   const templates = [
-    ['default','Default'], ['switch','Switch PDPline'], ['reviews','Reviews'], ['ai','AI Review Summary'],
+    ['default','Default'], ['switch','Switch PDPline'], ['reviews','Reviews'], ['ai','AI Review Summary'], ['popup','Popup Media'],
   ];
   return h('div',{},
     h('div', { style:{ display:'flex', alignItems:'center', gap:'28px', flexWrap:'wrap', marginBottom:'4px' }},
@@ -537,7 +544,8 @@ function buildContentTab(s) {
     s.template==='default'  ? buildDefaultTemplate(s) :
     s.template==='switch'   ? buildSwitchTemplate(s) :
     s.template==='reviews'  ? buildReviewsTemplate(s) :
-    s.template==='ai'       ? buildAiTemplate(s) : null
+    s.template==='ai'       ? buildAiTemplate(s) :
+    s.template==='popup'    ? buildPopupTemplate(s) : null
   );
 }
 
@@ -634,6 +642,107 @@ function buildAiTemplate(s) {
     addItemRow(s.ai_topics.length, 5, 'topics', ()=>setState(p=>({ ai_topics:[...p.ai_topics,{topic:'',summary:'',mention:'',open:true}] }))),
     h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'900px', marginTop:'28px' }},
       fLabel('Show Review Highlights:'), toggle(s.ai_showHighlights, ()=>setState(p=>({ai_showHighlights:!p.ai_showHighlights})))
+    )
+  );
+}
+
+// ── POPUP MEDIA template ──────────────────────────────────────────────────────
+let _popupRichHTML = '';
+
+function richToolbar() {
+  const btn = (ico, cmd, val) => h('div', { class:'tb', onClick:()=>execCmd(cmd,val), style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer' }}, icon(ico,{fontSize:'22px'}));
+  const sep = () => h('div', { style:{ width:'1px', height:'24px', background:'rgba(0,0,0,0.12)', margin:'0 6px' }});
+  return h('div', { style:{ display:'flex', alignItems:'center', gap:'2px', padding:'8px 10px', borderBottom:'1px solid rgba(0,0,0,0.12)', flexWrap:'wrap' }},
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'6px', padding:'6px 10px', border:'1px solid rgba(0,0,0,0.15)', borderRadius:'5px', fontSize:'14px', marginRight:'10px', cursor:'default' }}, 'Default Regular', icon('arrow_drop_down',{fontSize:'20px'})),
+    h('div', { class:'tb', onClick:()=>execCmd('foreColor','#1976d2'), style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer' }}, h('span',{style:{width:'16px',height:'16px',borderRadius:'50%',background:'#334155',display:'block'}})),
+    sep(),
+    btn('format_bold','bold'), btn('format_italic','italic'), btn('format_underlined','underline'),
+    sep(),
+    btn('format_align_left','justifyLeft'), btn('format_align_center','justifyCenter'), btn('format_align_right','justifyRight'),
+    sep(),
+    btn('format_list_bulleted','insertUnorderedList'),
+    h('div', { class:'tb', onClick:()=>{ const u=window.prompt('Link URL'); if(u) execCmd('createLink',u); }, style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer', marginLeft:'auto' }}, icon('link')),
+  );
+}
+function richEditor(getHTML, setHTML) {
+  return h('div', { contenteditable:'true',
+    ref:(el)=>{ if(el&&!el.dataset.bound){ el.dataset.bound='1'; el.innerHTML=getHTML(); }},
+    onInput:(e)=>setHTML(e.currentTarget.innerHTML),
+    style:{ minHeight:'170px', background:'#fff', padding:'18px 20px', fontSize:'16px', lineHeight:'1.5' }
+  });
+}
+function setMediaType(i, t) { setState(p=>({ pm_media: p.pm_media.map((m,idx)=>idx===i?{...m,type:t}:m) })); }
+function setMediaField(i, key, val) { setState(p=>({ pm_media: p.pm_media.map((m,idx)=>idx===i?{...m,[key]:val}:m) })); }
+function addMedia() { setState(p=> p.pm_media.length>=6 ? p : ({ pm_media:[...p.pm_media,{type:'image',url:'',vimeo:''}] })); }
+function removeMedia(i) { setState(p=>({ pm_media: p.pm_media.filter((_,idx)=>idx!==i) })); }
+
+function buildPopupTemplate(s) {
+  const ringEl = (active) => h('span', { style:ringStyle(active) }, active ? h('span',{style:{width:'11px',height:'11px',borderRadius:'50%',background:'#1976d2',display:'block'}}) : null);
+
+  return h('div', {},
+    h('div', { style:{ fontSize:'20px', fontWeight:'600', margin:'8px 0 26px' }}, 'PDP Content'),
+    h('div', { style:{ display:'grid', gridTemplateColumns:'150px 1fr', gap:'26px 24px', alignItems:'start', maxWidth:'1180px' }},
+      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Text:'),
+      h('div', { style:{ border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', overflow:'hidden' }},
+        richToolbar(),
+        richEditor(()=>_popupRichHTML, (html)=>{ _popupRichHTML = html; })
+      ),
+      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Image Link (left):'),
+      h('div', {},
+        fInput(s.pm_imgLeft, e=>setState({pm_imgLeft:e.target.value})),
+        h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.55)', marginTop:'7px' }}, 'Images must be between 24px and 100px')
+      ),
+      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Image Link (right):'),
+      h('div', {},
+        fInput(s.pm_imgRight, e=>setState({pm_imgRight:e.target.value})),
+        h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.55)', marginTop:'7px' }}, 'Images must be between 24px and 100px')
+      ),
+      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Background Color:'),
+      fInput(s.pm_bgColor, e=>setState({pm_bgColor:e.target.value})),
+      h('div', { style:{ fontSize:'17px', paddingTop:'10px' }}, 'Border Color:'),
+      fInput(s.pm_borderColor, e=>setState({pm_borderColor:e.target.value})),
+    ),
+
+    h('div', { style:{ height:'1px', background:'rgba(0,0,0,0.12)', margin:'36px 0' }}),
+
+    h('div', { style:{ fontSize:'20px', fontWeight:'600', margin:'0 0 24px' }}, 'Popup Content'),
+    h('div', { style:{ border:'1px solid rgba(0,0,0,0.18)', borderRadius:'8px', maxWidth:'1180px', overflow:'hidden' }},
+      ...s.pm_media.map((m,i) =>
+        h('div', { style:{ padding:'24px 28px', borderBottom:'1px solid rgba(0,0,0,0.12)' }},
+          h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'20px' }},
+            h('div', { style:{ fontSize:'14px', fontWeight:'700', letterSpacing:'.5px' }}, 'MEDIA #' + (i+1)),
+            s.pm_media.length > 1 ? h('div', { class:'tb', onClick:()=>removeMedia(i), style:{ marginLeft:'auto', width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer', color:'rgba(0,0,0,0.45)' }}, icon('close',{fontSize:'22px'})) : null
+          ),
+          h('div', { style:{ display:'grid', gridTemplateColumns:'150px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'1000px' }},
+            h('div', { style:{ fontSize:'17px' }}, 'Media Type:'),
+            h('div', { style:{ display:'flex', gap:'44px' }},
+              h('div', { onClick:()=>setMediaType(i,'video'), style:{ display:'flex', alignItems:'center', gap:'9px', cursor:'pointer', fontSize:'17px' }}, ringEl(m.type==='video'), 'Video'),
+              h('div', { onClick:()=>setMediaType(i,'image'), style:{ display:'flex', alignItems:'center', gap:'9px', cursor:'pointer', fontSize:'17px' }}, ringEl(m.type==='image'), 'Image'),
+            ),
+            m.type==='video' ? [
+              h('div', { style:{ fontSize:'17px' }}, 'Vimeo ID:'),
+              h('div', {},
+                fInput(m.vimeo, e=>setMediaField(i,'vimeo',e.target.value)),
+                h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.55)', marginTop:'7px' }}, 'Video aspect ratio should be 1080 × 1920')
+              )
+            ] : [
+              h('div', { style:{ fontSize:'17px' }}, 'URL:'),
+              h('div', {},
+                fInput(m.url, e=>setMediaField(i,'url',e.target.value)),
+                h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.55)', marginTop:'7px' }}, 'Image aspect ratio should be 1080 × 1920')
+              )
+            ]
+          )
+        )
+      ),
+      h('div', { style:{ padding:'20px 28px', display:'flex', alignItems:'center' }},
+        h('div', { onClick: s.pm_media.length>=6 ? undefined : addMedia,
+          style: s.pm_media.length>=6
+            ? { display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 22px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'5px', color:'rgba(0,0,0,0.35)', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'not-allowed' }
+            : { display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 22px', border:'1px solid rgba(25,118,210,0.5)', borderRadius:'5px', color:'#1976d2', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer' }
+        }, icon('add',{fontSize:'20px'}), 'ADD MEDIA'),
+        h('div', { style:{ marginLeft:'auto', fontSize:'15px', color:'rgba(0,0,0,0.6)' }}, s.pm_media.length + ' of 6 media')
+      )
     )
   );
 }
