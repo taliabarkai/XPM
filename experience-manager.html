@@ -98,13 +98,9 @@ const state = {
   statusOpen: false,
 
   // ── Default template ──
-  d_mainText: '',
-  d_supporting: '',
-  d_iconLink: 'https://cdn.oakandluna.com/digital-asset/banners/delivery_icon_oal.svg',
-  d_bgColor: '#693d3d',
-  d_textColor: '#ffffff',
-  d_fontWeight: 'Normal',
-  d_textDecoration: 'None',
+  d_iconLink: '',
+  d_klaviyoMB: '',
+  d_klaviyoDT: '',
   d_addImage: false,
   d_imageLink: '',
   d_imagePlacement: 'left',
@@ -154,6 +150,7 @@ const state = {
 };
 
 let _saveTimer = null;
+let _defaultRichHTML = '';
 let _aiRichHTML = '';
 
 function setState(patch) {
@@ -231,16 +228,18 @@ function toggle(on, onClick) {
 }
 
 // ─── rich text toolbar (AI style) ─────────────────────────────────────────────
-function aiRichToolbar() {
+function aiRichToolbar(label, showFill) {
+  label = label || 'text1';
   const btn = (ico, cmd, val, title) => h('div', { class:'tb', title:title||'', onClick:()=>execCmd(cmd,val), style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer' }}, icon(ico, { fontSize:'20px' }));
   const sep = () => h('div', { style:{ width:'1px', height:'22px', background:'rgba(0,0,0,0.15)', margin:'0 4px' }});
   return h('div', { style:{ display:'flex', alignItems:'center', gap:'2px', padding:'6px 10px', borderBottom:'1px solid rgba(0,0,0,0.12)', flexWrap:'wrap' }},
-    h('div', { style:{ display:'flex', alignItems:'center', gap:'4px', padding:'4px 8px', border:'1px solid rgba(0,0,0,0.15)', borderRadius:'4px', fontSize:'13px', marginRight:'6px', cursor:'default', minWidth:'70px' }}, 'text1', icon('arrow_drop_down',{fontSize:'18px'})),
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'4px', padding:'4px 8px', border:'1px solid rgba(0,0,0,0.15)', borderRadius:'4px', fontSize:'13px', marginRight:'6px', cursor:'default', minWidth:'70px' }}, label, icon('arrow_drop_down',{fontSize:'18px'})),
     btn('format_italic','italic',null,'Italic'),
     btn('format_underlined','underline',null,'Underline'),
     h('div', { class:'tb', onClick:()=>execCmd('foreColor','#1976d2'), style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer', position:'relative' }},
       h('span', { style:{ fontSize:'20px', fontFamily:'inherit', fontStyle:'italic', fontWeight:'700', textDecoration:'underline', textDecorationColor:'#e53935', lineHeight:'1', color:'rgba(0,0,0,0.75)' }}, 'A')
     ),
+    showFill ? btn('format_color_fill','hiliteColor','#fff59d','Highlight color') : null,
     sep(),
     h('div', { class:'tb', onClick:()=>execCmd('justifyLeft'), style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'pointer' }}, icon('format_align_left',{fontSize:'20px'})),
     h('div', { class:'tb', style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'default', color:'rgba(0,0,0,0.4)' }}, icon('arrow_drop_down',{fontSize:'18px'})),
@@ -559,13 +558,27 @@ function setColor(key, hex) {
 // ── DEFAULT template ──────────────────────────────────────────────────────────
 function buildDefaultTemplate(s) {
   return fieldGrid(
-    [fLabel('Main Text*:'), fInput(s.d_mainText, e=>setState({d_mainText:e.target.value}))],
-    [fLabel('Supporting text:'), fInput(s.d_supporting, e=>setState({d_supporting:e.target.value}))],
+    [fLabel('Text*:'),
+     h('div', { style:{ border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', overflow:'hidden' }},
+       aiRichToolbar('Default Regular', true),
+       richEditor(()=>_defaultRichHTML, (html)=>{ _defaultRichHTML = html; })
+     )],
     [fLabel('Icon link:'), fInput(s.d_iconLink, e=>setState({d_iconLink:e.target.value}), {color:'#1976d2'})],
-    [fLabel('Background Color*:'), hexColorPicker('Background Color*', s.d_bgColor, c=>setState({d_bgColor:c}), c=>setColor('d_bgColor',c))],
-    [fLabel('Text color:'), hexColorPicker('Text color', s.d_textColor, c=>setState({d_textColor:c}), c=>setColor('d_textColor',c))],
-    [fLabel('Font weight*:'), fSelect(s.d_fontWeight, ['Normal','Bold','Light'], e=>setState({d_fontWeight:e.target.value}))],
-    [fLabel('Text decoration*:'), fSelect(s.d_textDecoration, ['None','Underline','Line-through'], e=>setState({d_textDecoration:e.target.value}))],
+    [fLabel('Klaviyo form MB:'), fInput(s.d_klaviyoMB, e=>setState({d_klaviyoMB:e.target.value}))],
+    [fLabel('Klaviyo form DT:'), fInput(s.d_klaviyoDT, e=>setState({d_klaviyoDT:e.target.value}))],
+    [fLabel('Add Image:'), toggle(s.d_addImage, ()=>setState(p=>({d_addImage:!p.d_addImage})))],
+    s.d_addImage ? [
+      [fLabel('Image link:'), fInput(s.d_imageLink, e=>setState({d_imageLink:e.target.value}))],
+      [fLabel('Image Location:'),
+       h('div', { style:{ display:'flex', alignItems:'center', gap:'34px' }},
+         ...[['left','Left'],['right','Right'],['full','Full']].map(([key,label]) =>
+           h('div', { onClick:()=>setState({d_imagePlacement:key}), style:{ display:'flex', alignItems:'center', gap:'9px', cursor:'pointer', fontSize:'16px' }},
+             h('span', { style:ringStyle(s.d_imagePlacement===key) }, s.d_imagePlacement===key ? h('span',{style:{width:'11px',height:'11px',borderRadius:'50%',background:'#1976d2',display:'block'}}) : null),
+             label
+           )
+         )
+       )]
+    ] : []
   );
 }
 
