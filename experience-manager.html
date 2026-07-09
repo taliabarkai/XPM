@@ -155,11 +155,9 @@ const state = {
   targetingConditions: { user: [], cart: [] },
 
   saveLabel: 'SAVE',
-  copyLinkFeedback: false,
 };
 
 let _saveTimer = null;
-let _copyTimer = null;
 let _defaultRichHTML = '';
 let _aiRichHTML = '';
 
@@ -191,16 +189,6 @@ function parseHash() {
   }
   return { view:'list' };
 }
-function copyLink() {
-  syncHash(false);
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(location.href).catch(()=>{});
-  }
-  setState({copyLinkFeedback:true});
-  clearTimeout(_copyTimer);
-  _copyTimer = setTimeout(()=>setState({copyLinkFeedback:false}), 1600);
-}
-
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function icon(name, style) {
   return h('span', { class: 'ms', style: style || {} }, name);
@@ -549,8 +537,8 @@ function buildVariantPanel(s) {
   const shownVs = (s.variantTab==='active'?activeVs:archivedVs).filter(v=>!q||(v.name||'new variant').toLowerCase().includes(q));
   function mkTab(key) {
     const on = s.variantTab===key;
-    return { s:`display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:9999px;font-size:14px;font-weight:500;cursor:pointer;background:${on?'#1976d2':'transparent'};color:${on?'#fff':'rgba(0,0,0,0.6)'}`,
-             b:`min-width:20px;height:20px;padding:0 6px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:${on?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.1)'};color:${on?'#fff':'rgba(0,0,0,0.6)'}` };
+    return { s:`display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:9999px;font-size:13px;font-weight:500;cursor:pointer;background:${on?'#1976d2':'rgba(0,0,0,0.08)'};color:${on?'#fff':'rgba(0,0,0,0.65)'}`,
+             b:`min-width:18px;height:18px;padding:0 5px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;background:${on?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.12)'};color:${on?'#fff':'rgba(0,0,0,0.6)'}` };
   }
   const at=mkTab('active'), art=mkTab('archived');
   return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 48px)', overflow:'hidden', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
@@ -567,8 +555,7 @@ function buildVariantPanel(s) {
       h('input', { value:s.variantSearch, onInput:e=>setState({variantSearch:e.target.value}), placeholder:'Search by variant name or SKU', style:{ border:'none', outline:'none', flex:'1', fontSize:'15px', background:'transparent', color:'rgba(0,0,0,0.87)' }})
     ),
     h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'14px' }},
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'6px', fontSize:'15px', fontWeight:'600', color:'rgba(0,0,0,0.7)' }}, 'Variant', icon('info',{fontSize:'18px',color:'rgba(0,0,0,0.4)'})),
-      h('div', { style:{ marginLeft:'auto', display:'flex', gap:'8px', color:'rgba(0,0,0,0.5)' }}, icon('sort',{fontSize:'22px'}), icon('filter_list',{fontSize:'22px'})),
+      h('div', { style:{ display:'flex', alignItems:'center', gap:'6px', fontSize:'15px', fontWeight:'600', color:'rgba(0,0,0,0.7)' }}, 'Variants', icon('info',{fontSize:'18px',color:'rgba(0,0,0,0.4)'})),
     ),
     h('div', { style:{ display:'flex', gap:'10px', marginBottom:'16px' }},
       h('div', { onClick:()=>setState({variantTab:'active'}), style:at.s }, 'Active', h('span',{style:at.b},activeVs.length)),
@@ -606,10 +593,6 @@ function buildFormCard(s) {
         h('div', { style:{ flexShrink:'0', display:'flex', alignItems:'center', gap:'6px' }},
           ...[['library_add','Clone'],['visibility','Preview'],['edit_calendar','Schedule'],['archive','Archive']].map(([ico,label]) =>
             h('div', { class:'tb icon-tooltip', 'data-tooltip':label, style:{ width:'40px', height:'40px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.55)' }}, icon(ico,{fontSize:'23px', fontVariationSettings:"'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"}))
-          ),
-          h('div', { class:'tb icon-tooltip', 'data-tooltip':'Copy link', onClick: copyLink, style:{ width:'40px', height:'40px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color: s.copyLinkFeedback?'#137333':'rgba(0,0,0,0.55)' }},
-            icon(s.copyLinkFeedback?'check':'link', {fontSize:'23px', fontVariationSettings:"'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"}),
-            s.copyLinkFeedback ? h('div', { style:{ position:'absolute', top:'46px', left:'50%', transform:'translateX(-50%)', background:'#616161', color:'#fff', fontSize:'12px', fontWeight:'500', padding:'5px 10px', borderRadius:'4px', whiteSpace:'nowrap', zIndex:'30', pointerEvents:'none' }}, 'Copied') : null
           ),
           h('div', { style:{ width:'1px', height:'26px', background:'rgba(0,0,0,0.15)', margin:'0 8px' }}),
           h('div', { style:{ position:'relative' }},
