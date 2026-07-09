@@ -6,7 +6,7 @@
 <title>Experience Manager — TenenGroup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; color: rgba(0,0,0,0.87); background: #f4f6f8; }
@@ -155,9 +155,11 @@ const state = {
   targetingConditions: { user: [], cart: [] },
 
   saveLabel: 'SAVE',
+  copyLinkFeedback: false,
 };
 
 let _saveTimer = null;
+let _copyTimer = null;
 let _defaultRichHTML = '';
 let _aiRichHTML = '';
 
@@ -165,6 +167,38 @@ function setState(patch) {
   if (typeof patch === 'function') patch = patch(state);
   Object.assign(state, patch);
   render();
+}
+
+// ─── hash routing ───────────────────────────────────────────────────────────
+function hashForState() {
+  if (state.view === 'editor') return `#/variant/${state.selectedVariantId}/${state.tab}`;
+  return '#/list';
+}
+function syncHash(push) {
+  const target = hashForState();
+  if (location.hash === target) return;
+  if (push) history.pushState(null, '', target);
+  else history.replaceState(null, '', target);
+}
+function parseHash() {
+  const m = location.hash.match(/^#\/variant\/(\d+)\/(\w+)$/);
+  if (m) {
+    const id = parseInt(m[1], 10);
+    if (state.variants.some(v => v.id === id)) {
+      const tab = ['content','page','targeting'].includes(m[2]) ? m[2] : 'content';
+      return { view:'editor', selectedVariantId:id, tab };
+    }
+  }
+  return { view:'list' };
+}
+function copyLink() {
+  syncHash(false);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(location.href).catch(()=>{});
+  }
+  setState({copyLinkFeedback:true});
+  clearTimeout(_copyTimer);
+  _copyTimer = setTimeout(()=>setState({copyLinkFeedback:false}), 1600);
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -427,7 +461,7 @@ function buildListView(s) {
       h('div',{},'Component Name'), h('div',{},'Supported Pages'), h('div',{},'Last Modified'), h('div',{},'Active Variants'),
     ),
     ...data.map(([id,name,pages,more,variants]) =>
-      h('div', { class:'row', onClick:()=>setState({ view:'editor', componentTitle:name==='PDP Line'?'PDPLine':name, tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'', activePages:pages, pageConditions:{} }),
+      h('div', { class:'row', onClick:()=>{ setState({ view:'editor', componentTitle:name==='PDP Line'?'PDPLine':name, tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'', activePages:pages, pageConditions:{} }); syncHash(true); },
         style:{ display:'grid', gridTemplateColumns:'90px 1fr 1fr 220px 150px', gap:'16px', padding:'20px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', cursor:'pointer', alignItems:'center', transition:'background 150ms' }},
         h('div',{style:{color:'rgba(0,0,0,0.6)'}},id),
         h('div',{},name),
@@ -521,8 +555,8 @@ function buildVariantPanel(s) {
   const at=mkTab('active'), art=mkTab('archived');
   return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 48px)', overflow:'hidden', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
     h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'6px' }},
-      h('div', { class:'tb', onClick:()=>setState({view:'list'}), style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
-      h('div', { onClick:()=>setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active' }; }),
+      h('div', { class:'tb', onClick:()=>{ setState({view:'list'}); syncHash(true); }, style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
+      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active' }; }); syncHash(true); },
         style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
         icon('add',{fontSize:'20px'}), 'ADD VARIANT'
       )
@@ -547,7 +581,7 @@ function buildVariantPanel(s) {
         const rowStyle = selected
           ? { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'14px 17px', fontSize:'16px', cursor:'pointer', border:'1.5px solid #1976d2', borderRadius:'8px', background:'#e9f3fc' }
           : { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'15px 18px', fontSize:'16px', cursor:'pointer', borderBottom: isLast?'none':'1px solid rgba(0,0,0,0.12)', background:'#fff', transition:'background 150ms' };
-        return h('div', { onClick:()=>setState({selectedVariantId:v.id}), style: rowStyle },
+        return h('div', { onClick:()=>{ setState({selectedVariantId:v.id}); syncHash(true); }, style: rowStyle },
           h('span', {}, v.name || 'New Variant'),
           statusChip(v.pubStatus)
         );
@@ -573,6 +607,10 @@ function buildFormCard(s) {
           ...[['library_add','Clone'],['visibility','Preview'],['edit_calendar','Schedule'],['archive','Archive']].map(([ico,label]) =>
             h('div', { class:'tb icon-tooltip', 'data-tooltip':label, style:{ width:'40px', height:'40px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.55)' }}, icon(ico,{fontSize:'23px', fontVariationSettings:"'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"}))
           ),
+          h('div', { class:'tb icon-tooltip', 'data-tooltip':'Copy link', onClick: copyLink, style:{ width:'40px', height:'40px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color: s.copyLinkFeedback?'#137333':'rgba(0,0,0,0.55)' }},
+            icon(s.copyLinkFeedback?'check':'link', {fontSize:'23px', fontVariationSettings:"'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"}),
+            s.copyLinkFeedback ? h('div', { style:{ position:'absolute', top:'46px', left:'50%', transform:'translateX(-50%)', background:'#616161', color:'#fff', fontSize:'12px', fontWeight:'500', padding:'5px 10px', borderRadius:'4px', whiteSpace:'nowrap', zIndex:'30', pointerEvents:'none' }}, 'Copied') : null
+          ),
           h('div', { style:{ width:'1px', height:'26px', background:'rgba(0,0,0,0.15)', margin:'0 8px' }}),
           h('div', { style:{ position:'relative' }},
             h('div', { onClick:()=>setState(p=>({statusOpen:!p.statusOpen})),
@@ -592,9 +630,9 @@ function buildFormCard(s) {
     ),
     // tabs
     h('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid rgba(0,0,0,0.12)', margin:'22px 0 0' }},
-      h('div', { onClick:()=>setState({tab:'content'}), style:tabStyle(s.tab==='content') }, icon('article',{fontSize:'22px'}), 'CONTENT'),
-      h('div', { onClick:()=>setState({tab:'page'}), style:tabStyle(s.tab==='page') }, icon('web_asset',{fontSize:'22px'}), 'PAGE'),
-      h('div', { onClick:()=>setState({tab:'targeting'}), style:tabStyle(s.tab==='targeting') }, icon('ads_click',{fontSize:'22px'}), 'TARGETING'),
+      h('div', { onClick:()=>{ setState({tab:'content'}); syncHash(false); }, style:tabStyle(s.tab==='content') }, icon('article',{fontSize:'22px'}), 'CONTENT'),
+      h('div', { onClick:()=>{ setState({tab:'page'}); syncHash(false); }, style:tabStyle(s.tab==='page') }, icon('web_asset',{fontSize:'22px'}), 'PAGE'),
+      h('div', { onClick:()=>{ setState({tab:'targeting'}); syncHash(false); }, style:tabStyle(s.tab==='targeting') }, icon('ads_click',{fontSize:'22px'}), 'TARGETING'),
     ),
     h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto', padding:'32px 40px' }},
       s.tab==='content'  ? buildContentTab(s) :
@@ -605,7 +643,7 @@ function buildFormCard(s) {
     h('div', { style:{ borderTop:'1px solid rgba(0,0,0,0.12)', padding:'18px 40px', display:'flex', alignItems:'center' }},
       h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:'rgba(0,0,0,0.55)' }}, icon('history',{fontSize:'20px'}), 'last updated at: 10 minutes ago'),
       h('div', { style:{ marginLeft:'auto', display:'flex', gap:'14px' }},
-        h('div', { onClick:()=>setState({view:'list'}), style:{ padding:'10px 22px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'rgba(0,0,0,0.6)', cursor:'pointer' }}, 'CANCEL'),
+        h('div', { onClick:()=>{ setState({view:'list'}); syncHash(true); }, style:{ padding:'10px 22px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'rgba(0,0,0,0.6)', cursor:'pointer' }}, 'CANCEL'),
         h('div', { onClick:()=>{ setState({saveLabel:'SAVED ✓'}); clearTimeout(_saveTimer); _saveTimer=setTimeout(()=>setState({saveLabel:'SAVE'}),1600); }, style:{ padding:'10px 30px', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'#fff', background:'#1976d2', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }}, s.saveLabel)
       )
     )
@@ -967,6 +1005,9 @@ function buildTargetingTab(s) {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+Object.assign(state, parseHash());
+syncHash(false);
+window.addEventListener('hashchange', () => setState(parseHash()));
 render();
 </script>
 </body>
