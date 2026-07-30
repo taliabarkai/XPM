@@ -141,6 +141,11 @@ const state = {
   ai_topics: [{ topic: '', summary: '', mention: '', open: true }],
   ai_showHighlights: false,
 
+  // ── UGC carousel ──
+  ugc_slides: [{ imageLink: '', vimeo: '', includeReviewText: true, rating: '5', reviewText: '', signature: '', title: '', link: '', open: true }],
+  ugc_carouselTitle: '',
+  ugc_modalTitle: '',
+
   // ── Popup Media template ──
   pm_imgLeft: '',
   pm_imgRight: '',
@@ -259,6 +264,12 @@ function hexColorPicker(label, color, onColorChange, onHexInput) {
 }
 function toggle(on, onClick) {
   return h('div', { onClick, style: switchTrack(on) }, h('span', { style: switchThumb(on) }));
+}
+function checkboxRow(on, label, onClick) {
+  return h('div', { onClick, style:{ display:'inline-flex', alignItems:'center', gap:'10px', fontSize:'16px', cursor:'pointer', userSelect:'none' }},
+    icon(on ? 'check_box' : 'check_box_outline_blank', { fontSize:'22px', color: on ? '#1976d2' : 'rgba(0,0,0,0.5)', fontVariationSettings: on ? "'FILL' 1" : "'FILL' 0" }),
+    label
+  );
 }
 
 // ─── rich text toolbar (AI style) ─────────────────────────────────────────────
@@ -635,6 +646,7 @@ function buildFormCard(s) {
 
 // ─── CONTENT TAB ─────────────────────────────────────────────────────────────
 function buildContentTab(s) {
+  if (s.componentTitle === 'UGC carousel') return buildUgcTemplate(s);
   const templates = [
     ['default','Default'], ['switch','Switch PDPline'], ['reviews','Reviews'], ['ai','AI Review Summary'], ['popup','Popup Media'],
   ];
@@ -728,6 +740,55 @@ function buildReviewsTemplate(s) {
       (i) => setState(p=>({ rv_slides:p.rv_slides.filter((_,j)=>j!==i) }))
     ),
     addItemRow(s.rv_slides.length, 8, 'reviews', ()=>setState(p=>({ rv_slides:[...p.rv_slides,{quote:'',customerName:'',open:true}] })))
+  );
+}
+
+// ── UGC CAROUSEL ──────────────────────────────────────────────────────────────
+const UGC_RATING_OPTIONS = ['5','4.5','4','3.5','3','2.5','2','1.5','1','0.5'];
+
+// slides saved before this field existed default to true, preserving current behaviour
+function ugcIncludesReview(slide) { return slide.includeReviewText !== false; }
+
+function setUgcSlide(i, patch) {
+  setState(p=>({ ugc_slides:p.ugc_slides.map((x,j)=>j===i?{...x,...patch}:x) }));
+}
+
+function buildUgcTemplate(s) {
+  return h('div', {},
+    h('div', { class:'section-title', style:{ marginTop:'0' }}, 'products*:'),
+    accordion(
+      s.ugc_slides,
+      (item, i) => {
+        const withReview = ugcIncludesReview(item);
+        return [
+          fLabel('image link*:'), fInput(item.imageLink, e=>setUgcSlide(i,{imageLink:e.target.value}), {color:'#1976d2', placeholder:'https://cdn.example.com/digital-asset/banners/ugc-1.jpg'}),
+          fLabel('Vimeo video id:'), fInput(item.vimeo, e=>setUgcSlide(i,{vimeo:e.target.value})),
+          h('div', { style:{ gridColumn:'1 / -1' }},
+            checkboxRow(withReview, 'Include review text', ()=>setUgcSlide(i,{includeReviewText:!withReview}))
+          ),
+          withReview ? [
+            h('div', { style:{ fontSize:'16px', alignSelf:'center' }}, 'rating score:'),
+            h('div', { style:{ alignSelf:'center' }}, fSelect(item.rating, UGC_RATING_OPTIONS, e=>setUgcSlide(i,{rating:e.target.value}), { minWidth:'110px' })),
+            fLabel('review text*:'), fInput(item.reviewText, e=>setUgcSlide(i,{reviewText:e.target.value}), {placeholder:'Enter the customer review...'}),
+            fLabel('review signature*:'), fInput(item.signature, e=>setUgcSlide(i,{signature:e.target.value}), {placeholder:'- Emily R. -'}),
+            fLabel('review title:'), fInput(item.title, e=>setUgcSlide(i,{title:e.target.value}), {placeholder:'e.g. "Perfect gift for my daughter"'}),
+            fLabel('link:'), fInput(item.link, e=>setUgcSlide(i,{link:e.target.value}), {placeholder:'https://www.example.com/products/...'}),
+          ] : [
+            h('div', { style:{ gridColumn:'1 / -1', fontSize:'14px', color:'rgba(0,0,0,0.55)' }},
+              'The popup will show only the image or video for this slide.')
+          ],
+        ];
+      },
+      (i)=>setState(p=>({ ugc_slides:p.ugc_slides.map((x,j)=>j===i?{...x,open:!x.open}:x) })),
+      (i)=>setState(p=>({ ugc_slides:p.ugc_slides.filter((_,j)=>j!==i) }))
+    ),
+    addItemRow(s.ugc_slides.length, 8, 'products', ()=>setState(p=>({ ugc_slides:[...p.ugc_slides,{ imageLink:'', vimeo:'', includeReviewText:true, rating:'5', reviewText:'', signature:'', title:'', link:'', open:true }] }))),
+    h('div', { style:{ display:'grid', gridTemplateColumns:'200px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'1200px', marginTop:'32px' }},
+      h('div', { style:{ fontSize:'16px' }}, 'carousel title*:'),
+      fInput(s.ugc_carouselTitle, e=>setState({ugc_carouselTitle:e.target.value}), {placeholder:'e.g. "#OALCommunity"', style:{ maxWidth:'620px' }}),
+      h('div', { style:{ fontSize:'16px' }}, 'carousel modal title*:'),
+      fInput(s.ugc_modalTitle, e=>setState({ugc_modalTitle:e.target.value}), {placeholder:'e.g. "Customer Reviews"', style:{ maxWidth:'620px' }}),
+    )
   );
 }
 
