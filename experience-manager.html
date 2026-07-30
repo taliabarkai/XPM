@@ -92,6 +92,7 @@ const state = {
   view: 'list',
   section: 'content',
   experimentsTab: 'all',
+  componentId: 1,
   componentTitle: 'PDPLine',
   variants: [
     { id: 1, name: 'PDP reviews', status: 'active', pubStatus: 'Live' },
@@ -142,7 +143,7 @@ const state = {
   ai_showHighlights: false,
 
   // ── UGC carousel ──
-  ugc_slides: [{ imageLink: '', vimeo: '', includeReviewText: true, rating: '5', reviewText: '', signature: '', title: '', link: '', open: true }],
+  ugc_slides: [{ imageLink: '', vimeo: '', includeReviewText: true, rating: '5', reviewText: '', signature: '', title: '', link: '', linkText: '', open: true }],
   ugc_carouselTitle: '',
   ugc_modalTitle: '',
 
@@ -173,9 +174,12 @@ function setState(patch) {
 }
 
 // ─── hash routing ───────────────────────────────────────────────────────────
+// The editor hash carries the component id so a shared link reopens the same
+// component, not whichever one the app happened to boot with.
 function hashForState() {
-  if (state.view === 'editor') return `#/variant/${state.selectedVariantId}/${state.tab}`;
-  return '#/list';
+  if (state.view === 'editor') return `#/component/${state.componentId}/variant/${state.selectedVariantId}/${state.tab}`;
+  if (state.view === 'experiments') return '#/experiments';
+  return `#/list/${state.section}`;
 }
 function syncHash(push) {
   const target = hashForState();
@@ -183,15 +187,35 @@ function syncHash(push) {
   if (push) history.pushState(null, '', target);
   else history.replaceState(null, '', target);
 }
+function editorStateFor(comp, variantId, rawTab) {
+  const tab = ['content','page','targeting'].includes(rawTab) ? rawTab : 'content';
+  return {
+    view:'editor', section:comp.section, componentId:comp.id, componentTitle:displayTitle(comp.name),
+    activePages:comp.pages, selectedVariantId:variantId, tab,
+    // conditions are keyed by page name, so they can't carry across components
+    ...(state.componentId === comp.id ? {} : { pageConditions:{} }),
+  };
+}
 function parseHash() {
-  const m = location.hash.match(/^#\/variant\/(\d+)\/(\w+)$/);
+  const hash = location.hash;
+  const hasVariant = id => state.variants.some(v => v.id === id);
+
+  let m = hash.match(/^#\/component\/(\d+)\/variant\/(\d+)\/(\w+)$/);
   if (m) {
-    const id = parseInt(m[1], 10);
-    if (state.variants.some(v => v.id === id)) {
-      const tab = ['content','page','targeting'].includes(m[2]) ? m[2] : 'content';
-      return { view:'editor', selectedVariantId:id, tab };
-    }
+    const comp = findComponent(parseInt(m[1], 10));
+    const variantId = parseInt(m[2], 10);
+    if (comp && hasVariant(variantId)) return editorStateFor(comp, variantId, m[3]);
   }
+  // legacy links that predate the component segment: resolve to the first component
+  m = hash.match(/^#\/variant\/(\d+)\/(\w+)$/);
+  if (m) {
+    const comp = findComponent(compsData[0][0]);
+    const variantId = parseInt(m[1], 10);
+    if (comp && hasVariant(variantId)) return editorStateFor(comp, variantId, m[2]);
+  }
+  if (hash === '#/experiments') return { view:'experiments' };
+  m = hash.match(/^#\/list\/(\w+)$/);
+  if (m && LIST_SECTIONS[m[1]]) return { view:'list', section:m[1] };
   return { view:'list' };
 }
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -368,6 +392,16 @@ const LIST_SECTIONS = {
   promotions: { title: 'Promotions Components', data: promotionsData },
 };
 
+// component id → which list it lives in, its name and supported pages
+function findComponent(id) {
+  for (const [section, { data }] of Object.entries(LIST_SECTIONS)) {
+    const row = data.find(r => r[0] === id);
+    if (row) return { section, id:row[0], name:row[1], pages:row[2] };
+  }
+  return null;
+}
+function displayTitle(name) { return name === 'PDP Line' ? 'PDPLine' : name; }
+
 const experimentsData = [
   { name:'Warranty_WOMEN_floating_cart', code:'TEST_WOMEN_Warranty_with/without', component:'Floating Cart', date:'Created on Jul 9, 2026', status:'Editing' },
   { name:'Floating NestedPIP Nova Balance Blossom', code:'TEST_NestedPips_Balance/Nova/Blossom', component:'Floating Cart', date:'Stopped on Jul 9, 2026', status:'Stopped: Winner' },
@@ -426,7 +460,7 @@ function buildSecondary(s) {
     ...items.map(([ico,label,section]) => {
       const active = section === 'experiments' ? s.view === 'experiments' : (section !== null && s.section === section);
       return h('div', { class: collapsed?'panelitem icon-tooltip':'panelitem', 'data-tooltip': collapsed?label:undefined,
-        onClick: (e) => { e.stopPropagation(); if (section === 'experiments') setState({view:'experiments'}); else if (section) setState({view:'list', section}); },
+        onClick: (e) => { e.stopPropagation(); if (section === 'experiments') setState({view:'experiments'}); else if (section) setState({view:'list', section}); syncHash(true); },
         style:{ display:'flex', alignItems:'center', gap:collapsed?'0':'14px', justifyContent:collapsed?'center':'flex-start', padding:`11px ${collapsed?0:12}px`, borderRadius:'8px', cursor:'pointer', marginBottom:'2px', background:active?'rgba(25,118,210,0.1)':'transparent' }},
         icon(ico,{fontSize:'22px', color:active?'#1976d2':'rgba(0,0,0,0.55)'}),
         !collapsed ? h('span',{style:{fontSize:'15px',fontWeight:active?500:400,color:active?'#1976d2':'rgba(0,0,0,0.75)'}},label) : null
@@ -460,7 +494,7 @@ function buildListView(s) {
       h('div',{},'Component Name'), h('div',{},'Supported Pages'), h('div',{},'Last Modified'), h('div',{},'Active Variants'),
     ),
     ...data.map(([id,name,pages,more,variants]) =>
-      h('div', { class:'row', onClick:()=>{ setState({ view:'editor', componentTitle:name==='PDP Line'?'PDPLine':name, tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'', activePages:pages, pageConditions:{} }); syncHash(true); },
+      h('div', { class:'row', onClick:()=>{ setState({ view:'editor', componentId:id, componentTitle:displayTitle(name), tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'', activePages:pages, pageConditions:{} }); syncHash(true); },
         style:{ display:'grid', gridTemplateColumns:'90px 1fr 1fr 220px 150px', gap:'16px', padding:'20px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', cursor:'pointer', alignItems:'center', transition:'background 150ms' }},
         h('div',{style:{color:'rgba(0,0,0,0.6)'}},id),
         h('div',{},name),
@@ -755,24 +789,25 @@ function setUgcSlide(i, patch) {
 
 function buildUgcTemplate(s) {
   return h('div', {},
-    h('div', { class:'section-title', style:{ marginTop:'0' }}, 'products*:'),
+    h('div', { class:'section-title', style:{ marginTop:'0' }}, 'Products*:'),
     accordion(
       s.ugc_slides,
       (item, i) => {
         const withReview = ugcIncludesReview(item);
         return [
-          fLabel('image link*:'), fInput(item.imageLink, e=>setUgcSlide(i,{imageLink:e.target.value}), {color:'#1976d2', placeholder:'https://cdn.example.com/digital-asset/banners/ugc-1.jpg'}),
-          fLabel('Vimeo video id:'), fInput(item.vimeo, e=>setUgcSlide(i,{vimeo:e.target.value})),
+          fLabel('Image Link*:'), fInput(item.imageLink, e=>setUgcSlide(i,{imageLink:e.target.value}), {color:'#1976d2', placeholder:'https://cdn.example.com/digital-asset/banners/ugc-1.jpg'}),
+          fLabel('Vimeo Video ID:'), fInput(item.vimeo, e=>setUgcSlide(i,{vimeo:e.target.value})),
           h('div', { style:{ gridColumn:'1 / -1' }},
-            checkboxRow(withReview, 'Include review text', ()=>setUgcSlide(i,{includeReviewText:!withReview}))
+            checkboxRow(withReview, 'Include Review Text', ()=>setUgcSlide(i,{includeReviewText:!withReview}))
           ),
           withReview ? [
-            h('div', { style:{ fontSize:'16px', alignSelf:'center' }}, 'rating score:'),
+            h('div', { style:{ fontSize:'16px', alignSelf:'center' }}, 'Rating Score:'),
             h('div', { style:{ alignSelf:'center' }}, fSelect(item.rating, UGC_RATING_OPTIONS, e=>setUgcSlide(i,{rating:e.target.value}), { minWidth:'110px' })),
-            fLabel('review text*:'), fInput(item.reviewText, e=>setUgcSlide(i,{reviewText:e.target.value}), {placeholder:'Enter the customer review...'}),
-            fLabel('review signature*:'), fInput(item.signature, e=>setUgcSlide(i,{signature:e.target.value}), {placeholder:'- Emily R. -'}),
-            fLabel('review title:'), fInput(item.title, e=>setUgcSlide(i,{title:e.target.value}), {placeholder:'e.g. "Perfect gift for my daughter"'}),
-            fLabel('link:'), fInput(item.link, e=>setUgcSlide(i,{link:e.target.value}), {placeholder:'https://www.example.com/products/...'}),
+            fLabel('Review Text:'), fInput(item.reviewText, e=>setUgcSlide(i,{reviewText:e.target.value}), {placeholder:'Enter the customer review...'}),
+            fLabel('Review Signature:'), fInput(item.signature, e=>setUgcSlide(i,{signature:e.target.value}), {placeholder:'- Emily R. -'}),
+            fLabel('Review Title:'), fInput(item.title, e=>setUgcSlide(i,{title:e.target.value}), {placeholder:'e.g. "Perfect gift for my daughter"'}),
+            fLabel('Link:'), fInput(item.link, e=>setUgcSlide(i,{link:e.target.value}), {placeholder:'https://www.example.com/products/...'}),
+            fLabel('Link Text:'), fInput(item.linkText, e=>setUgcSlide(i,{linkText:e.target.value}), {placeholder:'e.g. "Shop this look"'}),
           ] : [
             h('div', { style:{ gridColumn:'1 / -1', fontSize:'14px', color:'rgba(0,0,0,0.55)' }},
               'The popup will show only the image or video for this slide.')
@@ -782,11 +817,11 @@ function buildUgcTemplate(s) {
       (i)=>setState(p=>({ ugc_slides:p.ugc_slides.map((x,j)=>j===i?{...x,open:!x.open}:x) })),
       (i)=>setState(p=>({ ugc_slides:p.ugc_slides.filter((_,j)=>j!==i) }))
     ),
-    addItemRow(s.ugc_slides.length, 8, 'products', ()=>setState(p=>({ ugc_slides:[...p.ugc_slides,{ imageLink:'', vimeo:'', includeReviewText:true, rating:'5', reviewText:'', signature:'', title:'', link:'', open:true }] }))),
+    addItemRow(s.ugc_slides.length, 8, 'products', ()=>setState(p=>({ ugc_slides:[...p.ugc_slides,{ imageLink:'', vimeo:'', includeReviewText:true, rating:'5', reviewText:'', signature:'', title:'', link:'', linkText:'', open:true }] }))),
     h('div', { style:{ display:'grid', gridTemplateColumns:'200px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'1200px', marginTop:'32px' }},
-      h('div', { style:{ fontSize:'16px' }}, 'carousel title*:'),
+      h('div', { style:{ fontSize:'16px' }}, 'Carousel Title*:'),
       fInput(s.ugc_carouselTitle, e=>setState({ugc_carouselTitle:e.target.value}), {placeholder:'e.g. "#OALCommunity"', style:{ maxWidth:'620px' }}),
-      h('div', { style:{ fontSize:'16px' }}, 'carousel modal title*:'),
+      h('div', { style:{ fontSize:'16px' }}, 'Carousel Modal Title*:'),
       fInput(s.ugc_modalTitle, e=>setState({ugc_modalTitle:e.target.value}), {placeholder:'e.g. "Customer Reviews"', style:{ maxWidth:'620px' }}),
     )
   );
