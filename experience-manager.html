@@ -38,6 +38,9 @@
   .add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border: 1px solid rgba(25,118,210,0.5); border-radius: 6px; color: #1976d2; font-size: 14px; font-weight: 500; letter-spacing: .4px; cursor: pointer; }
   .add-btn:hover { background: rgba(25,118,210,0.06); }
   .section-title { font-size: 16px; font-weight: 700; margin: 28px 0 16px; }
+  /* nested products table — row affordances appear on hover, like the real app */
+  .np-hover { opacity: 0; transition: opacity 120ms; }
+  .np-item:hover .np-hover { opacity: 1; }
   /* icon tooltip */
   .icon-tooltip { position: relative; }
   .icon-tooltip::after {
@@ -146,6 +149,20 @@ const state = {
   ugc_slides: [{ imageLink: '', vimeo: '', includeReviewText: true, rating: '5', reviewText: '', signature: '', title: '', link: '', linkText: '', open: true }],
   ugc_carouselTitle: '',
   ugc_modalTitle: '',
+
+  // ── Shipping Promotion ──
+  sa_componentType: 'promo',
+  sa_skuError: false,
+  sa_sku: '',
+  sa_image: '',
+  sa_heading: '',
+  sa_description: '',
+  sa_buttonText: '',
+  sa_showTooltip: false,
+  sa_tipImage: '',
+  sa_tipTitle: '',
+  sa_tipDescription: '',
+  sa_tipCancelText: '',
 
   // ── Popup Media template ──
   pm_imgLeft: '',
@@ -384,6 +401,7 @@ const promotionsData = [
   [15, 'Featured Cart Promotion',  ['Product page','Category page','Cart page'],                1, 1],
   [17, 'Floating Cart',            ['Checkout confirma…','Product page','Category page'],       2, 28],
   [18, 'Post Sale Promotion',      ['Checkout confirma…'],                                       0, 0],
+  [26, 'Shipping Promotion',       ['Cart page'],                                                0, 0],
 ];
 
 const LIST_SECTIONS = {
@@ -672,15 +690,26 @@ function buildFormCard(s) {
       h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:'rgba(0,0,0,0.55)' }}, icon('history',{fontSize:'20px'}), 'last updated at: 10 minutes ago'),
       h('div', { style:{ marginLeft:'auto', display:'flex', gap:'14px' }},
         h('div', { onClick:()=>{ setState({view:'list'}); syncHash(true); }, style:{ padding:'10px 22px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'rgba(0,0,0,0.6)', cursor:'pointer' }}, 'CANCEL'),
-        h('div', { onClick:()=>{ setState({saveLabel:'SAVED ✓'}); clearTimeout(_saveTimer); _saveTimer=setTimeout(()=>setState({saveLabel:'SAVE'}),1600); }, style:{ padding:'10px 30px', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'#fff', background:'#1976d2', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }}, s.saveLabel)
+        h('div', { onClick:()=>saveVariant(), style:{ padding:'10px 30px', borderRadius:'5px', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', color:'#fff', background:'#1976d2', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }}, s.saveLabel)
       )
     )
   );
 }
 
+// Save runs the active component's validation first; a failing field surfaces
+// inline instead of the SAVED confirmation.
+function saveVariant() {
+  const errors = state.componentTitle === 'Shipping Promotion' ? shippingPromotionErrors(state) : null;
+  if (errors) { setState({ ...errors, tab:'content' }); return; }
+  setState({ saveLabel:'SAVED ✓' });
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(()=>setState({saveLabel:'SAVE'}), 1600);
+}
+
 // ─── CONTENT TAB ─────────────────────────────────────────────────────────────
 function buildContentTab(s) {
   if (s.componentTitle === 'UGC carousel') return buildUgcTemplate(s);
+  if (s.componentTitle === 'Shipping Promotion') return buildShippingPromotionTemplate(s);
   const templates = [
     ['default','Default'], ['switch','Switch PDPline'], ['reviews','Reviews'], ['ai','AI Review Summary'], ['popup','Popup Media'],
   ];
@@ -823,6 +852,69 @@ function buildUgcTemplate(s) {
       fInput(s.ugc_carouselTitle, e=>setState({ugc_carouselTitle:e.target.value}), {placeholder:'e.g. "#OALCommunity"', style:{ maxWidth:'620px' }}),
       h('div', { style:{ fontSize:'16px' }}, 'Carousel Modal Title*:'),
       fInput(s.ugc_modalTitle, e=>setState({ugc_modalTitle:e.target.value}), {placeholder:'e.g. "Customer Reviews"', style:{ maxWidth:'620px' }}),
+    )
+  );
+}
+
+// ── SHIPPING PROMOTION ────────────────────────────────────────────────────────
+const SA_TYPES = [['promo','Promo Add-On'], ['messaging','Messaging Only']];
+
+// variants saved before the type existed have no value, so they read as the
+// add-on — the shape they were authored in
+function saComponentType(s) { return s.sa_componentType || 'promo'; }
+
+// only the fields the selected type actually shows are required
+function shippingPromotionErrors(s) {
+  if (saComponentType(s) === 'promo' && !s.sa_sku.trim()) return { sa_skuError: true };
+  return null;
+}
+
+function buildShippingPromotionTemplate(s) {
+  // rows nest deeper here than in fieldGrid (type → tooltip), so flatten fully
+  const grid = (...rows) => h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'start', maxWidth:'1200px' }}, ...rows.flat(Infinity));
+  const type = saComponentType(s);
+  // hidden fields keep their values in state, so toggling back restores whatever
+  // was typed
+  const promoOnly = type === 'promo';
+
+  return h('div', {},
+    h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'center', maxWidth:'1200px', marginBottom:'28px' }},
+      h('div', { style:{ fontSize:'16px' }}, 'Component Type*:'),
+      h('div', { style:{ display:'flex', gap:'34px', flexWrap:'wrap' }},
+        ...SA_TYPES.map(([key,label]) =>
+          h('div', { onClick:()=>setState({ sa_componentType:key, sa_skuError:false }),
+            style:{ display:'flex', alignItems:'center', gap:'9px', fontSize:'16px', cursor:'pointer' }},
+            h('span', { style:ringStyle(type===key) },
+              type===key ? h('span',{style:{width:'11px',height:'11px',borderRadius:'50%',background:'#1976d2',display:'block'}}) : null
+            ),
+            label
+          )
+        )
+      )
+    ),
+    grid(
+      promoOnly ? [
+        [fLabel('SKU*:'),
+         h('div', {},
+           fInput(s.sa_sku, e=>setState({sa_sku:e.target.value, sa_skuError:false}), { placeholder:'Select SKU, or paste from clipboard', style:{ maxWidth:'550px', borderColor: s.sa_skuError ? '#e53935' : 'rgba(0,0,0,0.23)' }}),
+           s.sa_skuError ? h('div', { style:{ fontSize:'13px', color:'#e53935', marginTop:'7px' }}, 'SKU is required') : null
+         )],
+      ] : [],
+      [fLabel('Image:'), fInput(s.sa_image, e=>setState({sa_image:e.target.value}))],
+      promoOnly ? [[fLabel('Heading:'), fInput(s.sa_heading, e=>setState({sa_heading:e.target.value}))]] : [],
+      [fLabel('Description:'), fTextarea(s.sa_description, e=>setState({sa_description:e.target.value}))],
+      promoOnly ? [
+        [fLabel('Button Text:'), fInput(s.sa_buttonText, e=>setState({sa_buttonText:e.target.value}))],
+        centerRow('Show Tooltip:', checkboxRow(s.sa_showTooltip, '', ()=>setState(p=>({sa_showTooltip:!p.sa_showTooltip})))),
+        // the tooltip is its own little card in the storefront, so its copy only
+        // matters once the merchant has turned it on
+        s.sa_showTooltip ? [
+          [fLabel('Image:'), fInput(s.sa_tipImage, e=>setState({sa_tipImage:e.target.value}))],
+          [fLabel('Title:'), fInput(s.sa_tipTitle, e=>setState({sa_tipTitle:e.target.value}))],
+          [fLabel('Description:'), fTextarea(s.sa_tipDescription, e=>setState({sa_tipDescription:e.target.value}))],
+          [fLabel('Cancel Text:'), fInput(s.sa_tipCancelText, e=>setState({sa_tipCancelText:e.target.value}))],
+        ] : []
+      ] : []
     )
   );
 }
