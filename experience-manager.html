@@ -162,6 +162,7 @@ const state = {
   sa_tipImage: '',
   sa_tipTitle: '',
   sa_tipDescription: '',
+  sa_tipButtonText: '',
   sa_tipCancelText: '',
 
   // ── Popup Media template ──
@@ -912,6 +913,7 @@ function buildShippingPromotionTemplate(s) {
           [fLabel('Image:'), fInput(s.sa_tipImage, e=>setState({sa_tipImage:e.target.value}))],
           [fLabel('Title:'), fInput(s.sa_tipTitle, e=>setState({sa_tipTitle:e.target.value}))],
           [fLabel('Description:'), fTextarea(s.sa_tipDescription, e=>setState({sa_tipDescription:e.target.value}))],
+          [fLabel('Button Text:'), fInput(s.sa_tipButtonText, e=>setState({sa_tipButtonText:e.target.value}))],
           [fLabel('Cancel Text:'), fInput(s.sa_tipCancelText, e=>setState({sa_tipCancelText:e.target.value}))],
         ] : []
       ] : []
