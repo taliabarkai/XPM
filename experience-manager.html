@@ -210,9 +210,10 @@
   .hero-layer-body { padding: var(--mui-spacing-2); display: flex; flex-direction: column; gap: var(--mui-spacing-2); }
   .hero-layer-bar { display: flex; align-items: center; gap: var(--mui-spacing-2); flex-wrap: wrap; justify-content: flex-end; }
   .hero-inline-toggle { display: inline-flex; align-items: center; gap: var(--mui-spacing-1); font-size: 13px; color: var(--mui-palette-text-secondary); cursor: pointer; user-select: none; }
-  .hero-btn-danger { background: var(--mui-palette-error-main); color: #fff; }
-  .hero-btn-danger:hover { background: #b71c1c; }
 
+  .hero-visual-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--mui-spacing-2-half); flex-wrap: wrap; }
+  .hero-visual-row > .hero-imgs { flex: 1 1 auto; }
+  .hero-visual-row > .hero-layer-bar { flex: 0 0 auto; }
   .hero-imgs { display: flex; flex-wrap: wrap; gap: var(--mui-spacing-2-half); }
   .hero-imgs > .hero-slot { flex: 1 1 240px; max-width: 340px; }
 
@@ -1859,19 +1860,20 @@ function heroVisualSlot(label, present, onAdd) {
 }
 function heroVisualLayer(s, slide, i) {
   return heroLayer('Visual Layer', 'palette', slide.visual, ()=>setHeroSlide(i,{ visual: !slide.visual }), [
-    h('div', { class:'hero-layer-bar' },
-      // Responsive splits the single asset into a mobile and a desktop image
-      h('div', { class:'hero-inline-toggle', onClick:()=>setHeroSlide(i,{ responsive: !slide.responsive }) },
-        toggle(slide.responsive, ()=>setHeroSlide(i,{ responsive: !slide.responsive })), 'Responsive'),
-      h('div', { class:'hero-inline-toggle', onClick:()=>setHeroSlide(i,{ videoOverlay: !slide.videoOverlay }) },
-        toggle(slide.videoOverlay, ()=>setHeroSlide(i,{ videoOverlay: !slide.videoOverlay })), 'Video Overlay'),
-      h('div', { class:'hero-btn hero-btn-danger sm', onClick:()=>setHeroSlide(i,{ image:false, mobileImage:false, desktopImage:false }) }, 'REMOVE')
-    ),
-    h('div', { class:'hero-imgs' },
-      ...(slide.responsive
-        ? [ heroVisualSlot('Mobile',  slide.mobileImage,  ()=>setHeroSlide(i,{ mobileImage:true })),
-            heroVisualSlot('Desktop', slide.desktopImage, ()=>setHeroSlide(i,{ desktopImage:true })) ]
-        : [ heroVisualSlot('Image',   slide.image,        ()=>setHeroSlide(i,{ image:true })) ])
+    h('div', { class:'hero-visual-row' },
+      h('div', { class:'hero-imgs' },
+        ...(slide.responsive
+          ? [ heroVisualSlot('Mobile',  slide.mobileImage,  ()=>setHeroSlide(i,{ mobileImage:true })),
+              heroVisualSlot('Desktop', slide.desktopImage, ()=>setHeroSlide(i,{ desktopImage:true })) ]
+          : [ heroVisualSlot('Image',   slide.image,        ()=>setHeroSlide(i,{ image:true })) ])
+      ),
+      h('div', { class:'hero-layer-bar' },
+        // Responsive splits the single asset into a mobile and a desktop image
+        h('div', { class:'hero-inline-toggle', onClick:()=>setHeroSlide(i,{ responsive: !slide.responsive }) },
+          toggle(slide.responsive, ()=>setHeroSlide(i,{ responsive: !slide.responsive })), 'Responsive'),
+        h('div', { class:'hero-inline-toggle', onClick:()=>setHeroSlide(i,{ videoOverlay: !slide.videoOverlay }) },
+          toggle(slide.videoOverlay, ()=>setHeroSlide(i,{ videoOverlay: !slide.videoOverlay })), 'Video Overlay')
+      )
     )
   ]);
 }
