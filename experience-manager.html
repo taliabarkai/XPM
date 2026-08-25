@@ -144,10 +144,28 @@
   .hero-pane { padding: var(--mui-spacing-2-half); border-left: 1px solid var(--mui-palette-border); display: flex; flex-direction: column; gap: var(--mui-spacing-1-half); }
   .hero-pane:first-child { border-left: none; }
   /* level 2: sub-panel label — uppercase micro-caps, distinct from both h2 and field labels */
-  .hero-pane-head { display: flex; align-items: center; gap: var(--mui-spacing-1); font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--mui-palette-text-secondary); padding-bottom: var(--mui-spacing-1); border-bottom: 1px solid var(--mui-palette-border); margin-bottom: var(--mui-spacing-xs); }
+  .hero-pane-head { display: flex; align-items: center; gap: var(--mui-spacing-1); font-size: 13px; font-weight: 600; color: var(--mui-palette-text-secondary); padding-bottom: var(--mui-spacing-1); border-bottom: 1px solid var(--mui-palette-border); margin-bottom: var(--mui-spacing-xs); }
   .hero-pane .hero-field { min-height: 0; gap: var(--mui-spacing-1); justify-content: space-between; }
   .hero-pane .hero-label { flex: 1 1 auto; font-size: 13px; }
   .hero-pane .hero-select { flex: 0 0 auto; min-width: 116px; }
+  .hero-pane-head .hero-eye { margin-left: auto; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; color: rgba(0,0,0,0.45); }
+  .hero-pane-head .hero-eye:hover { background: rgba(0,0,0,0.06); color: var(--mui-palette-text-primary); }
+  .hero-pane-fields { display: flex; flex-direction: column; gap: var(--mui-spacing-1-half); }
+  .hero-pane-fields.off { opacity: 0.4; pointer-events: none; }
+  .hero-pane-note { font-size: 12px; line-height: 1.45; color: var(--mui-palette-text-secondary); }
+
+  /* tooltip for controls that are disabled for a reason worth stating */
+  .hero-tip { position: relative; }
+  .hero-tip::after {
+    content: attr(data-tooltip);
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: #616161; color: #fff; font-size: 12px; font-weight: 500; line-height: 1.4;
+    padding: 6px 10px; border-radius: 4px; width: max-content; max-width: 240px; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity 120ms; z-index: 30;
+  }
+  .hero-tip.below::after { bottom: auto; top: calc(100% + 8px); }
+  .hero-tip:hover::after { opacity: 1; }
+  .hero-inline-toggle.is-disabled { opacity: 0.45; cursor: not-allowed; }
 
   /* slides */
   .hero-slides { display: flex; flex-direction: column; gap: var(--mui-spacing-1-half); }
@@ -165,7 +183,7 @@
   .hero-shop-body { padding: 0 var(--mui-spacing-2) var(--mui-spacing-2-half); display: flex; flex-direction: column; gap: var(--mui-spacing-2-half); }
   .hero-shop-grid { display: grid; grid-template-columns: 1fr 1fr 0.9fr; gap: var(--mui-spacing-2); align-items: start; }
   .hero-slot { display: flex; flex-direction: column; gap: var(--mui-spacing-1); }
-  .hero-slot-label { font-size: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--mui-palette-text-secondary); }
+  .hero-slot-label { font-size: 13px; font-weight: 600; color: var(--mui-palette-text-secondary); }
   .hero-frame { position: relative; border: 1px solid var(--mui-palette-border); border-radius: var(--radius-md); background: repeating-linear-gradient(135deg, #eceff1 0 14px, #e6eaed 14px 28px); overflow: hidden; }
   .hero-frame.desktop { aspect-ratio: 16 / 9; }
   .hero-frame.mobile { aspect-ratio: 4 / 5; }
@@ -206,7 +224,7 @@
   .hero-layer { border: 1px solid var(--mui-palette-border); border-radius: var(--radius-md); background: var(--mui-palette-grey-50); }
   .hero-layer-head { display: flex; align-items: center; gap: var(--mui-spacing-1); padding: var(--mui-spacing-1-half) var(--mui-spacing-2); }
   .hero-layer.on .hero-layer-head { border-bottom: 1px solid var(--mui-palette-border); }
-  .hero-layer-title { font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--mui-palette-text-secondary); }
+  .hero-layer-title { font-size: 14px; font-weight: 600; color: var(--mui-palette-text-secondary); }
   .hero-layer-body { padding: var(--mui-spacing-2); display: flex; flex-direction: column; gap: var(--mui-spacing-2); }
   .hero-layer-bar { display: flex; align-items: center; gap: var(--mui-spacing-2); flex-wrap: wrap; justify-content: flex-end; }
   .hero-inline-toggle { display: inline-flex; align-items: center; gap: var(--mui-spacing-1); font-size: 13px; color: var(--mui-palette-text-secondary); cursor: pointer; user-select: none; }
@@ -1523,6 +1541,7 @@ function heroDefaults() {
     hero_layout: 'carousel',
     hero_mobile:  { visible: 1, peek: 'Small (8px)', gap: '8px',  arrows: 'Hidden',   dots: 'Always' },
     hero_desktop: { visible: 3, peek: 'None',        gap: '16px', arrows: 'On hover', dots: 'Hidden' },
+    hero_desktopVisible: true,
     hero_autoplay: false,
     hero_loop: true,
     hero_slides: [
@@ -1624,19 +1643,31 @@ function heroHeaderSection(s) {
 }
 
 // ── 2. Display Settings ───────────────────────────────────────────────────────
-function heroDevicePane(s, key, label, ico) {
+// A banner can run mobile-only: hiding desktop drops the component on desktop
+// entirely, so the desktop settings stop applying.
+function heroDesktopHidden(s) { return s.hero_desktopVisible === false; }
+
+function heroDevicePane(s, key, label, ico, hideable) {
   const d = s[key];
   const max = HERO_MAX_VISIBLE[key === 'hero_mobile' ? 'mobile' : 'desktop'];
+  const hidden = hideable && heroDesktopHidden(s);
   return h('div', { class:'hero-pane' },
-    h('div', { class:'hero-pane-head' }, icon(ico,{fontSize:'17px'}), label),
-    h('div', { class:'hero-field' },
-      h('div', { class:'hero-label' }, `Visible items (max: ${max})`),
-      heroStepper(d.visible, 1, max, v=>setHeroDevice(key, { visible:v }))
+    h('div', { class:'hero-pane-head' }, icon(ico,{fontSize:'17px'}), label,
+      hideable ? h('div', { class:'hero-eye hero-tip below', 'data-tooltip': hidden ? 'Show on desktop' : 'Hide on desktop',
+        onClick:()=>setHero({ hero_desktopVisible: hidden }) },
+        icon(hidden ? 'visibility_off' : 'visibility', { fontSize:'19px' })) : null
     ),
-    h('div', { class:'hero-field' }, h('div', { class:'hero-label' }, 'Next item peek'), heroSelect(d.peek,   HERO_PEEK,   v=>setHeroDevice(key,{peek:v}))),
-    h('div', { class:'hero-field' }, h('div', { class:'hero-label' }, 'Gap'),            heroSelect(d.gap,    HERO_GAP,    v=>setHeroDevice(key,{gap:v}))),
-    h('div', { class:'hero-field' }, h('div', { class:'hero-label' }, 'Arrows'),         heroSelect(d.arrows, HERO_ARROWS, v=>setHeroDevice(key,{arrows:v}))),
-    h('div', { class:'hero-field' }, h('div', { class:'hero-label' }, 'Dots'),           heroSelect(d.dots,   HERO_DOTS,   v=>setHeroDevice(key,{dots:v})))
+    hidden ? h('div', { class:'hero-pane-note' }, 'Hidden on desktop — this banner shows on mobile only.') : null,
+    h('div', { class:'hero-pane-fields' + (hidden ? ' off' : '') },
+      h('div', { class:'hero-field' },
+        h('div', { class:'hero-label' }, `Visible items (max: ${max})`),
+        heroStepper(d.visible, 1, max, v=>setHeroDevice(key, { visible:v }))
+      ),
+      h('div', { class:'hero-field' }, h('div', { class:'hero-label' }, 'Next item peek'), heroSelect(d.peek,   HERO_PEEK,   v=>setHeroDevice(key,{peek:v}))),
+      h('div', { class:'hero-field' }, h('div', { class:'hero-label' }, 'Gap'),            heroSelect(d.gap,    HERO_GAP,    v=>setHeroDevice(key,{gap:v}))),
+      h('div', { class:'hero-field' }, h('div', { class:'hero-label' }, 'Arrows'),         heroSelect(d.arrows, HERO_ARROWS, v=>setHeroDevice(key,{arrows:v}))),
+      h('div', { class:'hero-field' }, h('div', { class:'hero-label' }, 'Dots'),           heroSelect(d.dots,   HERO_DOTS,   v=>setHeroDevice(key,{dots:v})))
+    )
   );
 }
 function heroDisplaySection(s) {
@@ -1646,7 +1677,7 @@ function heroDisplaySection(s) {
     ),
     h('div', { class:'hero-cluster' },
       heroDevicePane(s, 'hero_mobile',  'Mobile',  'phone_iphone'),
-      heroDevicePane(s, 'hero_desktop', 'Desktop', 'desktop_windows'),
+      heroDevicePane(s, 'hero_desktop', 'Desktop', 'desktop_windows', true),
       h('div', { class:'hero-pane' },
         h('div', { class:'hero-pane-head' }, icon('tune',{fontSize:'17px'}), 'Shared'),
         h('div', { class:'hero-field' }, h('div', { class:'hero-label' }, 'Autoplay'), toggle(s.hero_autoplay, ()=>setHero(p=>({hero_autoplay:!p.hero_autoplay})))),
@@ -1685,7 +1716,7 @@ function heroShoppable(s, slide, i) {
   return h('div', { class:'hero-shop' },
     h('div', { class:'hero-shop-head', onClick:()=>setHeroSlide(i,{ shopOpen: !slide.shopOpen }) },
       icon(slide.shopOpen ? 'expand_less' : 'expand_more', { fontSize:'20px', color:'rgba(0,0,0,0.54)' }),
-      h('div', { style:{ fontSize:'13px', fontWeight:'700', letterSpacing:'.4px', textTransform:'uppercase', color:'var(--mui-palette-text-secondary)' }}, 'Shoppable image'),
+      h('div', { class:'hero-layer-title' }, 'Shoppable Image'),
       h('div', { style:{ marginLeft:'auto' }}, heroBadge('Position pre-configured', 'lock', 'pill'))
     ),
     !slide.shopOpen ? null : h('div', { class:'hero-shop-body' },
@@ -1764,7 +1795,7 @@ function heroSlidesSection(s) {
     n === 0
       ? h('div', { class:'hero-empty' },
           h('div', {}, 'No slides yet. Add your first slide to get started.'),
-          h('div', { class:'hero-btn hero-btn-primary', onClick:heroAddSlide }, icon('add',{fontSize:'18px'}), 'ADD FIRST SLIDE'))
+          h('div', { class:'hero-btn hero-btn-primary', onClick:heroAddSlide }, icon('add',{fontSize:'18px'}), 'Add First Slide'))
       : h('div', { class:'hero-slides' }, ...s.hero_slides.map((slide,i)=>heroSlideCard(s, slide, i))),
     n === 0 ? null : h('div', { style:{ marginTop:'var(--mui-spacing-2)', display:'flex', alignItems:'center' }},
       h('div', { class:'hero-btn ' + (n >= HERO_MAX_SLIDES ? 'is-disabled' : 'hero-btn-outline'),
@@ -1774,7 +1805,7 @@ function heroSlidesSection(s) {
   );
 }
 function heroAddSlide() {
-  setHero(p => p.hero_slides.length >= HERO_MAX_SLIDES ? p : ({ hero_slides:[...p.hero_slides, heroNewSlide()] }));
+  setHero(p => p.hero_slides.length >= HERO_MAX_SLIDES ? p : ({ hero_slides:[...p.hero_slides, { ...heroNewSlide(), open:true }] }));
 }
 
 // ── STANDARD BANNER MODE ──────────────────────────────────────────────────────
@@ -1811,7 +1842,7 @@ function heroPosLabel(key) {
 
 function heroNewSlide() {
   return {
-    mode: 'standard', open: true, shopOpen: true,
+    mode: 'standard', open: false, shopOpen: true,
     visual: true, responsive: false, videoOverlay: false,
     image: false, mobileImage: false, desktopImage: false,
     linkType: 'url', linkUrl: '', klaviyoFormId: '',
@@ -1859,18 +1890,24 @@ function heroVisualSlot(label, present, onAdd) {
   );
 }
 function heroVisualLayer(s, slide, i) {
+  const dtHidden = heroDesktopHidden(s);
+  // the stored value is kept, so showing desktop again restores the split
+  const responsive = slide.responsive && !dtHidden;
   return heroLayer('Visual Layer', 'palette', slide.visual, ()=>setHeroSlide(i,{ visual: !slide.visual }), [
     h('div', { class:'hero-visual-row' },
       h('div', { class:'hero-imgs' },
-        ...(slide.responsive
+        ...(responsive
           ? [ heroVisualSlot('Mobile',  slide.mobileImage,  ()=>setHeroSlide(i,{ mobileImage:true })),
               heroVisualSlot('Desktop', slide.desktopImage, ()=>setHeroSlide(i,{ desktopImage:true })) ]
           : [ heroVisualSlot('Image',   slide.image,        ()=>setHeroSlide(i,{ image:true })) ])
       ),
       h('div', { class:'hero-layer-bar' },
-        // Responsive splits the single asset into a mobile and a desktop image
-        h('div', { class:'hero-inline-toggle', onClick:()=>setHeroSlide(i,{ responsive: !slide.responsive }) },
-          toggle(slide.responsive, ()=>setHeroSlide(i,{ responsive: !slide.responsive })), 'Responsive'),
+        // Responsive splits the single asset into a mobile and a desktop image,
+        // which has nothing to describe once desktop is hidden
+        h('div', { class:'hero-inline-toggle' + (dtHidden ? ' hero-tip is-disabled' : ''),
+          ...(dtHidden ? { 'data-tooltip':'Unavailable while Desktop is hidden — this banner shows on mobile only.' } : {}),
+          onClick: dtHidden ? undefined : ()=>setHeroSlide(i,{ responsive: !slide.responsive }) },
+          toggle(responsive, dtHidden ? ()=>{} : ()=>setHeroSlide(i,{ responsive: !slide.responsive })), 'Responsive'),
         h('div', { class:'hero-inline-toggle', onClick:()=>setHeroSlide(i,{ videoOverlay: !slide.videoOverlay }) },
           toggle(slide.videoOverlay, ()=>setHeroSlide(i,{ videoOverlay: !slide.videoOverlay })), 'Video Overlay')
       )
@@ -1915,7 +1952,7 @@ function heroTextLayer(s, slide, i) {
             h('div', { class:'hero-subcard-title' }, 'Content Elements:'),
             h('div', { class:'hero-btn hero-btn-outline sm', style:{ marginLeft:'auto' },
               onClick:()=>setHeroSlide(i,{ texts:[...slide.texts, { text:'', typography:'headline2' }] })},
-              icon('add',{fontSize:'18px'}), 'ADD TEXT')
+              icon('add',{fontSize:'18px'}), 'Add Text')
           ),
           h('div', { class:'hero-stack' },
             ...slide.texts.map((t, j) =>
@@ -1945,7 +1982,7 @@ function heroTextLayer(s, slide, i) {
             h('div', { class:'hero-subcard-title' }, 'Button:'),
             h('div', { class:'hero-btn hero-btn-outline sm', style:{ marginLeft:'auto' },
               onClick:()=>setHeroSlide(i,{ buttons:[...slide.buttons, { label:'', url:'' }] })},
-              icon('add',{fontSize:'18px'}), 'ADD BUTTON')
+              icon('add',{fontSize:'18px'}), 'Add Button')
           ),
           slide.buttons.length === 0 ? null : h('div', { class:'hero-stack' },
             ...slide.buttons.map((b, j) =>
