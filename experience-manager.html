@@ -41,6 +41,16 @@
   /* nested products table — row affordances appear on hover, like the real app */
   .np-hover { opacity: 0; transition: opacity 120ms; }
   .np-item:hover .np-hover { opacity: 1; }
+  /* a location this SKU cannot use says why on hover */
+  .np-tip { position: relative; }
+  .np-tip::after {
+    content: attr(data-tooltip);
+    position: absolute; left: 16px; bottom: calc(100% - 2px);
+    background: #616161; color: #fff; font-size: 12px; font-weight: 500;
+    padding: 6px 10px; border-radius: 4px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 120ms; z-index: 40;
+  }
+  .np-tip:hover::after { opacity: 1; }
   /* icon tooltip */
   .icon-tooltip { position: relative; }
   .icon-tooltip::after {
@@ -2146,6 +2156,7 @@ function npNewItem() { return { sku:'', pdp:false, cart:false, floatingCart:fals
 function npBlank() {
   return {
     np_items: [npNewItem()],
+    np_locOpen: null,
     np_open: { products:true, pdp:true, cart:true, floating:true },
     np_pdpHeading: '',
     np_cartShowAs: 'collapsed',
@@ -2211,12 +2222,68 @@ function npSection(s, key, title, ...body) {
 // Every row keeps the same editable text field, warranty or not: for prototyping
 // the word "warranty" is simply typed in where a catalogue code would go.
 function npSkuCell(item, i) {
-  return fInput(item.sku, e=>setNpItem(i,{sku:e.target.value}),
-    { placeholder:'e.g. 110-01-4975-33 or "warranty"', style:{ maxWidth:'480px' }});
+  return fInput(item.sku, e => {
+    const sku = e.target.value;
+    // whichever cart location the row can no longer use cannot stay selected
+    const warranty = sku.trim().toLowerCase() === 'warranty';
+    setNpItem(i, warranty ? { sku, cart:false } : { sku, floatingCart:false });
+  }, { placeholder:'e.g. 110-01-4975-33 or "warranty"', style:{ maxWidth:'480px' }});
+}
+
+// Display Location is a multiselect: all three locations are listed on every
+// row, and Floating Cart is only selectable on the warranty SKU.
+const NP_LOCATIONS = [
+  { key:'pdp',          label:'PDP' },
+  { key:'cart',         label:'Cart' },
+  { key:'floatingCart', label:'Floating Cart' },
+];
+const NP_LOC_TOOLTIP = {
+  floatingCart: 'Available for the warranty SKU only',
+  cart:         'Not available for the warranty SKU',
+};
+
+function npLocEnabled(item, key) {
+  const warranty = npIsWarranty(item);
+  if (key === 'floatingCart') return warranty;
+  if (key === 'cart')         return !warranty;
+  return true;
+}
+function npToggleLoc(i, key) {
+  const item = state.np_items[i];
+  if (!npLocEnabled(item, key)) return;
+  setNpItem(i, { [key]: !item[key] });
+}
+
+function npLocationCell(s, item, i) {
+  const open = s.np_locOpen === i;
+  const chosen = NP_LOCATIONS.filter(l => item[l.key]).map(l => l.label);
+  return h('div', { style:{ position:'relative', maxWidth:'280px' }},
+    h('div', { onClick:()=>setState(p=>({ np_locOpen: p.np_locOpen === i ? null : i })),
+      style:{ display:'flex', alignItems:'center', gap:'6px', height:'50px', padding:'0 8px 0 14px', border:`1px solid ${open?'#1976d2':'rgba(0,0,0,0.23)'}`, borderRadius:'6px', fontSize:'15px', cursor:'pointer', background:'#fff', color: chosen.length ? 'inherit' : 'rgba(0,0,0,0.45)' }},
+      h('div', { style:{ flex:'1', minWidth:'0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }},
+        chosen.length ? chosen.join(', ') : 'Select'
+      ),
+      icon(open?'arrow_drop_up':'arrow_drop_down', { fontSize:'22px', color:'rgba(0,0,0,0.54)', flexShrink:'0' })
+    ),
+    !open ? null : h('div', { style:{ position:'absolute', top:'54px', left:'0', minWidth:'100%', background:'#fff', borderRadius:'6px', boxShadow:'0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14)', padding:'6px 0', zIndex:'25' }},
+      ...NP_LOCATIONS.map(l => {
+        const on = !!item[l.key];
+        if (!npLocEnabled(item, l.key)) {
+          return h('div', { class:'np-tip', 'data-tooltip':NP_LOC_TOOLTIP[l.key],
+            style:{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 16px', fontSize:'15px', color:'rgba(0,0,0,0.35)', cursor:'not-allowed' }},
+            icon('check_box_outline_blank', { fontSize:'22px', color:'rgba(0,0,0,0.22)' }), l.label
+          );
+        }
+        return h('div', { class:'panelitem', onClick:()=>npToggleLoc(i, l.key),
+          style:{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 16px', fontSize:'15px', cursor:'pointer' }},
+          icon(on ? 'check_box' : 'check_box_outline_blank', { fontSize:'22px', color: on ? '#1976d2' : 'rgba(0,0,0,0.5)', fontVariationSettings: on ? "'FILL' 1" : "'FILL' 0" }), l.label
+        );
+      })
+    )
+  );
 }
 
 function npRow(s, item, i) {
-  const warranty = npIsWarranty(item);
   const row = h('div', { class:'np-item',
     onDragStart: e => { _npDrag = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (err) {} },
     // the drop line is painted straight onto the node: re-rendering here would
@@ -2242,12 +2309,7 @@ function npRow(s, item, i) {
       icon('drag_indicator',{fontSize:'20px'})
     ),
     npSkuCell(item, i),
-    h('div', { style:{ display:'flex', alignItems:'center', gap:'24px' }},
-      checkboxRow(item.pdp, 'PDP', ()=>setNpItem(i,{pdp:!item.pdp})),
-      warranty
-        ? checkboxRow(item.floatingCart, 'Floating Cart', ()=>setNpItem(i,{floatingCart:!item.floatingCart}))
-        : checkboxRow(item.cart, 'Cart', ()=>setNpItem(i,{cart:!item.cart}))
-    ),
+    npLocationCell(s, item, i),
     h('div', { style:{ display:'flex', alignItems:'center', gap:'14px', fontSize:'16px' }},
       toggle(item.ribbon, ()=>setNpItem(i,{ribbon:!item.ribbon})), 'Show Ribbon'
     ),
@@ -2262,7 +2324,7 @@ function npRow(s, item, i) {
 function npProductsTable(s) {
   const n = s.np_items.length;
   const full = n >= NP_MAX_SKUS;
-  return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px', maxWidth:'1200px', overflow:'hidden' }},
+  return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px', maxWidth:'1200px' }},
     h('div', { style:{ display:'grid', gridTemplateColumns:NP_GRID, gap:'20px', padding:'18px 20px', fontSize:'15px', color:'rgba(0,0,0,0.7)' }},
       h('div', {}), h('div', {}, 'SKU'), h('div', {}, 'Display Location'), h('div', {}, 'Catalog Product Ribbon'), h('div', {})
     ),
