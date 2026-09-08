@@ -322,9 +322,12 @@ function defaultVariants() {
 // doesn't leak into the next component the user opens.
 function variantSeedFor(title) {
   if (title === OLD_REFERENCE_BANNER) {
-    return { variants: hbVariants(), selectedVariantId: 1, ...hbSeeded(), ...heroDefaults() };
+    return { variants: hbVariants(), selectedVariantId: 1, ...hbSeeded(), ...heroDefaults(), ...npDefaults() };
   }
-  return { variants: defaultVariants(), ...heroDefaults() };
+  if (title === NESTED_PRODUCTS) {
+    return { variants: npVariants(), ...heroDefaults(), ...npDefaults() };
+  }
+  return { variants: defaultVariants(), ...heroDefaults(), ...npDefaults() };
 }
 
 const state = {
@@ -408,6 +411,9 @@ const state = {
 
   // ── Hero Banner ──
   ...heroDefaults(),
+
+  // ── Nested Products ──
+  ...npDefaults(),
 
   // page + targeting
   activePages: ['Product page'],
@@ -691,14 +697,38 @@ function filterExperiments(tab) {
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
+// Every keystroke rebuilds the whole tree, which drops the caret along with the
+// old node. Remembering the focused element by its position in the tree — the
+// same state renders the same shape — puts the caret back where it was.
+function captureFocus(root) {
+  const el = document.activeElement;
+  if (!el || el === root || !root.contains(el)) return null;
+  const path = [];
+  for (let n = el; n && n !== root; n = n.parentNode) {
+    path.unshift(Array.prototype.indexOf.call(n.parentNode.children, n));
+  }
+  let sel = null;
+  try { if (el.selectionStart != null) sel = [el.selectionStart, el.selectionEnd]; } catch (e) {}
+  return { path, sel };
+}
+function restoreFocus(root, saved) {
+  if (!saved) return;
+  let n = root;
+  for (const i of saved.path) { n = n && n.children[i]; if (!n) return; }
+  if (typeof n.focus !== 'function') return;
+  n.focus({ preventScroll: true });
+  if (saved.sel && n.setSelectionRange) { try { n.setSelectionRange(saved.sel[0], saved.sel[1]); } catch (e) {} }
+}
 function render() {
   const root = document.getElementById('app');
   const scrollPositions = Array.from(root.querySelectorAll('.scroll')).map(el => el.scrollTop);
+  const focused = captureFocus(root);
   root.innerHTML = '';
   root.appendChild(buildApp(state));
   Array.from(root.querySelectorAll('.scroll')).forEach((el, i) => {
     if (scrollPositions[i] != null) el.scrollTop = scrollPositions[i];
   });
+  restoreFocus(root, focused);
 }
 
 function buildApp(s) {
@@ -848,7 +878,9 @@ function buildVariantPanel(s) {
   return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 48px)', overflow:'hidden', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
     h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'6px' }},
       h('div', { class:'tb', onClick:()=>{ setState({view:'list'}); syncHash(true); }, style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
-      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', ...hbDefaults(), ...heroBlank() }; }); syncHash(true); },
+      // a brand-new variant opens on the component's first tab, so it is filled
+      // in from the top rather than wherever the last variant was left
+      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank() }; }); syncHash(true); },
         style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
         icon('add',{fontSize:'20px'}), 'ADD VARIANT'
       )
@@ -880,6 +912,23 @@ function buildVariantPanel(s) {
       shownVs.length===0 ? h('div',{style:{padding:'24px 8px',fontSize:'14px',color:'rgba(0,0,0,0.5)'}},'No variants found.') : null
     )
   );
+}
+
+// The three tab keys are fixed (they are in the URL) but their labels and order
+// are the component's own: Nested Products opens on its parent-SKU filters and
+// names the content tab after what that tab holds.
+const EDITOR_TABS_DEFAULT = [
+  ['content',   'CONTENT',   'article'],
+  ['page',      'PAGE',      'web_asset'],
+  ['targeting', 'TARGETING', 'ads_click'],
+];
+const EDITOR_TABS_NESTED = [
+  ['page',      'PARENT SKU/S',               'web_asset'],
+  ['content',   'NESTED PRODUCTS & CONTENT',  'article'],
+  ['targeting', 'TARGETING',                  'ads_click'],
+];
+function editorTabs(s) {
+  return s.componentTitle === NESTED_PRODUCTS ? EDITOR_TABS_NESTED : EDITOR_TABS_DEFAULT;
 }
 
 function buildFormCard(s) {
@@ -917,9 +966,9 @@ function buildFormCard(s) {
     ),
     // tabs
     h('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid rgba(0,0,0,0.12)', margin:'22px 0 0' }},
-      h('div', { onClick:()=>{ setState({tab:'content'}); syncHash(false); }, style:tabStyle(s.tab==='content') }, icon('article',{fontSize:'22px'}), 'CONTENT'),
-      h('div', { onClick:()=>{ setState({tab:'page'}); syncHash(false); }, style:tabStyle(s.tab==='page') }, icon('web_asset',{fontSize:'22px'}), 'PAGE'),
-      h('div', { onClick:()=>{ setState({tab:'targeting'}); syncHash(false); }, style:tabStyle(s.tab==='targeting') }, icon('ads_click',{fontSize:'22px'}), 'TARGETING'),
+      ...editorTabs(s).map(([key,label,ico]) =>
+        h('div', { onClick:()=>{ setState({tab:key}); syncHash(false); }, style:tabStyle(s.tab===key) }, icon(ico,{fontSize:'22px'}), label)
+      )
     ),
     h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto', padding:'32px 40px' }},
       s.tab==='content'  ? buildContentTab(s) :
@@ -976,6 +1025,7 @@ function buildBannerTemplates(s) {
 
 // ─── CONTENT TAB ─────────────────────────────────────────────────────────────
 function buildContentTab(s) {
+  if (s.componentTitle === NESTED_PRODUCTS) return buildNestedProductsTemplate(s);
   if (s.componentTitle === 'UGC carousel') return buildUgcTemplate(s);
   if (s.componentTitle === 'Shipping Promotion') return buildShippingPromotionTemplate(s);
   // every component in the Banners category shares one template set
@@ -2073,13 +2123,225 @@ function buildHeroBannerTemplate(s) {
   );
 }
 
+// ─── NESTED PRODUCTS ──────────────────────────────────────────────────────────
+// Promotions › Nested Products. Its variant page leads with the parent-SKU
+// filters, so the content tab is where the nested items themselves live — hence
+// the "Nested Products & Content" tab label (see editorTabs).
+const NESTED_PRODUCTS = 'Nested Products';
+const NP_MAX_SKUS = 6;
+const NP_ICONS = ['Select','Plus','Chevron','Gift','Shield','Sparkle','Info','Tag'];
+const NP_GRID = '40px minmax(220px, 1fr) 300px 250px 40px';
+
+// A warranty row is recognised by its SKU value alone: there is no product type
+// in the model yet, so the literal "warranty" is the flag.
+function npIsWarranty(item) { return item.sku.trim().toLowerCase() === 'warranty'; }
+// Floating Cart is only offered on warranty rows, so its settings section only
+// exists once one of them actually uses it.
+function npHasFloatingCart(s) { return s.np_items.some(it => npIsWarranty(it) && it.floatingCart); }
+
+function npNewItem() { return { sku:'', pdp:false, cart:false, floatingCart:false, ribbon:false }; }
+
+// A fresh variant opens on an empty row: no SKU, no display location and no
+// ribbon, so nothing is switched on that was not asked for.
+function npBlank() {
+  return {
+    np_items: [npNewItem()],
+    np_open: { products:true, pdp:true, cart:true, floating:true },
+    np_pdpHeading: '',
+    np_cartShowAs: 'collapsed',
+    np_cartIcon: 'Select',
+    np_cartButtonText: '',
+    np_cartHeading: '',
+    np_fcHeading: '',
+    np_fcShowPhoto: true,
+  };
+}
+// Nested Products names its variants after the promotion each one nests, so the
+// panel reads as a real component rather than the shared demo list. Variant 1 is
+// the warranty one — it is the table npDefaults seeds.
+function npVariants() {
+  return [
+    { id: 1, name: 'Warranty',     status: 'active',   pubStatus: 'Live' },
+    { id: 2, name: 'BOGO50',       status: 'active',   pubStatus: 'Live' },
+    { id: 3, name: 'Necklace Set', status: 'active',   pubStatus: 'Draft' },
+    { id: 4, name: 'Summer 2025',  status: 'archived', pubStatus: 'Archived' },
+  ];
+}
+
+// The demo variants that ship with the prototype open on a filled table: a
+// regular nested product plus a warranty item, so both row shapes are on screen
+// without having to type one in.
+function npDefaults() {
+  return { ...npBlank(), np_items: [
+    { sku:'110-01-4975-33', pdp:true, cart:true,  floatingCart:false, ribbon:true  },
+    { sku:'warranty',       pdp:true, cart:false, floatingCart:true,  ribbon:false },
+  ]};
+}
+
+function setNpItem(i, patch)  { setState(p=>({ np_items: p.np_items.map((x,j)=> j===i ? {...x, ...patch} : x) })); }
+function npAddItem()          { setState(p=> p.np_items.length >= NP_MAX_SKUS ? p : ({ np_items:[...p.np_items, npNewItem()] })); }
+function npRemoveItem(i)      { setState(p=>({ np_items: p.np_items.filter((_,j)=>j!==i) })); }
+function npToggleSection(key) { setState(p=>({ np_open: { ...p.np_open, [key]: !p.np_open[key] } })); }
+
+// Same approach as the Highlights Bar list: the drag cursor lives outside state,
+// because re-rendering would replace the node the browser is dragging.
+let _npDrag = null;
+function npMove(from, to) {
+  if (from == null || from === to) return;
+  setState(p => {
+    const arr = [...p.np_items];
+    const [moved] = arr.splice(from, 1);
+    // removing the item first shifts every later index down by one
+    arr.splice(from < to ? to - 1 : to, 0, moved);
+    return { np_items: arr };
+  });
+}
+
+function npSection(s, key, title, ...body) {
+  const open = s.np_open[key];
+  return h('div', {},
+    h('div', { onClick:()=>npToggleSection(key), style:{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer' }},
+      icon(open?'expand_more':'chevron_right', { fontSize:'22px', color:'rgba(0,0,0,0.6)' }),
+      h('div', { style:{ fontSize:'20px', fontWeight:'600' }}, title)
+    ),
+    open ? h('div', { style:{ marginTop:'18px' }}, ...body) : null
+  );
+}
+
+// Every row keeps the same editable text field, warranty or not: for prototyping
+// the word "warranty" is simply typed in where a catalogue code would go.
+function npSkuCell(item, i) {
+  return fInput(item.sku, e=>setNpItem(i,{sku:e.target.value}),
+    { placeholder:'e.g. 110-01-4975-33 or "warranty"', style:{ maxWidth:'480px' }});
+}
+
+function npRow(s, item, i) {
+  const warranty = npIsWarranty(item);
+  const row = h('div', { class:'np-item',
+    onDragStart: e => { _npDrag = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (err) {} },
+    // the drop line is painted straight onto the node: re-rendering here would
+    // tear down the element the browser is dragging over
+    onDragOver: e => {
+      e.preventDefault();
+      const r = row.getBoundingClientRect();
+      const after = e.clientY > r.top + r.height / 2;
+      row.dataset.dropAfter = after ? '1' : '0';
+      row.style.boxShadow = after ? 'inset 0 -3px 0 #1976d2' : 'inset 0 3px 0 #1976d2';
+    },
+    onDragLeave: () => { row.style.boxShadow = ''; },
+    onDrop: e => { e.preventDefault(); const after = row.dataset.dropAfter === '1'; row.style.boxShadow = ''; npMove(_npDrag, after ? i + 1 : i); _npDrag = null; },
+    onDragEnd: () => { row.draggable = false; row.style.boxShadow = ''; _npDrag = null; },
+    style:{ display:'grid', gridTemplateColumns:NP_GRID, alignItems:'center', gap:'20px', padding:'16px 20px', borderTop:'1px solid rgba(0,0,0,0.12)' }},
+
+    // the row only becomes draggable while the handle is held, so text in the
+    // SKU field stays selectable
+    h('div', { class:'tb', title:'Drag to reorder',
+      onMouseDown: () => { row.draggable = true; },
+      onMouseUp:   () => { row.draggable = false; },
+      style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'grab', color:'rgba(0,0,0,0.38)' }},
+      icon('drag_indicator',{fontSize:'20px'})
+    ),
+    npSkuCell(item, i),
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'24px' }},
+      checkboxRow(item.pdp, 'PDP', ()=>setNpItem(i,{pdp:!item.pdp})),
+      warranty
+        ? checkboxRow(item.floatingCart, 'Floating Cart', ()=>setNpItem(i,{floatingCart:!item.floatingCart}))
+        : checkboxRow(item.cart, 'Cart', ()=>setNpItem(i,{cart:!item.cart}))
+    ),
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'14px', fontSize:'16px' }},
+      toggle(item.ribbon, ()=>setNpItem(i,{ribbon:!item.ribbon})), 'Show Ribbon'
+    ),
+    h('div', { class:'tb', title:'Remove item', onClick:()=>npRemoveItem(i),
+      style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', cursor:'pointer', color:'rgba(0,0,0,0.45)' }},
+      icon('close',{fontSize:'20px'})
+    )
+  );
+  return row;
+}
+
+function npProductsTable(s) {
+  const n = s.np_items.length;
+  const full = n >= NP_MAX_SKUS;
+  return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px', maxWidth:'1200px', overflow:'hidden' }},
+    h('div', { style:{ display:'grid', gridTemplateColumns:NP_GRID, gap:'20px', padding:'18px 20px', fontSize:'15px', color:'rgba(0,0,0,0.7)' }},
+      h('div', {}), h('div', {}, 'SKU'), h('div', {}, 'Display Location'), h('div', {}, 'Catalog Product Ribbon'), h('div', {})
+    ),
+    ...s.np_items.map((item,i) => npRow(s, item, i)),
+    n === 0 ? h('div', { style:{ padding:'22px 20px', borderTop:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', color:'rgba(0,0,0,0.5)' }}, 'No products yet.') : null,
+    h('div', { style:{ display:'flex', alignItems:'center', padding:'20px', borderTop:'1px solid rgba(0,0,0,0.12)' }},
+      h('div', { class: full ? '' : 'add-btn', onClick: full ? undefined : npAddItem,
+        title: full ? `Up to ${NP_MAX_SKUS} SKUs can be nested` : '',
+        style: full
+          ? { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 20px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.35)', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'not-allowed' }
+          : {}},
+        icon('add',{fontSize:'18px'}), 'ADD ITEM'
+      ),
+      h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'rgba(0,0,0,0.6)' }}, `${n} of ${NP_MAX_SKUS} SKUs added`)
+    )
+  );
+}
+
+function npRadios(value, options, onPick) {
+  return h('div', { style:{ display:'flex', gap:'34px', flexWrap:'wrap' }},
+    ...options.map(([key,label]) =>
+      h('div', { onClick:()=>onPick(key), style:{ display:'flex', alignItems:'center', gap:'9px', fontSize:'16px', cursor:'pointer' }},
+        h('span', { style:ringStyle(value===key) },
+          value===key ? h('span',{style:{width:'11px',height:'11px',borderRadius:'50%',background:'#1976d2',display:'block'}}) : null
+        ),
+        label
+      )
+    )
+  );
+}
+
+const NP_SELECT_STYLE = { width:'100%', maxWidth:'1040px', height:'50px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', padding:'0 12px', fontSize:'15px', background:'#fff' };
+
+function buildNestedProductsTemplate(s) {
+  const divider = () => h('div', { style:{ height:'1px', background:'rgba(0,0,0,0.12)', margin:'34px 0', maxWidth:'1200px' }});
+  const showFloating = npHasFloatingCart(s);
+  return h('div', { style:{ maxWidth:'1200px' }},
+    npSection(s, 'products', 'Products', npProductsTable(s)),
+    divider(),
+    npSection(s, 'pdp', 'PDP Settings',
+      fieldGrid(
+        fLabel('Heading:'),
+        fInput(s.np_pdpHeading, e=>setState({np_pdpHeading:e.target.value}), { style:{ maxWidth:'1040px' }})
+      )
+    ),
+    divider(),
+    npSection(s, 'cart', 'Cart Settings',
+      h('div', { style:{ fontSize:'16px', fontWeight:'700' }}, 'Nested Button'),
+      fieldGrid(
+        ...centerRow('Show As:', npRadios(s.np_cartShowAs, [['collapsed','Collapsed'],['expanded','Expanded']], k=>setState({np_cartShowAs:k}))),
+        fLabel('Icon:'),
+        fSelect(s.np_cartIcon, NP_ICONS, e=>setState({np_cartIcon:e.target.value}), NP_SELECT_STYLE),
+        fLabel('Button Text:'),
+        fInput(s.np_cartButtonText, e=>setState({np_cartButtonText:e.target.value}), { style:{ maxWidth:'1040px' }}),
+        fLabel('Heading:'),
+        fInput(s.np_cartHeading, e=>setState({np_cartHeading:e.target.value}), { style:{ maxWidth:'1040px' }})
+      )
+    ),
+    // only rendered while a warranty row is set to show in the floating cart
+    showFloating ? divider() : null,
+    showFloating ? npSection(s, 'floating', 'Floating Cart Settings',
+      fieldGrid(
+        fLabel('Heading:'),
+        fInput(s.np_fcHeading, e=>setState({np_fcHeading:e.target.value}), { style:{ maxWidth:'1040px' }}),
+        ...centerRow('Product Photo:', h('div', { style:{ display:'flex', alignItems:'center', gap:'14px', fontSize:'16px' }},
+          toggle(s.np_fcShowPhoto, ()=>setState(p=>({np_fcShowPhoto:!p.np_fcShowPhoto}))), 'Show Photo'
+        ))
+      )
+    ) : null
+  );
+}
+
 // ─── PAGE TAB ─────────────────────────────────────────────────────────────────
 const ATTRIBUTE_OPTIONS = ['By Audience','Category Relation','Category Relation (Backoffice Name)','Collection','Discount Percentage','Expedited Production days','Grouped parent SKU','Material','Parent SKUs','Price','Product Type','Production days','ShippingByFactory','Shop For','SKU','Stock Status','Stone'];
 const OPERATOR_OPTIONS = ['IsOneOf','IsNoneOf'];
 
-function renderAddConditionsBtn(onClick) {
+function renderAddConditionsBtn(onClick, label) {
   return h('div', { onClick, style:{ display:'inline-flex', alignItems:'center', gap:'6px', color:'#1976d2', fontSize:'14px', fontWeight:'600', letterSpacing:'.3px', cursor:'pointer' }},
-    icon('add',{fontSize:'20px'}), 'ADD CONDITIONS'
+    icon('add',{fontSize:'20px'}), label || 'ADD CONDITIONS'
   );
 }
 function renderConditionRow(cond, attributeOptions, onAttr, onOperator, onValue, onRemove) {
@@ -2120,7 +2382,34 @@ function buildPageSection(s, pageName) {
         )
   );
 }
+// Nested items are matched against the parent product, so there is a single list
+// of conditions here rather than one section per page.
+const NP_PARENT_KEY = 'Parent SKU/s';
+function buildParentSkuTab(s) {
+  const conditions = s.pageConditions[NP_PARENT_KEY] || [];
+  return h('div', { style:{ maxWidth:'1200px' }},
+    h('div', { style:{ fontSize:'18px', fontWeight:'700', marginBottom:'14px' }}, 'Parent SKU/s Properties:'),
+    conditions.length === 0
+      ? h('div', {},
+          h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)', marginBottom:'16px' }},
+            'No filters selected. The Nested items will appear for ',
+            h('strong', { style:{ textDecoration:'underline' }}, 'all products'), '.'
+          ),
+          renderAddConditionsBtn(()=>addCondition(NP_PARENT_KEY))
+        )
+      : h('div', {},
+          ...conditions.map((cond,i) => renderConditionRow(cond, ATTRIBUTE_OPTIONS,
+            e=>updateCondition(NP_PARENT_KEY,i,{attribute:e.target.value}),
+            e=>updateCondition(NP_PARENT_KEY,i,{operator:e.target.value}),
+            e=>updateCondition(NP_PARENT_KEY,i,{value:e.target.value}),
+            ()=>removeCondition(NP_PARENT_KEY,i)
+          )),
+          renderAddConditionsBtn(()=>addCondition(NP_PARENT_KEY), 'ADD ANOTHER CONDITION')
+        )
+  );
+}
 function buildPageTab(s) {
+  if (s.componentTitle === NESTED_PRODUCTS) return buildParentSkuTab(s);
   return h('div', { style:{ maxWidth:'1200px' }},
     ...s.activePages.map(pageName => buildPageSection(s, pageName))
   );
