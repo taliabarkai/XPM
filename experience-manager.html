@@ -2140,7 +2140,13 @@ function buildHeroBannerTemplate(s) {
 const NESTED_PRODUCTS = 'Nested Products';
 const NP_MAX_SKUS = 6;
 const NP_ICONS = ['Select','Plus','Chevron','Gift','Shield','Sparkle','Info','Tag'];
-const NP_GRID = '40px minmax(220px, 1fr) 300px 250px 40px';
+const NP_CENTER = { display:'flex', justifyContent:'center' };
+
+function npGrid(showVimeo) {
+  return showVimeo
+    ? '40px minmax(170px, 1fr) 280px 190px 70px 200px 40px'
+    : '40px minmax(200px, 1fr) 280px 190px 70px 40px';
+}
 
 // A warranty row is recognised by its SKU value alone: there is no product type
 // in the model yet, so the literal "warranty" is the flag.
@@ -2149,7 +2155,7 @@ function npIsWarranty(item) { return item.sku.trim().toLowerCase() === 'warranty
 // exists once one of them actually uses it.
 function npHasFloatingCart(s) { return s.np_items.some(it => npIsWarranty(it) && it.floatingCart); }
 
-function npNewItem() { return { sku:'', pdp:false, cart:false, floatingCart:false, ribbon:false }; }
+function npNewItem() { return { sku:'', pdp:false, cart:false, floatingCart:false, ribbon:false, video:false, vimeo:'' }; }
 
 // A fresh variant opens on an empty row: no SKU, no display location and no
 // ribbon, so nothing is switched on that was not asked for.
@@ -2159,11 +2165,12 @@ function npBlank() {
     np_locOpen: null,
     np_open: { products:true, pdp:true, cart:true, floating:true },
     np_pdpHeading: '',
+    np_pdpDisplayType: 'carousel',
     np_cartShowAs: 'collapsed',
     np_cartIcon: 'Select',
     np_cartButtonText: '',
     np_cartHeading: '',
-    np_fcHeading: '',
+    np_fcText: '',
     np_fcShowPhoto: true,
   };
 }
@@ -2184,8 +2191,8 @@ function npVariants() {
 // without having to type one in.
 function npDefaults() {
   return { ...npBlank(), np_items: [
-    { sku:'110-01-4975-33', pdp:true, cart:true,  floatingCart:false, ribbon:true  },
-    { sku:'warranty',       pdp:true, cart:false, floatingCart:true,  ribbon:false },
+    { sku:'110-01-4975-33', pdp:true, cart:true,  floatingCart:false, ribbon:true,  video:true,  vimeo:'1090780925' },
+    { sku:'warranty',       pdp:true, cart:false, floatingCart:true,  ribbon:false, video:false, vimeo:'' },
   ]};
 }
 
@@ -2283,7 +2290,7 @@ function npLocationCell(s, item, i) {
   );
 }
 
-function npRow(s, item, i) {
+function npRow(s, item, i, showVimeo) {
   const row = h('div', { class:'np-item',
     onDragStart: e => { _npDrag = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (err) {} },
     // the drop line is painted straight onto the node: re-rendering here would
@@ -2298,7 +2305,7 @@ function npRow(s, item, i) {
     onDragLeave: () => { row.style.boxShadow = ''; },
     onDrop: e => { e.preventDefault(); const after = row.dataset.dropAfter === '1'; row.style.boxShadow = ''; npMove(_npDrag, after ? i + 1 : i); _npDrag = null; },
     onDragEnd: () => { row.draggable = false; row.style.boxShadow = ''; _npDrag = null; },
-    style:{ display:'grid', gridTemplateColumns:NP_GRID, alignItems:'center', gap:'20px', padding:'16px 20px', borderTop:'1px solid rgba(0,0,0,0.12)' }},
+    style:{ display:'grid', gridTemplateColumns:npGrid(showVimeo), alignItems:'center', gap:'20px', padding:'16px 20px', borderTop:'1px solid rgba(0,0,0,0.12)' }},
 
     // the row only becomes draggable while the handle is held, so text in the
     // SKU field stays selectable
@@ -2310,9 +2317,14 @@ function npRow(s, item, i) {
     ),
     npSkuCell(item, i),
     npLocationCell(s, item, i),
-    h('div', { style:{ display:'flex', alignItems:'center', gap:'14px', fontSize:'16px' }},
-      toggle(item.ribbon, ()=>setNpItem(i,{ribbon:!item.ribbon})), 'Show Ribbon'
-    ),
+    h('div', { style:NP_CENTER }, toggle(item.ribbon, ()=>setNpItem(i,{ribbon:!item.ribbon}))),
+    h('div', { style:NP_CENTER }, toggle(item.video, ()=>setNpItem(i,{video:!item.video}))),
+    // the value survives toggling the video off, so turning it back on restores it
+    showVimeo ? h('div', {},
+      item.video
+        ? fInput(item.vimeo, e=>setNpItem(i,{vimeo:e.target.value}), { placeholder:'e.g. 1090780925', style:{ maxWidth:'200px' }})
+        : null
+    ) : null,
     h('div', { class:'tb', title:'Remove item', onClick:()=>npRemoveItem(i),
       style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', cursor:'pointer', color:'rgba(0,0,0,0.45)' }},
       icon('close',{fontSize:'20px'})
@@ -2324,11 +2336,15 @@ function npRow(s, item, i) {
 function npProductsTable(s) {
   const n = s.np_items.length;
   const full = n >= NP_MAX_SKUS;
+  const showVimeo = s.np_items.some(it => it.video);
   return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px', maxWidth:'1200px' }},
-    h('div', { style:{ display:'grid', gridTemplateColumns:NP_GRID, gap:'20px', padding:'18px 20px', fontSize:'15px', color:'rgba(0,0,0,0.7)' }},
-      h('div', {}), h('div', {}, 'SKU'), h('div', {}, 'Display Location'), h('div', {}, 'Catalog Product Ribbon'), h('div', {})
+    h('div', { style:{ display:'grid', gridTemplateColumns:npGrid(showVimeo), gap:'20px', padding:'18px 20px', fontSize:'15px', color:'rgba(0,0,0,0.7)' }},
+      h('div', {}), h('div', {}, 'SKU'), h('div', {}, 'Display Location'),
+      h('div', { style:{ textAlign:'center' }}, 'Catalog Product Ribbon'),
+      h('div', { style:{ textAlign:'center' }}, 'Video'),
+      showVimeo ? h('div', {}, 'Vimeo ID') : null, h('div', {})
     ),
-    ...s.np_items.map((item,i) => npRow(s, item, i)),
+    ...s.np_items.map((item,i) => npRow(s, item, i, showVimeo)),
     n === 0 ? h('div', { style:{ padding:'22px 20px', borderTop:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', color:'rgba(0,0,0,0.5)' }}, 'No products yet.') : null,
     h('div', { style:{ display:'flex', alignItems:'center', padding:'20px', borderTop:'1px solid rgba(0,0,0,0.12)' }},
       h('div', { class: full ? '' : 'add-btn', onClick: full ? undefined : npAddItem,
@@ -2356,6 +2372,8 @@ function npRadios(value, options, onPick) {
   );
 }
 
+const NP_PDP_DISPLAY_TYPES = [['carousel','Carousel'], ['stacked','Stacked'], ['grid','Grid']];
+
 const NP_SELECT_STYLE = { width:'100%', maxWidth:'1040px', height:'50px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', padding:'0 12px', fontSize:'15px', background:'#fff' };
 
 function buildNestedProductsTemplate(s) {
@@ -2367,7 +2385,8 @@ function buildNestedProductsTemplate(s) {
     npSection(s, 'pdp', 'PDP Settings',
       fieldGrid(
         fLabel('Heading:'),
-        fInput(s.np_pdpHeading, e=>setState({np_pdpHeading:e.target.value}), { style:{ maxWidth:'1040px' }})
+        fInput(s.np_pdpHeading, e=>setState({np_pdpHeading:e.target.value}), { style:{ maxWidth:'1040px' }}),
+        ...centerRow('Display Type:', npRadios(s.np_pdpDisplayType, NP_PDP_DISPLAY_TYPES, k=>setState({np_pdpDisplayType:k})))
       )
     ),
     divider(),
@@ -2385,12 +2404,14 @@ function buildNestedProductsTemplate(s) {
     ),
     // only rendered while a warranty row is set to show in the floating cart
     showFloating ? divider() : null,
+    // The warranty item expands and collapses in the floating cart, and Text is
+    // what it reads when collapsed.
     showFloating ? npSection(s, 'floating', 'Floating Cart Settings',
       fieldGrid(
-        fLabel('Heading:'),
-        fInput(s.np_fcHeading, e=>setState({np_fcHeading:e.target.value}), { style:{ maxWidth:'1040px' }}),
+        fLabel('Text:'),
+        fInput(s.np_fcText, e=>setState({np_fcText:e.target.value}), { style:{ maxWidth:'1040px' }}),
         ...centerRow('Product Photo:', h('div', { style:{ display:'flex', alignItems:'center', gap:'14px', fontSize:'16px' }},
-          toggle(s.np_fcShowPhoto, ()=>setState(p=>({np_fcShowPhoto:!p.np_fcShowPhoto}))), 'Show Photo'
+          toggle(s.np_fcShowPhoto, ()=>setState(p=>({np_fcShowPhoto:!p.np_fcShowPhoto}))), 'Show Product Photo'
         ))
       )
     ) : null
