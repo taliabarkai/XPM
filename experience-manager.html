@@ -2137,8 +2137,13 @@ function buildHeroBannerTemplate(s) {
 // Promotions › Nested Products. Its variant page leads with the parent-SKU
 // filters, so the content tab is where the nested items themselves live — hence
 // the "Nested Products & Content" tab label (see editorTabs).
+//
+// Products are grouped into at most two sections. Each section owns its own
+// product table, and — because the heading and display type were moved out of
+// the table — its own block under PDP Settings, titled to match.
 const NESTED_PRODUCTS = 'Nested Products';
 const NP_MAX_SKUS = 6;
+const NP_MAX_SECTIONS = 2;
 const NP_ICONS = ['Select','Plus','Chevron','Gift','Shield','Sparkle','Info','Tag'];
 const NP_CENTER = { display:'flex', justifyContent:'center' };
 
@@ -2152,20 +2157,21 @@ function npGrid(showVimeo) {
 // in the model yet, so the literal "warranty" is the flag.
 function npIsWarranty(item) { return item.sku.trim().toLowerCase() === 'warranty'; }
 // Floating Cart is only offered on warranty rows, so its settings section only
-// exists once one of them actually uses it.
-function npHasFloatingCart(s) { return s.np_items.some(it => npIsWarranty(it) && it.floatingCart); }
+// exists once one of them — in any section — actually uses it.
+function npHasFloatingCart(s) {
+  return s.np_sections.some(sec => sec.items.some(it => npIsWarranty(it) && it.floatingCart));
+}
 
-function npNewItem() { return { sku:'', pdp:false, cart:false, floatingCart:false, ribbon:false, video:false, vimeo:'' }; }
+function npNewItem()    { return { sku:'', pdp:false, cart:false, floatingCart:false, ribbon:false, video:false, vimeo:'' }; }
+function npNewSection() { return { heading:'', displayType:'carousel', open:true, items:[npNewItem()] }; }
 
-// A fresh variant opens on an empty row: no SKU, no display location and no
-// ribbon, so nothing is switched on that was not asked for.
+// A fresh variant opens on one section holding one empty row: no SKU, no display
+// location and no ribbon, so nothing is switched on that was not asked for.
 function npBlank() {
   return {
-    np_items: [npNewItem()],
+    np_sections: [npNewSection()],
     np_locOpen: null,
     np_open: { products:true, pdp:true, cart:true, floating:true },
-    np_pdpHeading: '',
-    np_pdpDisplayType: 'carousel',
     np_cartShowAs: 'collapsed',
     np_cartIcon: 'Select',
     np_cartButtonText: '',
@@ -2190,28 +2196,43 @@ function npVariants() {
 // regular nested product plus a warranty item, so both row shapes are on screen
 // without having to type one in.
 function npDefaults() {
-  return { ...npBlank(), np_items: [
+  return { ...npBlank(), np_sections: [{ heading:'', displayType:'carousel', open:true, items:[
     { sku:'110-01-4975-33', pdp:true, cart:true,  floatingCart:false, ribbon:true,  video:true,  vimeo:'1090780925' },
     { sku:'warranty',       pdp:true, cart:false, floatingCart:true,  ribbon:false, video:false, vimeo:'' },
-  ]};
+  ]}]};
 }
 
-function setNpItem(i, patch)  { setState(p=>({ np_items: p.np_items.map((x,j)=> j===i ? {...x, ...patch} : x) })); }
-function npAddItem()          { setState(p=> p.np_items.length >= NP_MAX_SKUS ? p : ({ np_items:[...p.np_items, npNewItem()] })); }
-function npRemoveItem(i)      { setState(p=>({ np_items: p.np_items.filter((_,j)=>j!==i) })); }
-function npToggleSection(key) { setState(p=>({ np_open: { ...p.np_open, [key]: !p.np_open[key] } })); }
+// ── section + row mutations ───────────────────────────────────────────────────
+function npMapSection(si, fn) {
+  setState(p => ({ np_sections: p.np_sections.map((sec,j) => j===si ? fn(sec) : sec) }));
+}
+function setNpSection(si, patch)   { npMapSection(si, sec => ({ ...sec, ...patch })); }
+function npToggleCard(si)          { npMapSection(si, sec => ({ ...sec, open: !sec.open })); }
+function setNpItem(si, i, patch)   { npMapSection(si, sec => ({ ...sec, items: sec.items.map((x,j)=> j===i ? {...x, ...patch} : x) })); }
+function npAddItem(si)             { npMapSection(si, sec => sec.items.length >= NP_MAX_SKUS ? sec : ({ ...sec, items:[...sec.items, npNewItem()] })); }
+// the open dropdown is addressed by position, so it cannot survive a removal
+function npRemoveItem(si, i)       { setState({ np_locOpen:null }); npMapSection(si, sec => ({ ...sec, items: sec.items.filter((_,j)=>j!==i) })); }
+function npToggleSection(key)      { setState(p=>({ np_open: { ...p.np_open, [key]: !p.np_open[key] } })); }
+
+function npAddSection() {
+  setState(p => p.np_sections.length >= NP_MAX_SECTIONS ? p : ({ np_sections:[...p.np_sections, npNewSection()], np_locOpen:null }));
+}
+function npRemoveSection(si) {
+  setState(p => p.np_sections.length <= 1 ? p : ({ np_sections: p.np_sections.filter((_,j)=>j!==si), np_locOpen:null }));
+}
 
 // Same approach as the Highlights Bar list: the drag cursor lives outside state,
-// because re-rendering would replace the node the browser is dragging.
+// because re-rendering would replace the node the browser is dragging. Rows
+// reorder within their own section.
 let _npDrag = null;
-function npMove(from, to) {
+function npMove(si, from, to) {
   if (from == null || from === to) return;
-  setState(p => {
-    const arr = [...p.np_items];
+  npMapSection(si, sec => {
+    const arr = [...sec.items];
     const [moved] = arr.splice(from, 1);
     // removing the item first shifts every later index down by one
     arr.splice(from < to ? to - 1 : to, 0, moved);
-    return { np_items: arr };
+    return { ...sec, items: arr };
   });
 }
 
@@ -2228,12 +2249,12 @@ function npSection(s, key, title, ...body) {
 
 // Every row keeps the same editable text field, warranty or not: for prototyping
 // the word "warranty" is simply typed in where a catalogue code would go.
-function npSkuCell(item, i) {
+function npSkuCell(si, item, i) {
   return fInput(item.sku, e => {
     const sku = e.target.value;
     // whichever cart location the row can no longer use cannot stay selected
     const warranty = sku.trim().toLowerCase() === 'warranty';
-    setNpItem(i, warranty ? { sku, cart:false } : { sku, floatingCart:false });
+    setNpItem(si, i, warranty ? { sku, cart:false } : { sku, floatingCart:false });
   }, { placeholder:'e.g. 110-01-4975-33 or "warranty"', style:{ maxWidth:'480px' }});
 }
 
@@ -2255,17 +2276,18 @@ function npLocEnabled(item, key) {
   if (key === 'cart')         return !warranty;
   return true;
 }
-function npToggleLoc(i, key) {
-  const item = state.np_items[i];
+function npToggleLoc(si, i, key) {
+  const item = state.np_sections[si].items[i];
   if (!npLocEnabled(item, key)) return;
-  setNpItem(i, { [key]: !item[key] });
+  setNpItem(si, i, { [key]: !item[key] });
 }
 
-function npLocationCell(s, item, i) {
-  const open = s.np_locOpen === i;
+function npLocationCell(s, si, item, i) {
+  const id = si + ':' + i;
+  const open = s.np_locOpen === id;
   const chosen = NP_LOCATIONS.filter(l => item[l.key]).map(l => l.label);
   return h('div', { style:{ position:'relative', maxWidth:'280px' }},
-    h('div', { onClick:()=>setState(p=>({ np_locOpen: p.np_locOpen === i ? null : i })),
+    h('div', { onClick:()=>setState(p=>({ np_locOpen: p.np_locOpen === id ? null : id })),
       style:{ display:'flex', alignItems:'center', gap:'6px', height:'50px', padding:'0 8px 0 14px', border:`1px solid ${open?'#1976d2':'rgba(0,0,0,0.23)'}`, borderRadius:'6px', fontSize:'15px', cursor:'pointer', background:'#fff', color: chosen.length ? 'inherit' : 'rgba(0,0,0,0.45)' }},
       h('div', { style:{ flex:'1', minWidth:'0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }},
         chosen.length ? chosen.join(', ') : 'Select'
@@ -2281,7 +2303,7 @@ function npLocationCell(s, item, i) {
             icon('check_box_outline_blank', { fontSize:'22px', color:'rgba(0,0,0,0.22)' }), l.label
           );
         }
-        return h('div', { class:'panelitem', onClick:()=>npToggleLoc(i, l.key),
+        return h('div', { class:'panelitem', onClick:()=>npToggleLoc(si, i, l.key),
           style:{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 16px', fontSize:'15px', cursor:'pointer' }},
           icon(on ? 'check_box' : 'check_box_outline_blank', { fontSize:'22px', color: on ? '#1976d2' : 'rgba(0,0,0,0.5)', fontVariationSettings: on ? "'FILL' 1" : "'FILL' 0" }), l.label
         );
@@ -2290,7 +2312,7 @@ function npLocationCell(s, item, i) {
   );
 }
 
-function npRow(s, item, i, showVimeo) {
+function npRow(s, si, item, i, showVimeo) {
   const row = h('div', { class:'np-item',
     onDragStart: e => { _npDrag = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (err) {} },
     // the drop line is painted straight onto the node: re-rendering here would
@@ -2303,7 +2325,7 @@ function npRow(s, item, i, showVimeo) {
       row.style.boxShadow = after ? 'inset 0 -3px 0 #1976d2' : 'inset 0 3px 0 #1976d2';
     },
     onDragLeave: () => { row.style.boxShadow = ''; },
-    onDrop: e => { e.preventDefault(); const after = row.dataset.dropAfter === '1'; row.style.boxShadow = ''; npMove(_npDrag, after ? i + 1 : i); _npDrag = null; },
+    onDrop: e => { e.preventDefault(); const after = row.dataset.dropAfter === '1'; row.style.boxShadow = ''; npMove(si, _npDrag, after ? i + 1 : i); _npDrag = null; },
     onDragEnd: () => { row.draggable = false; row.style.boxShadow = ''; _npDrag = null; },
     style:{ display:'grid', gridTemplateColumns:npGrid(showVimeo), alignItems:'center', gap:'20px', padding:'16px 20px', borderTop:'1px solid rgba(0,0,0,0.12)' }},
 
@@ -2315,17 +2337,17 @@ function npRow(s, item, i, showVimeo) {
       style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'4px', cursor:'grab', color:'rgba(0,0,0,0.38)' }},
       icon('drag_indicator',{fontSize:'20px'})
     ),
-    npSkuCell(item, i),
-    npLocationCell(s, item, i),
-    h('div', { style:NP_CENTER }, toggle(item.ribbon, ()=>setNpItem(i,{ribbon:!item.ribbon}))),
-    h('div', { style:NP_CENTER }, toggle(item.video, ()=>setNpItem(i,{video:!item.video}))),
+    npSkuCell(si, item, i),
+    npLocationCell(s, si, item, i),
+    h('div', { style:NP_CENTER }, toggle(item.ribbon, ()=>setNpItem(si,i,{ribbon:!item.ribbon}))),
+    h('div', { style:NP_CENTER }, toggle(item.video,  ()=>setNpItem(si,i,{video:!item.video}))),
     // the value survives toggling the video off, so turning it back on restores it
     showVimeo ? h('div', {},
       item.video
-        ? fInput(item.vimeo, e=>setNpItem(i,{vimeo:e.target.value}), { placeholder:'e.g. 1090780925', style:{ maxWidth:'200px' }})
+        ? fInput(item.vimeo, e=>setNpItem(si,i,{vimeo:e.target.value}), { placeholder:'e.g. 1090780925', style:{ maxWidth:'200px' }})
         : null
     ) : null,
-    h('div', { class:'tb', title:'Remove item', onClick:()=>npRemoveItem(i),
+    h('div', { class:'tb', title:'Remove item', onClick:()=>npRemoveItem(si, i),
       style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', cursor:'pointer', color:'rgba(0,0,0,0.45)' }},
       icon('close',{fontSize:'20px'})
     )
@@ -2333,28 +2355,66 @@ function npRow(s, item, i, showVimeo) {
   return row;
 }
 
-function npProductsTable(s) {
-  const n = s.np_items.length;
+// The SKU cap is per section, so each table counts its own.
+function npProductsTable(s, si, section) {
+  const n = section.items.length;
   const full = n >= NP_MAX_SKUS;
-  const showVimeo = s.np_items.some(it => it.video);
-  return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px', maxWidth:'1200px' }},
+  const showVimeo = section.items.some(it => it.video);
+  return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px' }},
     h('div', { style:{ display:'grid', gridTemplateColumns:npGrid(showVimeo), gap:'20px', padding:'18px 20px', fontSize:'15px', color:'rgba(0,0,0,0.7)' }},
       h('div', {}), h('div', {}, 'SKU'), h('div', {}, 'Display Location'),
       h('div', { style:{ textAlign:'center' }}, 'Catalog Product Ribbon'),
       h('div', { style:{ textAlign:'center' }}, 'Video'),
       showVimeo ? h('div', {}, 'Vimeo ID') : null, h('div', {})
     ),
-    ...s.np_items.map((item,i) => npRow(s, item, i, showVimeo)),
+    ...section.items.map((item,i) => npRow(s, si, item, i, showVimeo)),
     n === 0 ? h('div', { style:{ padding:'22px 20px', borderTop:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', color:'rgba(0,0,0,0.5)' }}, 'No products yet.') : null,
     h('div', { style:{ display:'flex', alignItems:'center', padding:'20px', borderTop:'1px solid rgba(0,0,0,0.12)' }},
-      h('div', { class: full ? '' : 'add-btn', onClick: full ? undefined : npAddItem,
-        title: full ? `Up to ${NP_MAX_SKUS} SKUs can be nested` : '',
+      h('div', { class: full ? '' : 'add-btn', onClick: full ? undefined : ()=>npAddItem(si),
+        title: full ? `Up to ${NP_MAX_SKUS} SKUs can be nested per section` : '',
         style: full
           ? { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 20px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.35)', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'not-allowed' }
           : {}},
         icon('add',{fontSize:'18px'}), 'ADD ITEM'
       ),
       h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'rgba(0,0,0,0.6)' }}, `${n} of ${NP_MAX_SKUS} SKUs added`)
+    )
+  );
+}
+
+function npSectionTitle(si) { return 'Section ' + (si + 1); }
+
+// One collapsible card per section, holding that section's product table.
+function npSectionCard(s, section, si, removable) {
+  return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px', marginBottom:'16px' }},
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', padding:'16px 20px' }},
+      h('div', { onClick:()=>npToggleCard(si), style:{ display:'flex', alignItems:'center', gap:'8px', flex:'1', cursor:'pointer' }},
+        icon(section.open?'expand_more':'chevron_right', { fontSize:'20px', color:'rgba(0,0,0,0.54)' }),
+        h('div', { style:{ fontSize:'16px', fontWeight:'600' }}, npSectionTitle(si))
+      ),
+      removable ? h('div', { class:'tb', title:'Remove section', onClick:()=>npRemoveSection(si),
+        style:{ width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%', cursor:'pointer', color:'rgba(0,0,0,0.45)', flexShrink:'0' }},
+        icon('close',{fontSize:'20px'})
+      ) : null
+    ),
+    section.open ? h('div', { style:{ padding:'0 20px 20px' }}, npProductsTable(s, si, section)) : null
+  );
+}
+
+function npProductsSection(s) {
+  const secs = s.np_sections;
+  const full = secs.length >= NP_MAX_SECTIONS;
+  return h('div', {},
+    ...secs.map((section,si) => npSectionCard(s, section, si, secs.length > 1)),
+    h('div', { style:{ display:'flex', alignItems:'center' }},
+      h('div', { class: full ? '' : 'add-btn', onClick: full ? undefined : npAddSection,
+        title: full ? `Up to ${NP_MAX_SECTIONS} sections` : '',
+        style: full
+          ? { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 20px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.35)', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'not-allowed' }
+          : {}},
+        icon('add',{fontSize:'18px'}), 'ADD SECTION'
+      ),
+      h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'rgba(0,0,0,0.6)' }}, `${secs.length} of ${NP_MAX_SECTIONS} items added`)
     )
   );
 }
@@ -2376,22 +2436,32 @@ const NP_PDP_DISPLAY_TYPES = [['carousel','Carousel'], ['stacked','Stacked'], ['
 
 const NP_SELECT_STYLE = { width:'100%', maxWidth:'1040px', height:'50px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', padding:'0 12px', fontSize:'15px', background:'#fff' };
 
+// A sub-title in the same voice as Cart Settings' "Nested Button".
+function npSubTitle(text) { return h('div', { style:{ fontSize:'16px', fontWeight:'700' }}, text); }
+
 function buildNestedProductsTemplate(s) {
   const divider = () => h('div', { style:{ height:'1px', background:'rgba(0,0,0,0.12)', margin:'34px 0', maxWidth:'1200px' }});
   const showFloating = npHasFloatingCart(s);
   return h('div', { style:{ maxWidth:'1200px' }},
-    npSection(s, 'products', 'Products', npProductsTable(s)),
+    npSection(s, 'products', 'Products', npProductsSection(s)),
     divider(),
+    // the heading and display type belong to a section, so they are grouped and
+    // titled the same way the section cards above are
     npSection(s, 'pdp', 'PDP Settings',
-      fieldGrid(
-        fLabel('Heading:'),
-        fInput(s.np_pdpHeading, e=>setState({np_pdpHeading:e.target.value}), { style:{ maxWidth:'1040px' }}),
-        ...centerRow('Display Type:', npRadios(s.np_pdpDisplayType, NP_PDP_DISPLAY_TYPES, k=>setState({np_pdpDisplayType:k})))
+      ...s.np_sections.map((section, si) =>
+        h('div', { style:{ marginTop: si ? '34px' : '0' }},
+          npSubTitle(npSectionTitle(si)),
+          fieldGrid(
+            fLabel('Heading:'),
+            fInput(section.heading, e=>setNpSection(si,{heading:e.target.value}), { style:{ maxWidth:'1040px' }}),
+            ...centerRow('Display Type:', npRadios(section.displayType, NP_PDP_DISPLAY_TYPES, k=>setNpSection(si,{displayType:k})))
+          )
+        )
       )
     ),
     divider(),
     npSection(s, 'cart', 'Cart Settings',
-      h('div', { style:{ fontSize:'16px', fontWeight:'700' }}, 'Nested Button'),
+      npSubTitle('Nested Button'),
       fieldGrid(
         ...centerRow('Show As:', npRadios(s.np_cartShowAs, [['collapsed','Collapsed'],['expanded','Expanded']], k=>setState({np_cartShowAs:k}))),
         fLabel('Icon:'),
