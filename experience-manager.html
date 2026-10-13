@@ -202,11 +202,13 @@
   .hero-summary-n { font-size: 15px; font-weight: 600; color: var(--mui-palette-text-primary); line-height: 1.35; }
 
   /* tagged products */
-  .hero-prods { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: var(--mui-spacing-1-half); }
-  .hero-prod { position: relative; border: 1px solid var(--mui-palette-border); border-radius: var(--radius-md); background: #fff; padding: var(--mui-spacing-1); }
-  .hero-prod-pin { position: absolute; top: 6px; left: 6px; z-index: 2; }
-  .hero-prod-img { aspect-ratio: 1; border-radius: var(--radius-sm); background: repeating-linear-gradient(135deg, #f2f4f5 0 10px, #eceff1 10px 20px); }
-  .hero-prod-sku { margin-top: var(--mui-spacing-1); text-align: center; font-size: 12px; color: var(--mui-palette-text-secondary); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  /* a vertical list in the summary card, under the Edit Shoppable Image CTA */
+  .hero-prods-wrap { align-self: stretch; border-top: 1px solid var(--mui-palette-border); padding-top: var(--mui-spacing-1-half); }
+  .hero-prods { display: flex; flex-direction: column; gap: var(--mui-spacing-1); }
+  .hero-prod { display: flex; align-items: center; gap: var(--mui-spacing-1-half); border: 1px solid var(--mui-palette-border); border-radius: var(--radius-md); background: #fff; padding: var(--mui-spacing-1); }
+  .hero-prod-pin { flex-shrink: 0; }
+  .hero-prod-img { width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-sm); background: repeating-linear-gradient(135deg, #f2f4f5 0 8px, #eceff1 8px 16px); }
+  .hero-prod-sku { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; color: var(--mui-palette-text-primary); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* empty states */
   .hero-empty { border: 1px dashed rgba(0,0,0,0.18); border-radius: var(--radius-md); background: var(--mui-palette-grey-50); padding: var(--mui-spacing-4) var(--mui-spacing-3); text-align: center; color: var(--mui-palette-text-secondary); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: var(--mui-spacing-1-half); }
@@ -278,6 +280,98 @@
   .hero-color .hero-hex { border: none; outline: none; background: transparent; font-family: inherit; font-size: 14px; width: 88px; color: var(--mui-palette-text-primary); }
 
   @media (max-width: 900px) { .hero-text-grid { grid-template-columns: 1fr; } }
+
+  /* ─── Shoppable hotspot editor (modal) ─────────────────────────────────── */
+  .hs-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: var(--mui-spacing-3); }
+  .hs-modal { width: min(1280px, 100%); height: min(860px, 100%); background: #fff; border-radius: var(--radius-lg); box-shadow: 0 11px 15px -7px rgba(0,0,0,0.2), 0 24px 38px 3px rgba(0,0,0,0.14); display: flex; flex-direction: column; overflow: hidden; }
+  .hs-head { display: flex; align-items: center; padding: var(--mui-spacing-2) var(--mui-spacing-3); border-bottom: 1px solid var(--mui-palette-border); }
+  .hs-title { font-size: 18px; font-weight: 600; }
+  .hs-x { margin-left: auto; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; color: rgba(0,0,0,0.54); }
+  .hs-x:hover { background: rgba(0,0,0,0.06); }
+  .hs-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0,1fr) 420px; gap: var(--mui-spacing-3); padding: var(--mui-spacing-3); }
+  .hs-foot { display: flex; justify-content: flex-end; gap: var(--mui-spacing-1-half); padding: var(--mui-spacing-1-half) var(--mui-spacing-3); border-top: 1px solid var(--mui-palette-border); }
+  .hs-foot .hero-btn { min-width: 88px; }
+
+  .hs-canvas-col { display: flex; flex-direction: column; gap: var(--mui-spacing-1); min-width: 0; }
+  .hs-canvas-bar { display: flex; align-items: center; gap: var(--mui-spacing-1-half); min-height: 34px; font-size: 13px; color: var(--mui-palette-text-secondary); }
+  .hs-canvas-bar .hero-badge { margin-left: auto; }
+  .hs-canvas-bar .hero-badge.full { background: #fdecea; color: var(--mui-palette-error-main); }
+  .hs-btn-danger { border-color: rgba(211,47,47,0.5); color: var(--mui-palette-error-main); background: #fff; }
+  .hs-btn-danger:hover { background: rgba(211,47,47,0.06); }
+  /* the stage is a size container so the canvas keeps its aspect ratio while
+     fitting whatever room the pin style panel below leaves it */
+  .hs-stage { flex: 1; min-height: 160px; container-type: size; display: flex; align-items: flex-start; justify-content: center; }
+  .hs-canvas { position: relative; border-radius: var(--radius-md); border: 1px solid var(--mui-palette-border); overflow: hidden; user-select: none; }
+  .hs-canvas.desktop { aspect-ratio: 16 / 9; width: min(100cqw, 100cqh * 16 / 9); }
+  .hs-canvas.mobile { aspect-ratio: 4 / 5; width: min(100cqw, 100cqh * 4 / 5); }
+  .hs-canvas.placing { cursor: crosshair; }
+  /* stand-in for the slide image: warm, busy enough to judge pin contrast against */
+  .hs-photo { position: absolute; inset: -40px; filter: blur(14px); background:
+      radial-gradient(ellipse 22% 38% at 52% 46%, #e9c9a8 0 60%, transparent 61%),
+      radial-gradient(ellipse 16% 14% at 52% 18%, #c79a5b 0 70%, transparent 71%),
+      radial-gradient(ellipse 30% 22% at 50% 92%, #b9c4d6 0 70%, transparent 71%),
+      radial-gradient(circle at 18% 30%, rgba(104,74,78,0.55) 0 9%, transparent 10%),
+      radial-gradient(circle at 84% 24%, rgba(232,200,198,0.9) 0 7%, transparent 8%),
+      radial-gradient(circle at 88% 70%, rgba(150,170,128,0.7) 0 8%, transparent 9%),
+      linear-gradient(115deg, #a98a86 0%, #d6b9b4 38%, #efe3dd 62%, #cdb6ae 100%); }
+  .hs-photo-label { position: absolute; left: 12px; bottom: 10px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.9); text-shadow: 0 1px 2px rgba(0,0,0,0.4); pointer-events: none; }
+  .hs-canvas-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--mui-spacing-1); background: var(--mui-palette-grey-50); color: var(--mui-palette-text-secondary); font-size: 14px; }
+  .hs-place-hint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: rgba(0,0,0,0.72); color: #fff; font-size: 12px; padding: 5px 10px; border-radius: 4px; pointer-events: none; white-space: nowrap; }
+
+  /* the pin itself: sized as a % of the image width, like the storefront */
+  .hs-pin { position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%); cursor: grab; z-index: 5; border-radius: 50%; }
+  .hs-pin svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .hs-pin.on { z-index: 10; outline: 2px solid var(--mui-palette-primary-main); outline-offset: 3px; }
+  .hs-pin.dragging { cursor: grabbing; }
+  .hs-pin.ghost { opacity: 0.55; pointer-events: none; z-index: 20; display: none; }
+  .hs-pulse { position: absolute; inset: 0; border-radius: 50%; background: var(--pin); animation: hs-pulse 1.8s ease-out infinite; pointer-events: none; }
+  @keyframes hs-pulse { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.6); opacity: 0; } }
+
+  /* sidebar */
+  .hs-side { border: 1px solid var(--mui-palette-border); border-radius: var(--radius-lg); padding: 0 var(--mui-spacing-2) var(--mui-spacing-2); display: flex; flex-direction: column; gap: var(--mui-spacing-2); min-height: 0; overflow-y: auto; }
+  .hs-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(0,1fr)); border-bottom: 1px solid var(--mui-palette-border); position: sticky; top: 0; background: #fff; z-index: 2; }
+  .hs-tab { display: flex; align-items: center; justify-content: center; gap: var(--mui-spacing-1); height: 52px; font-size: 14px; font-weight: 500; color: var(--mui-palette-text-secondary); border-bottom: 2px solid transparent; cursor: pointer; }
+  .hs-tab.on { color: var(--mui-palette-primary-main); border-bottom-color: var(--mui-palette-primary-main); }
+  .hs-tab .hero-badge { height: 20px; padding: 0 7px; }
+  .hs-tab .hero-badge.warn { background: #fff4e5; color: #b26a00; }
+  .hs-sublabel { font-size: 12px; font-weight: 600; color: var(--mui-palette-text-primary); margin-bottom: var(--mui-spacing-xs); }
+  .hs-side .hero-input { width: 100%; min-width: 0; }
+
+  .hs-rows { display: flex; flex-direction: column; gap: var(--mui-spacing-1); }
+  .hs-row { border: 1px solid var(--mui-palette-border); border-radius: var(--radius-md); background: #fff; }
+  .hs-row.on { border-color: var(--mui-palette-primary-main); }
+  .hs-row-head { display: flex; align-items: center; gap: var(--mui-spacing-1-half); padding: var(--mui-spacing-1); border-radius: var(--radius-md); cursor: pointer; }
+  .hs-row.on .hs-row-head { background: rgba(25,118,210,0.05); border-radius: var(--radius-md) var(--radius-md) 0 0; border-bottom: 1px solid var(--mui-palette-border); }
+  .hs-thumb { width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius-sm); border: 1px solid var(--mui-palette-border); background: repeating-linear-gradient(135deg, #f2f4f5 0 8px, #eceff1 8px 16px); }
+  .hs-row-idx { font-size: 11px; color: var(--mui-palette-text-secondary); }
+  .hs-row-sku { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hs-chip-btn { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border: 1px solid rgba(25,118,210,0.5); border-radius: 100px; font-size: 12px; font-weight: 600; color: var(--mui-palette-primary-main); cursor: pointer; white-space: nowrap; }
+  .hs-chip-btn:hover { background: rgba(25,118,210,0.06); }
+  .hs-row-body { padding: var(--mui-spacing-2); display: flex; flex-direction: column; gap: var(--mui-spacing-2); }
+  .hs-divider { height: 1px; background: var(--mui-palette-border); }
+  .hs-note { font-size: 13px; color: var(--mui-palette-text-secondary); display: flex; align-items: center; gap: var(--mui-spacing-1-half); flex-wrap: wrap; }
+
+  /* pin style controls */
+  /* pin style: one per device, in the space under the image */
+  .hs-style-card { flex: none; border: 1px solid var(--mui-palette-border); border-radius: var(--radius-md); background: var(--mui-palette-grey-50); padding: var(--mui-spacing-1-half) var(--mui-spacing-2) var(--mui-spacing-2); }
+  .hs-style-head { display: flex; align-items: baseline; gap: var(--mui-spacing-1); margin-bottom: var(--mui-spacing-1-half); }
+  .hs-style-title { font-size: 14px; font-weight: 600; color: var(--mui-palette-text-primary); }
+  .hs-style-note { font-size: 12px; color: var(--mui-palette-text-secondary); }
+  .hs-style { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--mui-spacing-2) var(--mui-spacing-3); }
+  .hs-style > .grow { flex: 1 1 180px; min-width: 160px; }
+  .hs-style .hero-color { background: #fff; }
+  .hs-fl { font-size: 12px; color: var(--mui-palette-text-secondary); margin-bottom: 6px; display: flex; align-items: center; }
+  .hs-fl b { margin-left: auto; font-weight: 600; color: var(--mui-palette-text-primary); font-variant-numeric: tabular-nums; }
+  .hs-switch { display: flex; align-items: center; gap: var(--mui-spacing-1); height: var(--field-h); font-size: 13px; color: var(--mui-palette-text-secondary); cursor: pointer; user-select: none; }
+  .hs-bg-row { display: flex; align-items: center; gap: var(--mui-spacing-1-half); }
+  .hs-bg-row .hero-color.off { opacity: 0.4; pointer-events: none; }
+  .hs-range { width: 100%; accent-color: var(--mui-palette-primary-main); margin: 0; }
+  .hs-range-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--mui-palette-text-secondary); margin-top: 2px; }
+
+  @media (max-width: 980px) {
+    .hs-body { grid-template-columns: 1fr; overflow-y: auto; }
+    .hs-side { overflow: visible; }
+  }
 </style>
 </head>
 <body>
@@ -332,12 +426,12 @@ function defaultVariants() {
 // doesn't leak into the next component the user opens.
 function variantSeedFor(title) {
   if (title === OLD_REFERENCE_BANNER) {
-    return { variants: hbVariants(), selectedVariantId: 1, ...hbSeeded(), ...heroDefaults(), ...npDefaults() };
+    return { variants: hbVariants(), selectedVariantId: 1, ...hbSeeded(), ...heroDefaults(), ...npDefaults(), ...smBlank() };
   }
   if (title === NESTED_PRODUCTS) {
-    return { variants: npVariants(), ...heroDefaults(), ...npDefaults() };
+    return { variants: npVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank() };
   }
-  return { variants: defaultVariants(), ...heroDefaults(), ...npDefaults() };
+  return { variants: defaultVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank() };
 }
 
 const state = {
@@ -424,6 +518,9 @@ const state = {
 
   // ── Nested Products ──
   ...npDefaults(),
+
+  // ── Smart Message ──
+  ...smBlank(),
 
   // page + targeting
   activePages: ['Product page'],
@@ -560,6 +657,24 @@ function hexColorPicker(label, color, onColorChange, onHexInput) {
 }
 function toggle(on, onClick) {
   return h('div', { onClick, style: switchTrack(on) }, h('span', { style: switchThumb(on) }));
+}
+// "Hide if already in cart", shared by Smart Message and Nested Products so the
+// two read the same. Off by default: existing variants keep their behavior
+// until a Site Manager switches it on.
+// The row names what it hides; the detail lives in the ⓘ tooltip, worded once
+// for both components.
+const HIDE_IN_CART_TIP = 'Products the shopper already has in the cart, as their own item or as an add-on under any item, aren’t offered. If none are left, the offer is hidden. Products removed from the cart are offered again.';
+function hideInCartRow(on, onFlip) {
+  const tip = HIDE_IN_CART_TIP;
+  return [
+    h('div', { style:{ fontSize:'16px', alignSelf:'center' }}, 'Offered Products:'),
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', alignSelf:'center' }},
+      h('div', { onClick:onFlip, style:{ display:'inline-flex', alignItems:'center', gap:'14px', minHeight:'24px', fontSize:'16px', cursor:'pointer', userSelect:'none' }},
+        toggle(on, null), 'Hide products already in the cart'),
+      h('span', { class:'hero-tip', 'data-tooltip':tip, tabindex:'0', 'aria-label':tip, style:{ display:'inline-flex', cursor:'help', color:'rgba(0,0,0,0.5)' }},
+        icon('info', { fontSize:'18px' }))
+    ),
+  ];
 }
 function checkboxRow(on, label, onClick) {
   return h('div', { onClick, style:{ display:'inline-flex', alignItems:'center', gap:'10px', fontSize:'16px', cursor:'pointer', userSelect:'none' }},
@@ -746,7 +861,8 @@ function buildApp(s) {
     buildSecondary(s),
     h('div', { class:'scroll', style:{ flex:'1', minWidth:'0', overflowY:'auto', padding:'24px' }},
       s.view === 'list' ? buildListView(s) : s.view === 'experiments' ? buildExperimentsView(s) : buildEditorView(s)
-    )
+    ),
+    s.view === 'editor' ? hsModal(s) : null
   );
 }
 
@@ -890,7 +1006,7 @@ function buildVariantPanel(s) {
       h('div', { class:'tb', onClick:()=>{ setState({view:'list'}); syncHash(true); }, style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
       // a brand-new variant opens on the component's first tab, so it is filled
       // in from the top rather than wherever the last variant was left
-      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank() }; }); syncHash(true); },
+      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank() }; }); syncHash(true); },
         style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
         icon('add',{fontSize:'20px'}), 'ADD VARIANT'
       )
@@ -1038,6 +1154,7 @@ function buildContentTab(s) {
   if (s.componentTitle === NESTED_PRODUCTS) return buildNestedProductsTemplate(s);
   if (s.componentTitle === 'UGC carousel') return buildUgcTemplate(s);
   if (s.componentTitle === 'Shipping Promotion') return buildShippingPromotionTemplate(s);
+  if (s.componentTitle === 'Smart Message') return buildSmartMessageTemplate(s);
   // every component in the Banners category shares one template set
   if (s.section === 'banners') return buildBannerTemplates(s);
   const templates = [
@@ -1251,6 +1368,129 @@ function buildShippingPromotionTemplate(s) {
           [fLabel('Cancel Text:'), fInput(s.sa_tipCancelText, e=>setState({sa_tipCancelText:e.target.value}))],
         ] : []
       ] : []
+    )
+  );
+}
+
+// ── SMART MESSAGE ─────────────────────────────────────────────────────────────
+// Mirrors components/12.smart-message.json: a Carousel Type picks between a
+// hand-picked Items table (Manual) and a category feed (Category); Title and
+// Button Settings are shared. Settings sits last and applies to both types.
+const SM_TYPES = ['Manual', 'Category'];
+const SM_MAX_ITEMS = 8;
+const SM_CATEGORIES = ['Necklaces', 'Rings', 'Earrings', 'Bracelets', 'Anklets', 'Gifts for Her', 'Gifts for Mom'];
+
+function smNewItem() { return { sku:'', ribbon:false }; }
+function smBlank() {
+  return {
+    sm_type: 'Manual',
+    sm_title: '',
+    sm_defaultText: '',
+    sm_personalizedText: '',
+    sm_items: [smNewItem()],
+    sm_category: '',
+    sm_catalogRibbon: false,
+    sm_hideInCart: false,
+  };
+}
+function setSmItem(i, patch) { setState(p => ({ sm_items: p.sm_items.map((x,j) => j===i ? { ...x, ...patch } : x) })); }
+
+// same drag approach as the Nested Products rows: the cursor lives outside state
+let _smDrag = null;
+function smMove(from, to) {
+  if (from == null || from === to) return;
+  setState(p => {
+    const arr = [...p.sm_items];
+    const [moved] = arr.splice(from, 1);
+    arr.splice(from < to ? to - 1 : to, 0, moved);
+    return { sm_items: arr };
+  });
+}
+
+function smItemsTable(s) {
+  const n = s.sm_items.length;
+  const cols = '36px minmax(0,1fr) minmax(0,1fr) 40px';
+  const head = (txt) => h('div', { style:{ fontSize:'14px', fontWeight:'500' }}, txt);
+  return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'4px', maxWidth:'1360px' }},
+    h('div', { style:{ display:'grid', gridTemplateColumns:cols, gap:'16px', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid rgba(0,0,0,0.12)' }},
+      h('div', {}), head('SKU'), head('Catalog Product Ribbon'), h('div', {})
+    ),
+    ...s.sm_items.map((item, i) => {
+      const row = h('div', { style:{ display:'grid', gridTemplateColumns:cols, gap:'16px', alignItems:'center', padding:'14px 16px' },
+        onDragStart: e => { _smDrag = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (err) {} },
+        onDragOver: e => {
+          e.preventDefault();
+          const r = row.getBoundingClientRect();
+          const after = e.clientY > r.top + r.height / 2;
+          row.dataset.dropAfter = after ? '1' : '0';
+          row.style.boxShadow = after ? 'inset 0 -2px 0 #1976d2' : 'inset 0 2px 0 #1976d2';
+        },
+        onDragLeave: () => { row.style.boxShadow = ''; },
+        onDrop: e => { e.preventDefault(); row.style.boxShadow = ''; smMove(_smDrag, row.dataset.dropAfter === '1' ? i + 1 : i); _smDrag = null; },
+        onDragEnd: () => { row.draggable = false; row.style.boxShadow = ''; _smDrag = null; } },
+        h('div', { title:'Drag to reorder', onMouseDown:()=>{ row.draggable = true; }, onMouseUp:()=>{ row.draggable = false; },
+          style:{ display:'flex', justifyContent:'center', cursor:'grab', color:'rgba(0,0,0,0.45)' }},
+          icon('drag_indicator', { fontSize:'22px' })),
+        fInput(item.sku, e=>setSmItem(i, { sku:e.target.value }), { placeholder:'Select SKU, or paste from clipboard', style:{ maxWidth:'340px', height:'48px' }}),
+        h('div', { onClick:()=>setSmItem(i, { ribbon:!item.ribbon }), style:{ display:'inline-flex', alignItems:'center', gap:'14px', fontSize:'15px', cursor:'pointer', userSelect:'none', width:'fit-content' }},
+          toggle(item.ribbon, null), 'Show Ribbon'),
+        // the table always keeps one row to fill in, so the last can't be removed
+        n > 1
+          ? h('div', { class:'tb', title:'Remove item', onClick:()=>setState(p=>({ sm_items:p.sm_items.filter((_,j)=>j!==i) })),
+              style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'6px', cursor:'pointer', color:'rgba(0,0,0,0.45)' }},
+              icon('close', { fontSize:'20px' }))
+          : h('div', {})
+      );
+      return row;
+    }),
+    h('div', { style:{ display:'flex', alignItems:'center', padding:'8px 16px 16px' }},
+      h('div', { class: n >= SM_MAX_ITEMS ? '' : 'add-btn',
+        onClick: n >= SM_MAX_ITEMS ? undefined : ()=>setState(p=>({ sm_items:[...p.sm_items, smNewItem()] })),
+        style: n >= SM_MAX_ITEMS ? { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 20px', border:'1px solid rgba(0,0,0,0.12)', borderRadius:'6px', color:'rgba(0,0,0,0.3)', fontSize:'14px', fontWeight:'500', cursor:'not-allowed' } : {} },
+        icon('add', { fontSize:'18px' }), 'ADD ITEM'),
+      h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'rgba(0,0,0,0.75)' }}, `${n} of ${SM_MAX_ITEMS} items added`)
+    )
+  );
+}
+
+function buildSmartMessageTemplate(s) {
+  const grid = (...rows) => h('div', { style:{ display:'grid', gridTemplateColumns:'160px minmax(0,520px)', gap:'18px 24px', alignItems:'center' }}, ...rows.flat(Infinity));
+  const label = (txt) => h('div', { style:{ fontSize:'15px' }}, txt);
+  const group = (txt) => h('div', { style:{ fontSize:'17px', fontWeight:'500', marginBottom:'20px' }}, txt);
+  const divider = () => h('div', { style:{ height:'1px', background:'rgba(0,0,0,0.12)', margin:'24px 0', maxWidth:'1360px' }});
+  const manual = s.sm_type !== 'Category';
+  return h('div', {},
+    grid(
+      h('div', { style:{ fontSize:'17px', fontWeight:'500' }}, 'Carousel Type:'),
+      h('div', {}, fSelect(s.sm_type, SM_TYPES, e=>setState({ sm_type:e.target.value }), { height:'42px', minWidth:'110px' })),
+      h('div', { style:{ fontSize:'17px', fontWeight:'500' }}, 'Title*:'),
+      fInput(s.sm_title, e=>setState({ sm_title:e.target.value }), { style:{ height:'42px' }})
+    ),
+    divider(),
+    group('Button Settings:'),
+    grid(
+      label('Default Text*:'),
+      fInput(s.sm_defaultText, e=>setState({ sm_defaultText:e.target.value }), { style:{ height:'42px' }}),
+      label('Personalized Text*:'),
+      fInput(s.sm_personalizedText, e=>setState({ sm_personalizedText:e.target.value }), { style:{ height:'42px' }})
+    ),
+    divider(),
+    // the other type's fields keep their values, so switching back restores them
+    manual
+      ? [ group('Items:'), smItemsTable(s) ]
+      : [ group('Category Settings:'),
+          grid(
+            label('Select Category:'),
+            h('div', {}, fSelect(s.sm_category || 'Select category', ['Select category', ...SM_CATEGORIES],
+              e=>setState({ sm_category: e.target.value === 'Select category' ? '' : e.target.value }), { height:'42px', width:'100%' })),
+            label('Catalog Ribbon:'),
+            h('div', { onClick:()=>setState(p=>({ sm_catalogRibbon:!p.sm_catalogRibbon })), style:{ display:'inline-flex', alignItems:'center', gap:'14px', fontSize:'15px', cursor:'pointer', userSelect:'none', width:'fit-content' }},
+              toggle(s.sm_catalogRibbon, null), 'Show Ribbon')
+          ) ],
+    divider(),
+    group('Settings:'),
+    h('div', { style:{ display:'grid', gridTemplateColumns:'160px minmax(0,1fr)', gap:'18px 24px', alignItems:'center' }},
+      ...hideInCartRow(s.sm_hideInCart, ()=>setState(p=>({ sm_hideInCart:!p.sm_hideInCart })))
     )
   );
 }
@@ -1607,9 +1847,10 @@ function heroDefaults() {
     hero_slides: [
       { ...heroNewSlide(), responsive:true, mobileImage:true, desktopImage:true, textLayer:true,
         texts:[{ text:'The Art of the Spring Stack', typography:'headline2' }],
-        products:[ { sku:'OAL-NCK-1042', dx:26, dy:38, mx:34, my:30 },
-                   { sku:'OAL-BRC-2287', dx:52, dy:64, mx:56, my:52 },
-                   { sku:'OAL-ERG-0915', dx:74, dy:32, mx:66, my:74 } ] },
+        products:[ hsSeedProduct('OAL-NCK-1042', [26,38], [34,30]),
+                   hsSeedProduct('OAL-BRC-2287', [52,64], [56,52]),
+                   hsSeedProduct('OAL-ERG-0915', [74,32], [66,74]) ],
+        pinStyle: hsSeedPinStyle() },
       { ...heroNewSlide(), open:false, image:true },
     ],
     hero_dirty: false,
@@ -1759,15 +2000,18 @@ function heroMoveSlide(from, to) {
   });
 }
 
-function heroImageSlot(label, present, products, coordX, coordY, frameCls, optional) {
+// a product without a placement on this device simply has no pin here; the
+// number still follows its place in the list so it matches the tagged card
+function heroImageSlot(label, present, products, device, frameCls, optional, onUpload) {
   return h('div', { class:'hero-slot' },
     h('div', { class:'hero-slot-label' }, label + (optional ? ' (optional)' : '')),
     h('div', { class:'hero-frame ' + frameCls },
-      present ? products.map((p, i) =>
-        h('div', { class:'hero-pin abs', style:{ left:p[coordX]+'%', top:p[coordY]+'%' }, title:p.sku }, String(i+1))
+      present ? products.map((p, i) => p[device]
+        ? h('div', { class:'hero-pin abs', style:{ left:p[device].x+'%', top:p[device].y+'%' }, title:p.sku }, String(i+1))
+        : null
       ) : h('div', { class:'hero-frame-empty' }, icon('image',{fontSize:'26px'}), 'No image')
     ),
-    h('div', { class:'hero-link' }, icon('sync',{fontSize:'16px'}), present ? 'Replace Image' : 'Upload Image')
+    h('div', { class:'hero-link', onClick:onUpload }, icon('sync',{fontSize:'16px'}), present ? 'Replace Image' : 'Upload Image')
   );
 }
 
@@ -1781,30 +2025,30 @@ function heroShoppable(s, slide, i) {
     ),
     !slide.shopOpen ? null : h('div', { class:'hero-shop-body' },
       h('div', { class:'hero-shop-grid' },
-        heroImageSlot('Desktop image', slide.desktopImage, slide.products, 'dx', 'dy', 'desktop', false),
-        heroImageSlot('Mobile image',  slide.mobileImage,  slide.products, 'mx', 'my', 'mobile',  true),
+        heroImageSlot('Desktop image', slide.desktopImage, slide.products, 'desktop', 'desktop', false, ()=>setHeroSlide(i,{ desktopImage:true })),
+        heroImageSlot('Mobile image',  slide.mobileImage,  slide.products, 'mobile',  'mobile',  true,  ()=>setHeroSlide(i,{ mobileImage:true })),
         h('div', { class:'hero-summary' },
           h('div', { class:'hero-summary-n' }, n === 1 ? '1 product tagged on this image' : `${n} products tagged on this image`),
-          h('div', { class:'hero-btn hero-btn-outline sm' }, icon('edit_location_alt',{fontSize:'18px'}), 'Edit Shoppable Image'),
-          heroBadge(n === 1 ? '1 product' : n + ' products', 'sell', 'pill')
-        )
-      ),
-      h('div', {},
-        h('div', { class:'hero-slot-label', style:{ marginBottom:'var(--mui-spacing-1)' }}, 'Tagged Products'),
-        n === 0
-          ? h('div', { class:'hero-empty sm' },
-              icon('sell',{fontSize:'22px'}),
-              h('div', {}, 'No products tagged yet.'),
-              h('div', { style:{ fontSize:'13px' }}, 'Open the hotspot editor to place a pin on the image.'))
-          : h('div', { class:'hero-prods' },
-              ...slide.products.map((p, idx) =>
-                h('div', { class:'hero-prod' },
-                  h('div', { class:'hero-pin sm hero-prod-pin' }, String(idx+1)),
-                  h('div', { class:'hero-prod-img' }),
-                  h('div', { class:'hero-prod-sku' }, p.sku)
+          h('div', { class:'hero-btn hero-btn-outline sm', onClick:()=>hsOpen(i) }, icon('edit_location_alt',{fontSize:'18px'}), 'Edit Shoppable Image'),
+          heroBadge(n === 1 ? '1 product' : n + ' products', 'sell', 'pill'),
+          h('div', { class:'hero-prods-wrap' },
+            h('div', { class:'hero-slot-label', style:{ marginBottom:'var(--mui-spacing-1)' }}, 'Tagged Products'),
+            n === 0
+              ? h('div', { class:'hero-empty sm' },
+                  icon('sell',{fontSize:'22px'}),
+                  h('div', {}, 'No products tagged yet.'),
+                  h('div', { style:{ fontSize:'13px' }}, 'Open the hotspot editor to place a pin on the image.'))
+              : h('div', { class:'hero-prods' },
+                  ...slide.products.map((p, idx) =>
+                    h('div', { class:'hero-prod' },
+                      h('div', { class:'hero-pin sm hero-prod-pin' }, String(idx+1)),
+                      h('div', { class:'hero-prod-img' }),
+                      h('div', { class:'hero-prod-sku', title:p.sku }, p.sku)
+                    )
+                  )
                 )
-              )
-            )
+          )
+        )
       )
     )
   );
@@ -1843,10 +2087,18 @@ function heroSlideCard(s, slide, i) {
       heroField('Banner Mode',
         heroSeg(slide.mode, [['standard','Standard Banner','crop_landscape'],['shoppable','Shoppable Image','sell']], v=>setHeroSlide(i,{mode:v}))
       ),
-      slide.mode === 'shoppable' ? heroShoppable(s, slide, i) : heroStandardBanner(s, slide, i)
+      slide.mode === 'shoppable' ? heroShoppableBanner(s, slide, i) : heroStandardBanner(s, slide, i)
     )
   );
   return card;
+}
+
+// A shoppable slide takes live text but no button: its pins are the calls to action.
+function heroShoppableBanner(s, slide, i) {
+  return h('div', { style:{ display:'flex', flexDirection:'column', gap:'var(--mui-spacing-2)' }},
+    heroShoppable(s, slide, i),
+    heroTextLayer(s, slide, i, { buttons:false })
+  );
 }
 
 function heroSlidesSection(s) {
@@ -1912,6 +2164,7 @@ function heroNewSlide() {
     padBlock: 'XXX Large', padInline: 'XXX Large',
     desktopOverrides: false,
     products: [],
+    pinStyle: hsPinStyleDefaults(),
   };
 }
 
@@ -1995,7 +2248,8 @@ function heroPositionPicker(slide, i) {
   );
 }
 
-function heroTextLayer(s, slide, i) {
+function heroTextLayer(s, slide, i, opts) {
+  const withButtons = !opts || opts.buttons !== false;
   const setText = (j, patch) => setHeroSlide(i, { texts: slide.texts.map((t,k)=> k===j ? {...t, ...patch} : t) });
   // turning the layer on guarantees a text element: the layer is meaningless
   // without one, which is also why the last one has no delete control
@@ -2037,7 +2291,7 @@ function heroTextLayer(s, slide, i) {
             )
           )
         ),
-        h('div', { class:'hero-subcard' },
+        !withButtons ? null : h('div', { class:'hero-subcard' },
           h('div', { class:'hero-subcard-head' },
             h('div', { class:'hero-subcard-title' }, 'Button:'),
             h('div', { class:'hero-btn hero-btn-outline sm', style:{ marginLeft:'auto' },
@@ -2133,6 +2387,350 @@ function buildHeroBannerTemplate(s) {
   );
 }
 
+// ─── SHOPPABLE HOTSPOT EDITOR ─────────────────────────────────────────────────
+// The modal behind "Edit Shoppable Image", ported from site-experience-manager's
+// hotspotEditor (develop) so its pin styling can be reworked for review:
+//  • size runs 4–8% of the image width (production goes down to 1%, too small to see or tap)
+//  • the Plus pin gains an optional filled background and its own + color; the
+//    outline becomes a switch that reuses the + color
+//  • opacity is gone
+//  • style is set once per device and applies to every pin on it, rather than
+//    per product; products only carry a position per device
+// Edits happen on a draft (state.hs) and only reach the slide on Save.
+const HS_MAX_PINS = 6;
+const HS_SIZE = { min:4, max:8, step:0.5 };
+const HS_SKUS = ['OAL-NCK-1042','OAL-BRC-2287','OAL-ERG-0915','OAL-RNG-3310','OAL-NCK-1188','OAL-ERG-0472','OAL-BRC-2051','110-62-5036-11'];
+
+// function declarations, not consts: heroDefaults() seeds pins while the
+// initial state is still being built
+function hsDefaultStyle() {
+  return { shape:'plus', size:4, color:'#000000', bg:false, bgColor:'#ffffff', outline:true, pulse:false };
+}
+function hsPinStyleDefaults() {
+  return { desktop: hsDefaultStyle(), mobile: hsDefaultStyle() };
+}
+function hsSeedPinStyle() {
+  const style = () => ({ ...hsDefaultStyle(), size:5, bg:true, outline:false });
+  return { desktop: style(), mobile: style() };
+}
+function hsSeedProduct(sku, [dx, dy], [mx, my]) {
+  return { id:sku, sku, desktop:{ x:dx, y:dy }, mobile:{ x:mx, y:my } };
+}
+
+function hsHex(v) { return /^#[0-9a-f]{6}$/i.test(v || '') ? v : null; }
+function hsClamp(v) { return Math.round(Math.min(100, Math.max(0, v)) * 10) / 10; }
+
+// Drawn in a 24-unit box and scaled to the pin, which is sized as a % of the
+// image width, so it reads the same here as on the storefront.
+function hsPinMarkup(st) {
+  const color = hsHex(st.color) || '#000000';
+  if (st.shape === 'dot') {
+    return (st.pulse ? `<span class="hs-pulse" style="--pin:${color}"></span>` : '') +
+      `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="${color}"/></svg>`;
+  }
+  const a = 5.28;
+  // with the outline on, the fill sits inside the ring; without it, it fills the pin
+  const fill = st.bg ? `<circle cx="12" cy="12" r="${st.outline ? 11 : 12}" fill="${hsHex(st.bgColor) || '#ffffff'}"/>` : '';
+  const ring = st.outline ? `<circle cx="12" cy="12" r="11" fill="none" stroke="${color}" stroke-width="1.38"/>` : '';
+  return `<svg viewBox="0 0 24 24">${fill}${ring}<path d="M${12-a} 12H${12+a}M12 ${12-a}V${12+a}" stroke="${color}" stroke-width="2.18" stroke-linecap="round"/></svg>`;
+}
+function hsPaint(el, pos, st) {
+  el.style.left = pos.x + '%';
+  el.style.top = pos.y + '%';
+  el.style.width = st.size + '%';
+  el.innerHTML = hsPinMarkup(st);
+}
+
+// ── draft state ──────────────────────────────────────────────────────────────
+function hsOpen(i) {
+  setState({ hs: {
+    slide: i,
+    device: heroDesktopHidden(state) ? 'mobile' : 'desktop',
+    entries: JSON.parse(JSON.stringify(state.hero_slides[i].products)),
+    styles: JSON.parse(JSON.stringify(state.hero_slides[i].pinStyle || hsPinStyleDefaults())),
+    open: null,     // expanded product row
+    placing: null,  // product waiting for a click on the image
+  }});
+}
+function hsClose() { setState({ hs:null }); }
+function hsSave() {
+  const d = state.hs;
+  setHero(p => ({ hs:null, hero_slides: p.hero_slides.map((sl, j) => j === d.slide ? { ...sl, products:d.entries, pinStyle:d.styles } : sl) }));
+}
+function setHs(patch) { setState(p => ({ hs: { ...p.hs, ...(typeof patch === 'function' ? patch(p.hs) : patch) } })); }
+function hsUpdate(id, fn) { setHs(d => ({ entries: d.entries.map(e => e.id === id ? fn(e) : e) })); }
+function hsPlacedOn(d, device) { return d.entries.filter(e => e[device]).length; }
+// a mobile-only banner has nowhere to put desktop pins
+function hsDevices(s) {
+  const mobile = ['mobile','Mobile','phone_iphone'];
+  return heroDesktopHidden(s) ? [mobile] : [['desktop','Desktop','desktop_windows'], mobile];
+}
+
+function hsAddSku(raw) {
+  const sku = raw.trim();
+  if (!sku) return;
+  setHs(d => {
+    const found = d.entries.find(e => e.sku === sku);
+    const entry = found || { id:'hs-' + Date.now(), sku, desktop:null, mobile:null };
+    const atCap = hsPlacedOn(d, d.device) >= HS_MAX_PINS;
+    return {
+      entries: found ? d.entries : [...d.entries, entry],
+      open: entry.id,
+      placing: !atCap && !entry[d.device] ? entry.id : null,
+    };
+  });
+}
+function hsPlace(x, y) {
+  setHs(d => ({ placing:null,
+    entries: d.entries.map(e => e.id === d.placing ? { ...e, [d.device]: { x, y } } : e) }));
+}
+function hsRemove(id) {
+  setHs(d => ({ entries: d.entries.filter(e => e.id !== id),
+    open: d.open === id ? null : d.open, placing: d.placing === id ? null : d.placing }));
+}
+function hsSetStyle(patch) {
+  setHs(d => ({ styles: { ...d.styles, [d.device]: { ...d.styles[d.device], ...patch } } }));
+}
+
+// Sliders, color pickers and drags repaint pins in place and commit on
+// release: a full render mid-gesture would replace the control being dragged.
+// The draft is a private copy until Save, so mutating it here is safe.
+function hsLive(patch) {
+  const d = state.hs, st = Object.assign(d.styles[d.device], patch);
+  document.querySelectorAll('.hs-canvas [data-hs-pin]').forEach(el => {
+    const e = d.entries.find(x => x.id === el.dataset.hsPin);
+    if (e && e[d.device]) hsPaint(el, e[d.device], st);
+  });
+}
+function hsMove(id, el, x, y) {
+  const d = state.hs, e = d.entries.find(x => x.id === id);
+  if (!e || !e[d.device]) return;
+  Object.assign(e[d.device], { x, y });
+  hsPaint(el, e[d.device], d.styles[d.device]);
+}
+
+// ── canvas ───────────────────────────────────────────────────────────────────
+function hsDragStart(ev, id, el) {
+  if (ev.button !== 0 || state.hs.placing) return;
+  ev.preventDefault();
+  const r = el.parentNode.getBoundingClientRect();
+  const sx = ev.clientX, sy = ev.clientY;
+  let moved = false;
+  el.classList.add('dragging');
+  const move = m => {
+    if (!moved && Math.hypot(m.clientX - sx, m.clientY - sy) < 3) return;
+    moved = true;
+    hsMove(id, el, hsClamp((m.clientX - r.left) / r.width * 100), hsClamp((m.clientY - r.top) / r.height * 100));
+  };
+  const up = () => {
+    window.removeEventListener('mousemove', move);
+    window.removeEventListener('mouseup', up);
+    setHs({ open:id });
+  };
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
+}
+function hsPinEl(e, pos, st, selected) {
+  const el = h('div', { class:'hs-pin' + (selected ? ' on' : ''), 'data-hs-pin':e.id, title:e.sku,
+    role:'button', tabindex:'0', 'aria-label':`Hotspot pin for ${e.sku}`,
+    onMouseDown: ev => hsDragStart(ev, e.id, el),
+    onKeyDown: ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setHs({ open:e.id }); } } });
+  hsPaint(el, pos, st);
+  return el;
+}
+function hsCanvas(s, d) {
+  const slide = s.hero_slides[d.slide];
+  const mobile = d.device === 'mobile';
+  // the mobile canvas falls back to the desktop image until one is uploaded
+  const ownMobile = mobile && slide.mobileImage;
+  const hasImage = ownMobile || slide.desktopImage;
+  const placing = hasImage && d.entries.find(e => e.id === d.placing);
+  const ghost = placing ? h('div', { class:'hs-pin ghost' }) : null;
+  const st = d.styles[d.device];
+  if (ghost) hsPaint(ghost, { x:0, y:0 }, st);
+  const at = ev => {
+    const r = canvas.getBoundingClientRect();
+    return [hsClamp((ev.clientX - r.left) / r.width * 100), hsClamp((ev.clientY - r.top) / r.height * 100)];
+  };
+  const canvas = h('div', { class:'hs-canvas ' + (ownMobile ? 'mobile' : 'desktop') + (placing ? ' placing' : ''),
+      onMouseMove: ev => { if (!ghost) return; const [x, y] = at(ev); Object.assign(ghost.style, { display:'block', left:x+'%', top:y+'%' }); },
+      onMouseLeave: () => { if (ghost) ghost.style.display = 'none'; },
+      onClick: ev => { if (placing) hsPlace(...at(ev)); } },
+    hasImage
+      ? [ h('div', { class:'hs-photo' }), h('div', { class:'hs-photo-label' }, ownMobile ? 'Mobile image' : 'Desktop image') ]
+      : h('div', { class:'hs-canvas-empty' }, icon('image',{fontSize:'28px'}), 'Upload an image to place pins'),
+    hasImage ? d.entries.filter(e => e[d.device]).map(e => hsPinEl(e, e[d.device], st, d.open === e.id)) : null,
+    ghost,
+    placing ? h('div', { class:'hs-place-hint' }, `Click on the image to place ${placing.sku}`) : null
+  );
+  return canvas;
+}
+function hsCanvasCol(s, d) {
+  const n = hsPlacedOn(d, d.device), full = n >= HS_MAX_PINS;
+  return h('div', { class:'hs-canvas-col' },
+    h('div', { class:'hs-canvas-bar' },
+      d.placing
+        ? h('div', { class:'hero-btn sm hs-btn-danger', onClick:()=>setHs({ placing:null }) }, icon('cancel',{fontSize:'18px'}), 'Cancel Placement')
+        : h('span', {}, full ? `Max ${HS_MAX_PINS} pins reached` : 'Search a product on the right to place a pin'),
+      heroBadge(`${n} of ${HS_MAX_PINS}`, null, 'pill' + (full ? ' full' : ''))
+    ),
+    h('div', { class:'hs-stage' }, hsCanvas(s, d)),
+    hsStyleCard(d)
+  );
+}
+function hsStyleCard(d) {
+  const label = d.device === 'mobile' ? 'Mobile' : 'Desktop';
+  return h('div', { class:'hs-style-card' },
+    h('div', { class:'hs-style-head' },
+      h('div', { class:'hs-style-title' }, `${label} Pin Style`),
+      h('div', { class:'hs-style-note' }, `Applies to every pin on ${d.device}`)
+    ),
+    hsStyleControls(d.styles[d.device])
+  );
+}
+
+// ── sidebar ──────────────────────────────────────────────────────────────────
+// the datalist stands in for the SKU autocomplete: picking a suggestion or
+// pressing Enter commits, plain typing doesn't re-render
+function hsSkuInput(value, onPick, placeholder) {
+  return h('input', { class:'hero-input', value, placeholder, list:'hs-skus',
+    onInput: e => { if (!e.inputType || e.inputType === 'insertReplacementText') onPick(e.target.value); },
+    onKeyDown: e => { if (e.key === 'Enter') onPick(e.target.value); } });
+}
+function hsColorField(value, onLive, cls) {
+  let swatch;
+  const hex = h('input', { class:'hero-hex', value,
+    onInput: e => { let v = e.target.value.trim(); if (!v.startsWith('#')) v = '#' + v; if (hsHex(v)) { swatch.style.background = v; onLive(v); } },
+    onChange: () => render() });
+  swatch = h('div', { class:'hero-swatch', style:{ background:value }},
+    h('input', { type:'color', value,
+      onInput: e => { swatch.style.background = e.target.value; hex.value = e.target.value; onLive(e.target.value); },
+      onChange: () => render() }));
+  return h('div', { class:'hero-color' + (cls ? ' ' + cls : '') }, swatch, hex);
+}
+function hsSwitch(on, label, onFlip) {
+  return h('div', { class:'hs-switch', onClick:onFlip }, toggle(on, null), label);
+}
+function hsStyleControls(st) {
+  const sizeVal = h('b', {}, st.size + '%');
+  return h('div', { class:'hs-style' },
+    h('div', {},
+      h('div', { class:'hs-fl' }, 'Shape'),
+      heroSeg(st.shape, [['plus','Plus','add_circle'], ['dot','Dot','circle']], v=>hsSetStyle({ shape:v }))
+    ),
+    ...(st.shape === 'plus' ? [
+      h('div', {},
+        h('div', { class:'hs-fl' }, 'Icon color'),
+        hsColorField(st.color, v=>hsLive({ color:v }))),
+      h('div', { title:'The outline uses the icon color' },
+        h('div', { class:'hs-fl' }, 'Outline'),
+        hsSwitch(st.outline, st.outline ? 'On' : 'Off', ()=>hsSetStyle({ outline: !st.outline }))),
+      h('div', {},
+        h('div', { class:'hs-fl' }, 'Background'),
+        h('div', { class:'hs-bg-row' },
+          hsSwitch(st.bg, st.bg ? 'Filled' : 'None', ()=>hsSetStyle({ bg: !st.bg })),
+          // the color is kept while the fill is off, so switching back restores it
+          hsColorField(st.bgColor, v=>hsLive({ bgColor:v }), st.bg ? '' : 'off'))),
+    ] : [
+      h('div', {},
+        h('div', { class:'hs-fl' }, 'Color'),
+        hsColorField(st.color, v=>hsLive({ color:v }))),
+      h('div', {},
+        h('div', { class:'hs-fl' }, 'Pulse'),
+        hsSwitch(st.pulse, st.pulse ? 'On' : 'Off', ()=>hsSetStyle({ pulse: !st.pulse }))),
+    ]),
+    h('div', { class:'grow' },
+      h('div', { class:'hs-fl' }, 'Size', sizeVal),
+      h('input', { type:'range', class:'hs-range', min:HS_SIZE.min, max:HS_SIZE.max, step:HS_SIZE.step, value:st.size,
+        onInput: e => { const v = +e.target.value; sizeVal.textContent = v + '%'; hsLive({ size:v }); },
+        onChange: () => render() }),
+      h('div', { class:'hs-range-ends' }, h('span', {}, HS_SIZE.min + '%'), h('span', {}, HS_SIZE.max + '%'))
+    )
+  );
+}
+function hsRow(d, e, idx) {
+  const open = d.open === e.id;
+  const pl = e[d.device];
+  const atCap = hsPlacedOn(d, d.device) >= HS_MAX_PINS;
+  const placingThis = d.placing === e.id;
+  return h('div', { class:'hs-row' + (open ? ' on' : '') },
+    h('div', { class:'hs-row-head', onClick:()=>setHs({ open: open ? null : e.id }) },
+      h('div', { class:'hs-thumb' }),
+      h('div', { style:{ flex:'1', minWidth:'0' }},
+        h('div', { class:'hs-row-idx' }, '#' + (idx + 1)),
+        h('div', { class:'hs-row-sku' }, e.sku)),
+      !pl && !atCap
+        ? h('div', { class:'hs-chip-btn', onClick: ev => { ev.stopPropagation(); setHs({ placing:e.id, open:e.id }); } },
+            icon('my_location',{fontSize:'14px'}), placingThis ? 'Placing…' : 'Place')
+        : null,
+      h('div', { class:'hero-icon-remove', title:'Remove product', onClick: ev => { ev.stopPropagation(); hsRemove(e.id); } },
+        icon('delete',{fontSize:'20px'})),
+      icon(open ? 'expand_less' : 'expand_more', { fontSize:'22px', color:'rgba(0,0,0,0.54)' })
+    ),
+    !open ? null : h('div', { class:'hs-row-body' },
+      h('div', {},
+        h('div', { class:'hs-fl' }, 'Product'),
+        hsSkuInput(e.sku, v => { const sku = v.trim(); if (sku && sku !== e.sku) hsUpdate(e.id, x => ({ ...x, sku })); }, 'Select SKU, or paste from clipboard')),
+      pl ? null
+         : h('div', { class:'hs-note' }, icon('info',{fontSize:'18px'}),
+             placingThis ? 'Click on the image to place this pin.'
+             : atCap ? `Max ${HS_MAX_PINS} pins reached on ${d.device}.`
+             : `Not placed on ${d.device} yet.`)
+    )
+  );
+}
+function hsSidebar(s, d) {
+  return h('div', { class:'hs-side scroll' },
+    h('div', { class:'hs-tabs' },
+      ...hsDevices(s).map(([key, label, ico]) => {
+        const missing = d.entries.filter(e => !e[key]).length;
+        return h('div', { class:'hs-tab' + (d.device === key ? ' on' : ''), onClick:()=>setHs({ device:key, open:null, placing:null }) },
+          icon(ico, { fontSize:'19px' }), label,
+          heroBadge(String(hsPlacedOn(d, key)), null, 'pill'),
+          missing ? heroBadge(`${missing} missing`, null, 'pill warn') : null);
+      })
+    ),
+    h('div', {},
+      h('div', { class:'hs-sublabel' }, 'Add Product'),
+      hsSkuInput('', hsAddSku, 'Select SKU, or paste from clipboard')
+    ),
+    d.entries.length === 0
+      ? h('div', { class:'hero-empty sm' },
+          h('div', {}, 'No products added yet'),
+          h('div', { style:{ fontSize:'13px' }}, 'Search a SKU above to start'))
+      : h('div', { class:'hs-rows' }, ...d.entries.map((e, idx) => hsRow(d, e, idx)))
+  );
+}
+
+function hsModal(s) {
+  const d = s.hs;
+  if (!d || !s.hero_slides[d.slide]) return null;
+  // a click outside closes it like Cancel; the press must also start outside,
+  // so a pin or slider drag that ends on the backdrop doesn't throw edits away
+  let downOutside = false;
+  return h('div', { class:'hs-backdrop',
+      onMouseDown: e => { downOutside = e.target === e.currentTarget; },
+      onClick: e => { if (downOutside && e.target === e.currentTarget) hsClose(); } },
+    h('div', { class:'hs-modal', role:'dialog', 'aria-modal':'true', 'aria-label':'Shoppable Hotspots' },
+      h('div', { class:'hs-head' },
+        h('div', { class:'hs-title' }, 'Shoppable Hotspots'),
+        h('div', { class:'hs-x', title:'Close', onClick:hsClose }, icon('close',{fontSize:'22px'}))
+      ),
+      h('div', { class:'hs-body' }, hsCanvasCol(s, d), hsSidebar(s, d)),
+      h('div', { class:'hs-foot' },
+        h('div', { class:'hero-btn hero-btn-ghost', onClick:hsClose }, 'Cancel'),
+        h('div', { class:'hero-btn hero-btn-primary', onClick:hsSave }, 'Save')
+      ),
+      h('datalist', { id:'hs-skus' }, ...HS_SKUS.map(v => h('option', { value:v })))
+    )
+  );
+}
+// Escape backs out one step: first an in-progress placement, then the editor
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || !state.hs) return;
+  if (state.hs.placing) setHs({ placing:null }); else hsClose();
+});
+
 // ─── NESTED PRODUCTS ──────────────────────────────────────────────────────────
 // Promotions › Nested Products. Its variant page leads with the parent-SKU
 // filters, so the content tab is where the nested items themselves live — hence
@@ -2178,6 +2776,7 @@ function npBlank() {
     np_cartHeading: '',
     np_fcText: '',
     np_fcShowPhoto: true,
+    np_cartHideInCart: false,
   };
 }
 // Nested Products names its variants after the promotion each one nests, so the
@@ -2470,6 +3069,11 @@ function buildNestedProductsTemplate(s) {
         fInput(s.np_cartButtonText, e=>setState({np_cartButtonText:e.target.value}), { style:{ maxWidth:'1040px' }}),
         fLabel('Heading:'),
         fInput(s.np_cartHeading, e=>setState({np_cartHeading:e.target.value}), { style:{ maxWidth:'1040px' }})
+      ),
+      // its own group: it filters what the cart offers, not how the button looks
+      h('div', { style:{ marginTop:'34px' }}, npSubTitle('Display Rules')),
+      fieldGrid(
+        ...hideInCartRow(s.np_cartHideInCart, ()=>setState(p=>({ np_cartHideInCart:!p.np_cartHideInCart })))
       )
     ),
     // only rendered while a warranty row is set to show in the floating cart
