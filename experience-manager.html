@@ -429,12 +429,12 @@ function defaultVariants() {
 // doesn't leak into the next component the user opens.
 function variantSeedFor(title) {
   if (title === OLD_REFERENCE_BANNER) {
-    return { variants: hbVariants(), selectedVariantId: 1, ...hbSeeded(), ...heroDefaults(), ...npDefaults(), ...smBlank() };
+    return { variants: hbVariants(), selectedVariantId: 1, ...hbSeeded(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
   }
   if (title === NESTED_PRODUCTS) {
-    return { variants: npVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank() };
+    return { variants: npVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
   }
-  return { variants: defaultVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank() };
+  return { variants: defaultVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
 }
 
 const state = {
@@ -524,6 +524,9 @@ const state = {
 
   // ── Smart Message ──
   ...smBlank(),
+
+  // ── Floating Cart ──
+  ...fcBlank(),
 
   // page + targeting
   activePages: ['Product page'],
@@ -1020,7 +1023,7 @@ function buildVariantPanel(s) {
       h('div', { class:'tb', onClick:()=>{ setState({view:'list'}); syncHash(true); }, style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
       // a brand-new variant opens on the component's first tab, so it is filled
       // in from the top rather than wherever the last variant was left
-      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank() }; }); syncHash(true); },
+      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank(), ...fcBlank() }; }); syncHash(true); },
         style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
         icon('add',{fontSize:'20px'}), 'ADD VARIANT'
       )
@@ -1169,6 +1172,7 @@ function buildContentTab(s) {
   if (s.componentTitle === 'UGC carousel') return buildUgcTemplate(s);
   if (s.componentTitle === 'Shipping Promotion') return buildShippingPromotionTemplate(s);
   if (s.componentTitle === 'Smart Message') return buildSmartMessageTemplate(s);
+  if (s.componentTitle === 'Floating Cart') return buildFloatingCartTemplate(s);
   // every component in the Banners category shares one template set
   if (s.section === 'banners') return buildBannerTemplates(s);
   const templates = [
@@ -1394,44 +1398,48 @@ const SM_TYPES = ['Manual', 'Category'];
 const SM_MAX_ITEMS = 8;
 const SM_CATEGORIES = ['Necklaces', 'Rings', 'Earrings', 'Bracelets', 'Anklets', 'Gifts for Her', 'Gifts for Mom'];
 
-function smNewItem() { return { sku:'', ribbon:false }; }
+function skuNewItem() { return { sku:'', ribbon:false }; }
 function smBlank() {
   return {
     sm_type: 'Manual',
     sm_title: '',
     sm_defaultText: '',
     sm_personalizedText: '',
-    sm_items: [smNewItem()],
+    sm_items: [skuNewItem()],
     sm_category: '',
     sm_catalogRibbon: false,
     sm_hideInCart: false,
   };
 }
-function setSmItem(i, patch) { setState(p => ({ sm_items: p.sm_items.map((x,j) => j===i ? { ...x, ...patch } : x) })); }
+
+// SKU + Catalog Product Ribbon rows, shared by Smart Message and Floating Cart.
+// `key` is the state field that holds the rows.
+function setSkuItem(key, i, patch) { setState(p => ({ [key]: p[key].map((x,j) => j===i ? { ...x, ...patch } : x) })); }
 
 // same drag approach as the Nested Products rows: the cursor lives outside state
-let _smDrag = null;
-function smMove(from, to) {
+let _skuDrag = null;
+function skuItemMove(key, from, to) {
   if (from == null || from === to) return;
   setState(p => {
-    const arr = [...p.sm_items];
+    const arr = [...p[key]];
     const [moved] = arr.splice(from, 1);
     arr.splice(from < to ? to - 1 : to, 0, moved);
-    return { sm_items: arr };
+    return { [key]: arr };
   });
 }
 
-function smItemsTable(s) {
-  const n = s.sm_items.length;
+function skuItemsTable(s, key, max) {
+  const items = s[key];
+  const n = items.length;
   const cols = '36px minmax(0,1fr) minmax(0,1fr) 40px';
   const head = (txt) => h('div', { style:{ fontSize:'14px', fontWeight:'500' }}, txt);
   return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'4px', maxWidth:'1360px' }},
     h('div', { style:{ display:'grid', gridTemplateColumns:cols, gap:'16px', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid rgba(0,0,0,0.12)' }},
       h('div', {}), head('SKU'), head('Catalog Product Ribbon'), h('div', {})
     ),
-    ...s.sm_items.map((item, i) => {
+    ...items.map((item, i) => {
       const row = h('div', { style:{ display:'grid', gridTemplateColumns:cols, gap:'16px', alignItems:'center', padding:'14px 16px' },
-        onDragStart: e => { _smDrag = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (err) {} },
+        onDragStart: e => { _skuDrag = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (err) {} },
         onDragOver: e => {
           e.preventDefault();
           const r = row.getBoundingClientRect();
@@ -1440,17 +1448,17 @@ function smItemsTable(s) {
           row.style.boxShadow = after ? 'inset 0 -2px 0 #1976d2' : 'inset 0 2px 0 #1976d2';
         },
         onDragLeave: () => { row.style.boxShadow = ''; },
-        onDrop: e => { e.preventDefault(); row.style.boxShadow = ''; smMove(_smDrag, row.dataset.dropAfter === '1' ? i + 1 : i); _smDrag = null; },
-        onDragEnd: () => { row.draggable = false; row.style.boxShadow = ''; _smDrag = null; } },
+        onDrop: e => { e.preventDefault(); row.style.boxShadow = ''; skuItemMove(key, _skuDrag, row.dataset.dropAfter === '1' ? i + 1 : i); _skuDrag = null; },
+        onDragEnd: () => { row.draggable = false; row.style.boxShadow = ''; _skuDrag = null; } },
         h('div', { title:'Drag to reorder', onMouseDown:()=>{ row.draggable = true; }, onMouseUp:()=>{ row.draggable = false; },
           style:{ display:'flex', justifyContent:'center', cursor:'grab', color:'rgba(0,0,0,0.45)' }},
           icon('drag_indicator', { fontSize:'22px' })),
-        fInput(item.sku, e=>setSmItem(i, { sku:e.target.value }), { placeholder:'Select SKU, or paste from clipboard', style:{ maxWidth:'340px', height:'48px' }}),
-        h('div', { onClick:()=>setSmItem(i, { ribbon:!item.ribbon }), style:{ display:'inline-flex', alignItems:'center', gap:'14px', fontSize:'15px', cursor:'pointer', userSelect:'none', width:'fit-content' }},
+        fInput(item.sku, e=>setSkuItem(key, i, { sku:e.target.value }), { placeholder:'Select SKU, or paste from clipboard', style:{ maxWidth:'340px', height:'48px' }}),
+        h('div', { onClick:()=>setSkuItem(key, i, { ribbon:!item.ribbon }), style:{ display:'inline-flex', alignItems:'center', gap:'14px', fontSize:'15px', cursor:'pointer', userSelect:'none', width:'fit-content' }},
           toggle(item.ribbon, null), 'Show Ribbon'),
         // the table always keeps one row to fill in, so the last can't be removed
         n > 1
-          ? h('div', { class:'tb', title:'Remove item', onClick:()=>setState(p=>({ sm_items:p.sm_items.filter((_,j)=>j!==i) })),
+          ? h('div', { class:'tb', title:'Remove item', onClick:()=>setState(p=>({ [key]:p[key].filter((_,j)=>j!==i) })),
               style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'6px', cursor:'pointer', color:'rgba(0,0,0,0.45)' }},
               icon('close', { fontSize:'20px' }))
           : h('div', {})
@@ -1458,11 +1466,11 @@ function smItemsTable(s) {
       return row;
     }),
     h('div', { style:{ display:'flex', alignItems:'center', padding:'8px 16px 16px' }},
-      h('div', { class: n >= SM_MAX_ITEMS ? '' : 'add-btn',
-        onClick: n >= SM_MAX_ITEMS ? undefined : ()=>setState(p=>({ sm_items:[...p.sm_items, smNewItem()] })),
-        style: n >= SM_MAX_ITEMS ? { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 20px', border:'1px solid rgba(0,0,0,0.12)', borderRadius:'6px', color:'rgba(0,0,0,0.3)', fontSize:'14px', fontWeight:'500', cursor:'not-allowed' } : {} },
+      h('div', { class: n >= max ? '' : 'add-btn',
+        onClick: n >= max ? undefined : ()=>setState(p=>({ [key]:[...p[key], skuNewItem()] })),
+        style: n >= max ? { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 20px', border:'1px solid rgba(0,0,0,0.12)', borderRadius:'6px', color:'rgba(0,0,0,0.3)', fontSize:'14px', fontWeight:'500', cursor:'not-allowed' } : {} },
         icon('add', { fontSize:'18px' }), 'ADD ITEM'),
-      h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'rgba(0,0,0,0.75)' }}, `${n} of ${SM_MAX_ITEMS} items added`)
+      h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'rgba(0,0,0,0.75)' }}, `${n} of ${max} items added`)
     )
   );
 }
@@ -1491,7 +1499,7 @@ function buildSmartMessageTemplate(s) {
     divider(),
     // the other type's fields keep their values, so switching back restores them
     manual
-      ? [ group('Items:'), smItemsTable(s) ]
+      ? [ group('Items:'), skuItemsTable(s, 'sm_items', SM_MAX_ITEMS) ]
       : [ group('Category Settings:'),
           grid(
             label('Select Category:'),
@@ -1505,6 +1513,75 @@ function buildSmartMessageTemplate(s) {
     group('Settings:'),
     h('div', { style:{ display:'grid', gridTemplateColumns:'160px minmax(0,1fr)', gap:'18px 24px', alignItems:'center' }},
       ...hideInCartRow(s.sm_hideInCart, ()=>setState(p=>({ sm_hideInCart:!p.sm_hideInCart })))
+    )
+  );
+}
+
+// ── FLOATING CART ─────────────────────────────────────────────────────────────
+// Mirrors components/17.floating-cart.json: an optional Promotion Line, then the
+// YMAL carousel. Smart lets the storefront pick the products; Manual shows the
+// Items table. Display Rules sits last and applies to either strategy.
+const FC_STRATEGIES = ['Smart', 'Manual'];
+const FC_MAX_ITEMS = 3;
+
+function fcBlank() {
+  return {
+    fc_promoOn: false,
+    fc_promoText: '',
+    fc_heading: '',
+    fc_strategy: 'Smart',
+    fc_defaultText: '',
+    fc_personalizedText: '',
+    fc_items: [skuNewItem()],
+    fc_hideInCart: false,
+  };
+}
+
+function buildFloatingCartTemplate(s) {
+  const grid = (...rows) => h('div', { style:{ display:'grid', gridTemplateColumns:'160px minmax(0,520px)', gap:'18px 24px', alignItems:'center' }}, ...rows.flat(Infinity));
+  const label = (txt) => h('div', { style:{ fontSize:'15px' }}, txt);
+  const group = (txt) => h('div', { style:{ fontSize:'17px', fontWeight:'500', marginBottom:'20px' }}, txt);
+  const divider = () => h('div', { style:{ height:'1px', background:'rgba(0,0,0,0.12)', margin:'24px 0', maxWidth:'1360px' }});
+  const manual = s.fc_strategy === 'Manual';
+  return h('div', {},
+    // one title for the group; the checkbox under it says what it adds, so the
+    // label no longer repeats as both a checkbox and a heading
+    group('Promotion Line:'),
+    checkboxRow(s.fc_promoOn, 'Show a promotion line in the floating cart', ()=>setState(p=>({ fc_promoOn:!p.fc_promoOn }))),
+    // the text is kept while the line is off, so checking it again restores it
+    s.fc_promoOn ? h('div', { style:{ display:'grid', gridTemplateColumns:'160px minmax(0,820px)', gap:'18px 24px', alignItems:'start', marginTop:'20px' }},
+      h('div', { style:{ fontSize:'15px', paddingTop:'60px' }}, 'Text*:'),
+      h('div', {},
+        h('div', { style:{ border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', overflow:'hidden' }},
+          aiRichToolbar('Default Regular', true),
+          // typing writes straight to state without a re-render, so the caret stays put
+          h('div', { contenteditable:'true',
+            ref:(el)=>{ if(el&&!el.dataset.bound){ el.dataset.bound='1'; el.innerHTML=s.fc_promoText; }},
+            onInput:(e)=>{ state.fc_promoText = e.currentTarget.innerHTML; },
+            style:{ minHeight:'100px', background:'#fff', padding:'14px 16px', fontSize:'15px', lineHeight:'1.5' }
+          })
+        ),
+        h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.6)', marginTop:'8px' }}, 'Recommended: keep the text to 2 lines or less so it fits the cart display.')
+      )
+    ) : null,
+    divider(),
+    group('Carousel:'),
+    grid(
+      label('Heading*:'),
+      fInput(s.fc_heading, e=>setState({ fc_heading:e.target.value }), { style:{ height:'42px' }}),
+      label('Carousel Strategy*:'),
+      h('div', {}, fSelect(s.fc_strategy, FC_STRATEGIES, e=>setState({ fc_strategy:e.target.value }), { height:'42px', minWidth:'110px' })),
+      label('Button Text (Default):'),
+      fInput(s.fc_defaultText, e=>setState({ fc_defaultText:e.target.value }), { style:{ height:'42px' }}),
+      label('Button Text (Personalized):'),
+      fInput(s.fc_personalizedText, e=>setState({ fc_personalizedText:e.target.value }), { style:{ height:'42px' }})
+    ),
+    // Manual's items are kept while Smart is picked, so switching back restores them
+    manual ? h('div', { style:{ marginTop:'28px' }}, group('Items:'), skuItemsTable(s, 'fc_items', FC_MAX_ITEMS)) : null,
+    divider(),
+    group('Display Rules:'),
+    h('div', { style:{ display:'grid', gridTemplateColumns:'160px minmax(0,1fr)', gap:'18px 24px', alignItems:'center' }},
+      ...hideInCartRow(s.fc_hideInCart, ()=>setState(p=>({ fc_hideInCart:!p.fc_hideInCart })))
     )
   );
 }
