@@ -341,15 +341,13 @@
   .hs-row { border: 1px solid var(--mui-palette-border); border-radius: var(--radius-md); background: #fff; }
   .hs-row.on { border-color: var(--mui-palette-primary-main); }
   .hs-row-head { display: flex; align-items: center; gap: var(--mui-spacing-1-half); padding: var(--mui-spacing-1); border-radius: var(--radius-md); cursor: pointer; }
-  .hs-row.on .hs-row-head { background: rgba(25,118,210,0.05); border-radius: var(--radius-md) var(--radius-md) 0 0; border-bottom: 1px solid var(--mui-palette-border); }
+  .hs-row.on .hs-row-head { background: rgba(25,118,210,0.05); }
   .hs-thumb { width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius-sm); border: 1px solid var(--mui-palette-border); background: repeating-linear-gradient(135deg, #f2f4f5 0 8px, #eceff1 8px 16px); }
   .hs-row-idx { font-size: 11px; color: var(--mui-palette-text-secondary); }
   .hs-row-sku { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .hs-chip-btn { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border: 1px solid rgba(25,118,210,0.5); border-radius: 100px; font-size: 12px; font-weight: 600; color: var(--mui-palette-primary-main); cursor: pointer; white-space: nowrap; }
   .hs-chip-btn:hover { background: rgba(25,118,210,0.06); }
-  .hs-row-body { padding: var(--mui-spacing-2); display: flex; flex-direction: column; gap: var(--mui-spacing-2); }
   .hs-divider { height: 1px; background: var(--mui-palette-border); }
-  .hs-note { font-size: 13px; color: var(--mui-palette-text-secondary); display: flex; align-items: center; gap: var(--mui-spacing-1-half); flex-wrap: wrap; }
 
   /* pin style controls */
   /* pin style: one per device, in the space under the image */
@@ -357,8 +355,13 @@
   .hs-style-head { display: flex; align-items: baseline; gap: var(--mui-spacing-1); margin-bottom: var(--mui-spacing-1-half); }
   .hs-style-title { font-size: 14px; font-weight: 600; color: var(--mui-palette-text-primary); }
   .hs-style-note { font-size: 12px; color: var(--mui-palette-text-secondary); }
-  .hs-style { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--mui-spacing-2) var(--mui-spacing-3); }
-  .hs-style > .grow { flex: 1 1 180px; min-width: 160px; }
+  /* size sits on its own row for both shapes, so switching shape never
+     changes the card's height and the canvas above stays put */
+  .hs-style { display: flex; flex-direction: column; gap: var(--mui-spacing-2); }
+  .hs-style-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--mui-spacing-2) var(--mui-spacing-3); }
+  .hs-style-size { width: 100%; max-width: 280px; }
+  .hs-slot-toggle { min-width: 96px; }
+  .hs-slot-hidden { visibility: hidden; }
   .hs-style .hero-color { background: #fff; }
   .hs-fl { font-size: 12px; color: var(--mui-palette-text-secondary); margin-bottom: 6px; display: flex; align-items: center; }
   .hs-fl b { margin-left: auto; font-weight: 600; color: var(--mui-palette-text-primary); font-variant-numeric: tabular-nums; }
@@ -545,7 +548,10 @@ function setState(patch) {
 // The editor hash carries the component id so a shared link reopens the same
 // component, not whichever one the app happened to boot with.
 function hashForState() {
-  if (state.view === 'editor') return `#/component/${state.componentId}/variant/${state.selectedVariantId}/${state.tab}`;
+  // an open shoppable-image editor adds /hotspots/<slide>, so a shared link
+  // lands with the popup already open on that slide
+  if (state.view === 'editor') return `#/component/${state.componentId}/variant/${state.selectedVariantId}/${state.tab}`
+    + (state.hs ? `/hotspots/${state.hs.slide + 1}` : '');
   if (state.view === 'experiments') return '#/experiments';
   return `#/list/${state.section}`;
 }
@@ -569,11 +575,11 @@ function parseHash() {
   const hash = location.hash;
   const hasVariant = id => state.variants.some(v => v.id === id);
 
-  let m = hash.match(/^#\/component\/(\d+)\/variant\/(\d+)\/(\w+)$/);
+  let m = hash.match(/^#\/component\/(\d+)\/variant\/(\d+)\/(\w+)(?:\/hotspots\/(\d+))?$/);
   if (m) {
     const comp = findComponent(parseInt(m[1], 10));
     const variantId = parseInt(m[2], 10);
-    if (comp && hasVariant(variantId)) return editorStateFor(comp, variantId, m[3]);
+    if (comp && hasVariant(variantId)) return { ...editorStateFor(comp, variantId, m[3]), hsSlide: m[4] ? parseInt(m[4], 10) - 1 : null };
   }
   // legacy links that predate the component segment: resolve to the first component
   m = hash.match(/^#\/variant\/(\d+)\/(\w+)$/);
@@ -586,6 +592,14 @@ function parseHash() {
   m = hash.match(/^#\/list\/(\w+)$/);
   if (m && LIST_SECTIONS[m[1]]) return { view:'list', section:m[1] };
   return { view:'list' };
+}
+// the hotspot popup is built from the slide's saved data, so it opens only
+// after the rest of the hash has been applied
+function applyHash() {
+  const { hsSlide = null, ...patch } = parseHash();
+  Object.assign(state, patch, { hs:null });
+  if (hsSlide !== null && state.hero_slides[hsSlide]) hsOpen(hsSlide);
+  else render();
 }
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function icon(name, style) {
@@ -2448,17 +2462,18 @@ function hsOpen(i) {
     device: heroDesktopHidden(state) ? 'mobile' : 'desktop',
     entries: JSON.parse(JSON.stringify(state.hero_slides[i].products)),
     styles: JSON.parse(JSON.stringify(state.hero_slides[i].pinStyle || hsPinStyleDefaults())),
-    open: null,     // expanded product row
+    open: null,     // selected product: its row and pin are highlighted
     placing: null,  // product waiting for a click on the image
   }});
+  syncHash(false);
 }
-function hsClose() { setState({ hs:null }); }
+function hsClose() { setState({ hs:null }); syncHash(false); }
 function hsSave() {
   const d = state.hs;
   setHero(p => ({ hs:null, hero_slides: p.hero_slides.map((sl, j) => j === d.slide ? { ...sl, products:d.entries, pinStyle:d.styles } : sl) }));
+  syncHash(false);
 }
 function setHs(patch) { setState(p => ({ hs: { ...p.hs, ...(typeof patch === 'function' ? patch(p.hs) : patch) } })); }
-function hsUpdate(id, fn) { setHs(d => ({ entries: d.entries.map(e => e.id === id ? fn(e) : e) })); }
 function hsPlacedOn(d, device) { return d.entries.filter(e => e[device]).length; }
 // a mobile-only banner has nowhere to put desktop pins
 function hsDevices(s) {
@@ -2613,33 +2628,33 @@ function hsSwitch(on, label, onFlip) {
 }
 function hsStyleControls(st) {
   const sizeVal = h('b', {}, st.size + '%');
+  const plus = st.shape === 'plus';
   return h('div', { class:'hs-style' },
-    h('div', {},
-      h('div', { class:'hs-fl' }, 'Shape'),
-      heroSeg(st.shape, [['plus','Plus','add_circle'], ['dot','Dot','circle']], v=>hsSetStyle({ shape:v }))
-    ),
-    ...(st.shape === 'plus' ? [
+    h('div', { class:'hs-style-row' },
       h('div', {},
-        h('div', { class:'hs-fl' }, 'Icon color'),
+        h('div', { class:'hs-fl' }, 'Shape'),
+        heroSeg(st.shape, [['plus','Plus','add_circle'], ['dot','Dot','circle']], v=>hsSetStyle({ shape:v }))
+      ),
+      // every slot is always laid out; dot only swaps or hides contents, so
+      // nothing in the card moves when the shape changes
+      h('div', {},
+        h('div', { class:'hs-fl' }, plus ? 'Icon color' : 'Color'),
         hsColorField(st.color, v=>hsLive({ color:v }))),
-      h('div', { title:'The outline uses the icon color' },
-        h('div', { class:'hs-fl' }, 'Outline'),
-        hsSwitch(st.outline, st.outline ? 'On' : 'Off', ()=>hsSetStyle({ outline: !st.outline }))),
-      h('div', {},
+      plus
+        ? h('div', { class:'hs-slot-toggle', title:'The outline uses the icon color' },
+            h('div', { class:'hs-fl' }, 'Outline'),
+            hsSwitch(st.outline, st.outline ? 'On' : 'Off', ()=>hsSetStyle({ outline: !st.outline })))
+        : h('div', { class:'hs-slot-toggle' },
+            h('div', { class:'hs-fl' }, 'Pulse'),
+            hsSwitch(st.pulse, st.pulse ? 'On' : 'Off', ()=>hsSetStyle({ pulse: !st.pulse }))),
+      h('div', plus ? {} : { class:'hs-slot-hidden', 'aria-hidden':'true' },
         h('div', { class:'hs-fl' }, 'Background'),
         h('div', { class:'hs-bg-row' },
           hsSwitch(st.bg, st.bg ? 'Filled' : 'None', ()=>hsSetStyle({ bg: !st.bg })),
           // the color is kept while the fill is off, so switching back restores it
-          hsColorField(st.bgColor, v=>hsLive({ bgColor:v }), st.bg ? '' : 'off'))),
-    ] : [
-      h('div', {},
-        h('div', { class:'hs-fl' }, 'Color'),
-        hsColorField(st.color, v=>hsLive({ color:v }))),
-      h('div', {},
-        h('div', { class:'hs-fl' }, 'Pulse'),
-        hsSwitch(st.pulse, st.pulse ? 'On' : 'Off', ()=>hsSetStyle({ pulse: !st.pulse }))),
-    ]),
-    h('div', { class:'grow' },
+          hsColorField(st.bgColor, v=>hsLive({ bgColor:v }), st.bg ? '' : 'off')))
+    ),
+    h('div', { class:'hs-style-size' },
       h('div', { class:'hs-fl' }, 'Size', sizeVal),
       h('input', { type:'range', class:'hs-range', min:HS_SIZE.min, max:HS_SIZE.max, step:HS_SIZE.step, value:st.size,
         onInput: e => { const v = +e.target.value; sizeVal.textContent = v + '%'; hsLive({ size:v }); },
@@ -2664,18 +2679,7 @@ function hsRow(d, e, idx) {
             icon('my_location',{fontSize:'14px'}), placingThis ? 'Placing…' : 'Place')
         : null,
       h('div', { class:'hero-icon-remove', title:'Remove product', onClick: ev => { ev.stopPropagation(); hsRemove(e.id); } },
-        icon('delete',{fontSize:'20px'})),
-      icon(open ? 'expand_less' : 'expand_more', { fontSize:'22px', color:'rgba(0,0,0,0.54)' })
-    ),
-    !open ? null : h('div', { class:'hs-row-body' },
-      h('div', {},
-        h('div', { class:'hs-fl' }, 'Product'),
-        hsSkuInput(e.sku, v => { const sku = v.trim(); if (sku && sku !== e.sku) hsUpdate(e.id, x => ({ ...x, sku })); }, 'Select SKU, or paste from clipboard')),
-      pl ? null
-         : h('div', { class:'hs-note' }, icon('info',{fontSize:'18px'}),
-             placingThis ? 'Click on the image to place this pin.'
-             : atCap ? `Max ${HS_MAX_PINS} pins reached on ${d.device}.`
-             : `Not placed on ${d.device} yet.`)
+        icon('delete',{fontSize:'20px'}))
     )
   );
 }
@@ -3234,10 +3238,9 @@ function buildTargetingTab(s) {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-Object.assign(state, parseHash());
+applyHash();
 syncHash(false);
-window.addEventListener('hashchange', () => setState(parseHash()));
-render();
+window.addEventListener('hashchange', applyHash);
 </script>
 </body>
 </html>
