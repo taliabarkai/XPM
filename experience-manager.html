@@ -299,7 +299,7 @@
   .hs-btn-danger { border-color: rgba(211,47,47,0.5); color: var(--mui-palette-error-main); background: #fff; }
   .hs-btn-danger:hover { background: rgba(211,47,47,0.06); }
   /* the stage is a size container so the canvas keeps its aspect ratio while
-     fitting whatever room the pin style panel below leaves it */
+     fitting whatever room the column leaves it */
   .hs-stage { flex: 1; min-height: 160px; container-type: size; display: flex; align-items: flex-start; justify-content: center; }
   .hs-canvas { position: relative; border-radius: var(--radius-md); border: 1px solid var(--mui-palette-border); overflow: hidden; user-select: none; }
   .hs-canvas.desktop { aspect-ratio: 16 / 9; width: min(100cqw, 100cqh * 16 / 9); }
@@ -350,13 +350,13 @@
   .hs-divider { height: 1px; background: var(--mui-palette-border); }
 
   /* pin style controls */
-  /* pin style: one per device, in the space under the image */
+  /* pin style: one per device, in the sidebar under the product SKUs */
   .hs-style-card { flex: none; border: 1px solid var(--mui-palette-border); border-radius: var(--radius-md); background: var(--mui-palette-grey-50); padding: var(--mui-spacing-1-half) var(--mui-spacing-2) var(--mui-spacing-2); }
   .hs-style-head { display: flex; align-items: baseline; gap: var(--mui-spacing-1); margin-bottom: var(--mui-spacing-1-half); }
   .hs-style-title { font-size: 14px; font-weight: 600; color: var(--mui-palette-text-primary); }
   .hs-style-note { font-size: 12px; color: var(--mui-palette-text-secondary); }
   /* size sits on its own row for both shapes, so switching shape never
-     changes the card's height and the canvas above stays put */
+     changes the card's height */
   .hs-style { display: flex; flex-direction: column; gap: var(--mui-spacing-2); }
   .hs-style-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--mui-spacing-2) var(--mui-spacing-3); }
   .hs-style-size { width: 100%; max-width: 280px; }
@@ -2666,8 +2666,7 @@ function hsCanvasCol(s, d) {
         : h('span', {}, full ? `Max ${HS_MAX_PINS} pins reached` : 'Search a product on the right to place a pin'),
       heroBadge(`${n} of ${HS_MAX_PINS}`, null, 'pill' + (full ? ' full' : ''))
     ),
-    h('div', { class:'hs-stage' }, hsCanvas(s, d)),
-    hsStyleCard(d)
+    h('div', { class:'hs-stage' }, hsCanvas(s, d))
   );
 }
 function hsStyleCard(d) {
@@ -2779,7 +2778,8 @@ function hsSidebar(s, d) {
       ? h('div', { class:'hero-empty sm' },
           h('div', {}, 'No products added yet'),
           h('div', { style:{ fontSize:'13px' }}, 'Search a SKU above to start'))
-      : h('div', { class:'hs-rows' }, ...d.entries.map((e, idx) => hsRow(d, e, idx)))
+      : h('div', { class:'hs-rows' }, ...d.entries.map((e, idx) => hsRow(d, e, idx))),
+    hsStyleCard(d)
   );
 }
 
