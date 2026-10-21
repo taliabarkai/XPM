@@ -1618,13 +1618,12 @@ function buildFloatingCartTemplate(s) {
 // ── FEEDBACK FORM ─────────────────────────────────────────────────────────────
 // The thank-you screen after a customer leaves feedback. Positive and Negative
 // each get their own message; the Product Carousel can follow either or both.
-// A new variant leaves Show After unpicked, so the choice is made on purpose.
+// Show After is a radio group, so one option — Any feedback — is always picked.
 const FEEDBACK_FORM = 'Feedback Form';
 const FB_SHOW_AFTER = [['any','Any feedback'], ['positive','Positive feedback only'], ['negative','Negative feedback only']];
 const FB_STRATEGIES = ['You May Also Like', 'Recently Viewed', 'Category', 'Collection', 'Manual'];
 const FB_COLLECTIONS = ['Best Sellers', 'New Arrivals', 'Personalized', 'Birthstones', 'Mother’s Day'];
 const FB_MAX_ITEMS = 8;
-const FB_MOBILE_IMAGE_TIP = 'Optional. Mobile shows the desktop image when this is empty.';
 const FB_QUICK_ADD_TIP = 'Shows an add-to-cart button on each product card in the carousel.';
 
 // A new variant starts here: every field empty and every section collapsed.
@@ -1635,8 +1634,13 @@ function fbBlank() {
     fb_posIntro: '',
     fb_posCtaLink: '',
     fb_posCtaText: '',
-    fb_posDesktopImage: '',
-    fb_posMobileImage: '',
+    fb_posImage: '',
+    // null means "no separate desktop image" and is what gets saved; the box is
+    // checked whenever this holds a string. Unchecking parks the link in
+    // fb_posDesktopKept so checking the box again restores it.
+    fb_posDesktopImage: null,
+    fb_posDesktopKept: '',
+    fb_imageErrors: { main:null, desktop:null },
     fb_posImageAlt: '',
     fb_promoHeader: '',
     fb_promoDescription: '',
@@ -1644,8 +1648,7 @@ function fbBlank() {
     fb_disclaimer: '',
     fb_negTitle: '',
     fb_negDisclaimer: '',
-    fb_showAfter: '',
-    fb_showAfterError: false,
+    fb_showAfter: 'any',
     fb_heading: '',
     fb_strategy: 'You May Also Like',
     fb_category: '',
@@ -1665,7 +1668,7 @@ function fbDefaults() {
     fb_posIntro: 'We want you to share your experience with Oak & Luna with everyone.',
     fb_posCtaLink: 'https://www.trustpilot.com/evaluate/theograce.com',
     fb_posCtaText: 'Click here',
-    fb_posDesktopImage: 'https://cdn.oakandluna.com/digital-asset/banners/TRUST_PILOT_DT.jpg',
+    fb_posImage: 'https://cdn.oakandluna.com/digital-asset/banners/TRUST_PILOT_DT.jpg',
     fb_posImageAlt: 'Enter to win - post your review',
     fb_promoHeader: 'Share The Love',
     fb_promoDescription: 'Enjoy 15% off your next order with code THANKYOU15',
@@ -1674,7 +1677,7 @@ function fbDefaults() {
     fb_negTitle: 'Thank you For Your Feedback!',
     fb_negDisclaimer: 'Coupon is valid for 14 days',
     fb_heading: 'This Week’s Best Sellers',
-    fb_strategy: 'Category',
+    fb_strategy: 'You May Also Like',
     fb_category: 'Necklaces',
     fb_quickAdd: true,
     fb_showAfter: 'any',
@@ -1697,13 +1700,47 @@ function fbSwitchVariant(p, toId) {
   const store = { ...p.fb_store, [p.selectedVariantId]: fbSnapshot(p) };
   const seeded = fbVariants().some(v => v.id === toId);
   const form = store[toId] || (seeded ? fbDefaults() : fbBlank());
-  return { fb_store: store, ...form, fb_showAfterError: false,
+  return { fb_store: store, ...form, fb_imageErrors: { main:null, desktop:null },
     ...(seeded ? { fb_open: fbDefaults().fb_open } : {}) };
 }
 
 function feedbackFormErrors(s) {
-  if (s.fb_showAfter) return null;
-  return { fb_showAfterError: true, fb_open: { ...s.fb_open, carousel:true } };
+  const main = fbImageError(s.fb_posImage, 'Image link');
+  const desktop = s.fb_posDesktopImage === null ? null : fbImageError(s.fb_posDesktopImage, 'Desktop image link');
+  if (!main && !desktop) return null;
+  // the image fields live in Positive Feedback, so open it to show the errors
+  return { fb_imageErrors: { main, desktop }, fb_open: { ...s.fb_open, positive:true } };
+}
+
+// ── image link fields ──
+// Both image links must be https URLs on the Oak & Luna CDN.
+const FB_CDN = 'https://cdn.oakandluna.com/';
+function fbUrlOk(url) { try { return new URL(url).protocol === 'https:'; } catch (e) { return false; } }
+function fbImageError(url, name) {
+  const u = (url || '').trim();
+  if (!u) return `${name} is required`;
+  if (!fbUrlOk(u) || !u.startsWith(FB_CDN)) return `Use a link that starts with ${FB_CDN}`;
+  return null;
+}
+// label, with a ? tooltip when one is given | URL input, with any save error below
+function fbImageRow(s, name, key, errKey, tip) {
+  const url = s[key] || '';
+  const err = s.fb_imageErrors[errKey];
+  return [
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'6px', fontSize:'15px', alignSelf:'start', minHeight:'42px' }},
+      name + ':',
+      tip && h('span', { class:'hero-tip', 'data-tooltip':tip, tabindex:'0', 'aria-label':tip, style:{ display:'inline-flex', cursor:'help', color:'rgba(0,0,0,0.5)' }},
+        icon('help_outline', { fontSize:'18px' }))),
+    h('div', {},
+      fInput(url, e=>{ const v = e.target.value; setState(p=>({ [key]:v, fb_imageErrors:{ ...p.fb_imageErrors, [errKey]:null } })); },
+        { placeholder: FB_CDN + 'digital-asset/…', style:{ height:'42px', ...(err ? { borderColor:HB_ERR } : {}) }}),
+      err ? hbErrText(err) : null)
+  ];
+}
+function fbToggleDesktopImage() {
+  setState(p => p.fb_posDesktopImage === null
+    ? { fb_posDesktopImage: p.fb_posDesktopKept }
+    : { fb_posDesktopKept: p.fb_posDesktopImage, fb_posDesktopImage: null, fb_imageErrors:{ ...p.fb_imageErrors, desktop:null } });
 }
 
 function fbToggle(key)        { setState(p=>({ fb_open: { ...p.fb_open, [key]: !p.fb_open[key] } })); }
@@ -1742,9 +1779,16 @@ function buildFeedbackFormTemplate(s) {
         label('Title*:'), input('fb_posTitle'),
         label('Description:'), fTextarea(s.fb_posIntro, e=>setState({ fb_posIntro:e.target.value }), { style:{ minHeight:'64px' }}),
         label('CTA Text:'), input('fb_posCtaText'),
-        label('CTA/Image Link:'), input('fb_posCtaLink', { color:'#1976d2', placeholder:'https://' }),
-        label('Desktop image:'), input('fb_posDesktopImage', { color:'#1976d2', placeholder:'https://cdn.example.com/digital-asset/…' }),
-        tipLabel('Mobile image:', FB_MOBILE_IMAGE_TIP), input('fb_posMobileImage', { color:'#1976d2', placeholder:'https://cdn.example.com/digital-asset/…' }),
+        label('Link:'), input('fb_posCtaLink', { color:'#1976d2', placeholder:'https://' }),
+        // one image serves every device unless desktop is given its own; the
+        // desktop link is kept while the toggle is off, so turning it back on restores it
+        fbImageRow(s, 'Image link', 'fb_posImage', 'main', 'Shown on all devices unless you add a desktop image.'),
+        // no label: the checkbox lines up with the inputs above
+        h('div', {}),
+        checkboxRow(s.fb_posDesktopImage !== null, 'Use a different image on desktop', fbToggleDesktopImage),
+        s.fb_posDesktopImage !== null
+          ? fbImageRow(s, 'Desktop image link', 'fb_posDesktopImage', 'desktop')
+          : null,
         label('Image alt text:'), input('fb_posImageAlt')
       )),
       h('div', { style:{ marginTop:'34px' }}, npSubTitle('Promotional Section')),
@@ -1767,9 +1811,8 @@ function buildFeedbackFormTemplate(s) {
     section('carousel', 'Product Carousel',
       grid(
         label('Show After*:'),
-        h('div', { style:{ minHeight:'42px', display:'flex', flexDirection:'column', justifyContent:'center' }},
-          npRadios(s.fb_showAfter, FB_SHOW_AFTER, k=>setState({ fb_showAfter:k, fb_showAfterError:false })),
-          s.fb_showAfterError ? hbErrText('Choose when the carousel shows') : null),
+        h('div', { style:{ minHeight:'42px', display:'flex', alignItems:'center' }},
+          npRadios(s.fb_showAfter, FB_SHOW_AFTER, k=>setState({ fb_showAfter:k }))),
         label('Heading*:'), input('fb_heading'),
         label('Carousel Strategy*:'),
         h('div', {}, fSelect(strategy, FB_STRATEGIES, e=>setState({ fb_strategy:e.target.value }), { height:'42px', width:'100%' }))
