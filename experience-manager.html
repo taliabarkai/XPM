@@ -192,6 +192,11 @@
   .hero-shop-head { display: flex; align-items: center; gap: var(--mui-spacing-1); padding: var(--mui-spacing-1-half) var(--mui-spacing-2); cursor: pointer; }
   .hero-shop-body { padding: 0 var(--mui-spacing-2) var(--mui-spacing-2-half); display: flex; flex-direction: column; gap: var(--mui-spacing-2-half); }
   .hero-shop-grid { display: grid; grid-template-columns: 1fr 1fr 0.9fr; gap: var(--mui-spacing-2); align-items: start; }
+  /* the live text layer nests inside the shoppable card, so it lifts to white */
+  .hero-shop-body .hero-layer { background: #fff; }
+  /* the shoppable card and category image cards are too narrow for side-by-side
+     text columns, so content elements stack above text display */
+  .hero-shop-body .hero-text-grid, .ci-card .hero-text-grid { grid-template-columns: 1fr; }
   .hero-slot { display: flex; flex-direction: column; gap: var(--mui-spacing-1); }
   .hero-slot-label { font-size: 13px; font-weight: 600; color: var(--mui-palette-text-secondary); }
   .hero-frame { position: relative; border: 1px solid var(--mui-palette-border); border-radius: var(--radius-md); background: repeating-linear-gradient(135deg, #eceff1 0 14px, #e6eaed 14px 28px); overflow: hidden; }
@@ -437,7 +442,7 @@ function variantSeedFor(title) {
   if (title === FEEDBACK_FORM) {
     return { variants: fbVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank(), ...fbDefaults(), fb_store: {} };
   }
-  return { variants: defaultVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
+  return { variants: defaultVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank(), ...ciDefaults() };
 }
 
 const state = {
@@ -534,6 +539,9 @@ const state = {
   // ── Feedback Form ──
   ...fbDefaults(),
 
+  // ── Category Images ──
+  ...ciDefaults(),
+
   // page + targeting
   activePages: ['Product page'],
   pageConditions: {},
@@ -608,7 +616,8 @@ function parseHash() {
 function applyHash() {
   const { hsSlide = null, ...patch } = parseHash();
   Object.assign(state, patch, { hs:null });
-  if (hsSlide !== null && state.hero_slides[hsSlide]) hsOpen(hsSlide);
+  if (hsSlide !== null && state.componentTitle === CATEGORY_IMAGES && state.ci_shop) hsOpen(0, 'ci');
+  else if (hsSlide !== null && state.hero_slides[hsSlide]) hsOpen(hsSlide);
   else render();
 }
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -1043,7 +1052,7 @@ function buildVariantPanel(s) {
       h('div', { class:'tb', onClick:()=>{ setState({view:'list'}); syncHash(true); }, style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
       // a brand-new variant opens on the component's first tab, so it is filled
       // in from the top rather than wherever the last variant was left
-      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank(), ...fcBlank(), ...fbBlank(), ...fbSwitchVariant(prev, id) }; }); syncHash(true); },
+      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank(), ...fcBlank(), ...fbBlank(), ...fbSwitchVariant(prev, id), ...ciBlank() }; }); syncHash(true); },
         style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
         icon('add',{fontSize:'20px'}), 'ADD VARIANT'
       )
@@ -1202,6 +1211,7 @@ function buildContentTab(s) {
   if (s.componentTitle === 'Smart Message') return buildSmartMessageTemplate(s);
   if (s.componentTitle === 'Floating Cart') return buildFloatingCartTemplate(s);
   if (s.componentTitle === FEEDBACK_FORM) return buildFeedbackFormTemplate(s);
+  if (s.componentTitle === CATEGORY_IMAGES) return buildCategoryImagesTemplate(s);
   // every component in the Banners category shares one template set
   if (s.section === 'banners') return buildBannerTemplates(s);
   const templates = [
@@ -1831,6 +1841,87 @@ function buildFeedbackFormTemplate(s) {
   );
 }
 
+// ── CATEGORY IMAGES ───────────────────────────────────────────────────────────
+// Mirrors the storefront's Category Images content (testimonials types in
+// frontend-next): a template, an optional shoppable image with tagged
+// products, and the category image cards placed in the product grid. Each card
+// reuses the hero banner's Visual, Link and Live Text layers.
+const CATEGORY_IMAGES = 'Category Images';
+const CI_MAX_CARDS = 6;
+const CI_TEMPLATES = [['text','Text Overlay'], ['image','Text below image']];
+const CI_ALIGN = ['Left', 'Center', 'Right'];
+
+function ciNewCard() { return { ...heroNewSlide(), open:true, row:'', align:'Center', slots:'1' }; }
+// a shoppable image carries the slide fields, so it can hold a live text layer too
+function ciNewShop() { return { ...heroNewSlide(), shopOpen:true }; }
+// a new variant: no shoppable image and one empty card
+function ciBlank() { return { ci_template:'text', ci_shop:null, ci_cards:[ciNewCard()] }; }
+// the demo variants open on a filled shoppable image and one two-slot card
+function ciDefaults() {
+  return {
+    ci_template: 'text',
+    ci_shop: { ...heroNewSlide(), desktopImage:true, mobileImage:true, shopOpen:true, pinStyle:hsSeedPinStyle(),
+      products:[ hsSeedProduct('101-01-049-01', [70,52], [62,74]), hsSeedProduct('101-01-055-02', [28,76], [22,44]) ] },
+    ci_cards: [{ ...ciNewCard(), row:'6', align:'Center', slots:'2',
+      responsive:true, mobileImage:true, desktopImage:true, linkUrl:'/collections/necklaces',
+      textLayer:true, texts:[{ text:'Shop the Look', typography:'headline2' }] }],
+  };
+}
+
+function setCiCard(i, patch) { setState(p => ({ ci_cards: p.ci_cards.map((c,j)=> j===i ? { ...c, ...patch } : c) })); }
+function setCiShop(patch)    { setState(p => ({ ci_shop: { ...p.ci_shop, ...patch } })); }
+
+// Same card shell as a hero slide; Row, Alignment and Product slots place the
+// card in the product grid, then come the layers.
+function ciCard(s, card, i, removable) {
+  const set = p => setCiCard(i, p);
+  const name = 'Category image ' + (i+1);
+  return h('div', { class:'hero-slide ci-card' + (card.open ? ' open' : '') },
+    h('div', { class:'hero-slide-head', onClick:()=>set({ open: !card.open }) },
+      heroBadge('#' + (i+1), null, 'idx'),
+      h('div', { class:'hero-slide-name', style:{ flex:'1' }}, name),
+      h('div', { class:'tb', title: card.open ? 'Collapse' : 'Expand',
+        style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'6px', color:'rgba(0,0,0,0.54)' }},
+        icon(card.open ? 'expand_less' : 'expand_more', { fontSize:'22px' })),
+      removable ? h('div', { class:'tb', title:'Delete category image', onClick:e=>{ e.stopPropagation(); setState(p=>({ ci_cards:p.ci_cards.filter((_,j)=>j!==i) })); },
+        style:{ width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'6px', cursor:'pointer', color:'rgba(0,0,0,0.45)' }},
+        icon('close',{fontSize:'20px'})) : null
+    ),
+    !card.open ? null : h('div', { class:'hero-slide-body' },
+      heroField('Row*', h('input', { class:'hero-input', type:'number', min:'1', value:card.row, placeholder:'e.g. 6', style:{ width:'110px', flex:'none' },
+        onInput:e=>set({ row:e.target.value }) })),
+      heroField('Alignment', heroSelect(card.align, CI_ALIGN, v=>set({ align:v }), { minWidth:'140px' })),
+      heroField('Product slots', heroRadios(card.slots, [['1','1 slot'], ['2','2 slots']], v=>set({ slots:v }))),
+      heroVisualLayer(s, card, set, false),
+      heroLinkLayer(card, set),
+      heroTextLayer(s, card, set, { buttons:false })
+    )
+  );
+}
+
+function buildCategoryImagesTemplate(s) {
+  const n = s.ci_cards.length;
+  return h('div', { class:'hero-tab' },
+    heroCard('Template', null, heroRadios(s.ci_template, CI_TEMPLATES, v=>setState({ ci_template:v }))),
+    // one optional shoppable image per variant; removing it can be undone by adding a fresh one
+    s.ci_shop
+      ? shoppableCard(s.ci_shop, { onPatch:setCiShop, onEdit:()=>hsOpen(0, 'ci'), onRemove:()=>setState({ ci_shop:null }),
+          // live text sits inside the shoppable card, as it does on hero slides
+          extra: heroTextLayer(s, s.ci_shop, setCiShop, { buttons:false }) })
+      : h('div', {}, h('div', { class:'hero-btn hero-btn-outline', onClick:()=>setState({ ci_shop: ciNewShop() }) },
+          icon('sell',{fontSize:'18px'}), 'Add Shoppable Image')),
+    heroCard('Category Images', null,
+      h('div', { class:'hero-slides' }, ...s.ci_cards.map((card,i)=>ciCard(s, card, i, n > 1))),
+      h('div', { style:{ marginTop:'var(--mui-spacing-2)', display:'flex', alignItems:'center' }},
+        h('div', { class:'hero-btn ' + (n >= CI_MAX_CARDS ? 'is-disabled' : 'hero-btn-outline'),
+          onClick: n >= CI_MAX_CARDS ? undefined : ()=>setState(p=>({ ci_cards:[...p.ci_cards, ciNewCard()] })) },
+          icon('add',{fontSize:'18px'}), 'Add Category Image'),
+        h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'var(--mui-palette-text-secondary)' }}, `${n} of ${CI_MAX_CARDS} images`)
+      )
+    )
+  );
+}
+
 // ── HIGHLIGHTS BAR ────────────────────────────────────────────────────────────
 const HB_TYPOGRAPHY = ['Text 1','Text 2','Text 3','Text 4','Button'];
 
@@ -2352,21 +2443,27 @@ function heroImageSlot(label, present, products, device, frameCls, optional, onU
   );
 }
 
-function heroShoppable(s, slide, i) {
-  const n = slide.products.length;
+// The Shoppable Image card, shared by hero slides and Category Images. `shop`
+// holds the images, tagged products and open state; onPatch writes to wherever
+// it lives, onEdit opens the hotspot editor on it, onRemove (optional) adds a
+// Remove action, and `extra` is nested at the bottom of the card's body.
+function shoppableCard(shop, { onPatch, onEdit, onRemove, extra }) {
+  const n = shop.products.length;
   return h('div', { class:'hero-shop' },
-    h('div', { class:'hero-shop-head', onClick:()=>setHeroSlide(i,{ shopOpen: !slide.shopOpen }) },
-      icon(slide.shopOpen ? 'expand_less' : 'expand_more', { fontSize:'20px', color:'rgba(0,0,0,0.54)' }),
+    h('div', { class:'hero-shop-head', onClick:()=>onPatch({ shopOpen: !shop.shopOpen }) },
+      icon(shop.shopOpen ? 'expand_less' : 'expand_more', { fontSize:'20px', color:'rgba(0,0,0,0.54)' }),
       h('div', { class:'hero-layer-title' }, 'Shoppable Image'),
-      h('div', { style:{ marginLeft:'auto' }}, heroBadge('Position pre-configured', 'lock', 'pill'))
+      h('div', { style:{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'var(--mui-spacing-1)' }},
+        heroBadge('Position pre-configured', 'lock', 'pill'),
+        onRemove ? h('div', { class:'hero-btn sm hs-btn-danger', onClick:e=>{ e.stopPropagation(); onRemove(); } }, icon('delete',{fontSize:'18px'}), 'Remove') : null)
     ),
-    !slide.shopOpen ? null : h('div', { class:'hero-shop-body' },
+    !shop.shopOpen ? null : h('div', { class:'hero-shop-body' },
       h('div', { class:'hero-shop-grid' },
-        heroImageSlot('Desktop image', slide.desktopImage, slide.products, 'desktop', 'desktop', false, ()=>setHeroSlide(i,{ desktopImage:true })),
-        heroImageSlot('Mobile image',  slide.mobileImage,  slide.products, 'mobile',  'mobile',  true,  ()=>setHeroSlide(i,{ mobileImage:true })),
+        heroImageSlot('Desktop image', shop.desktopImage, shop.products, 'desktop', 'desktop', false, ()=>onPatch({ desktopImage:true })),
+        heroImageSlot('Mobile image',  shop.mobileImage,  shop.products, 'mobile',  'mobile',  true,  ()=>onPatch({ mobileImage:true })),
         h('div', { class:'hero-summary' },
           h('div', { class:'hero-summary-n' }, n === 1 ? '1 product tagged on this image' : `${n} products tagged on this image`),
-          h('div', { class:'hero-btn hero-btn-outline sm', onClick:()=>hsOpen(i) }, icon('edit_location_alt',{fontSize:'18px'}), 'Edit Shoppable Image'),
+          h('div', { class:'hero-btn hero-btn-outline sm', onClick:onEdit }, icon('edit_location_alt',{fontSize:'18px'}), 'Edit Shoppable Image'),
           heroBadge(n === 1 ? '1 product' : n + ' products', 'sell', 'pill'),
           h('div', { class:'hero-prods-wrap' },
             h('div', { class:'hero-slot-label', style:{ marginBottom:'var(--mui-spacing-1)' }}, 'Tagged Products'),
@@ -2376,7 +2473,7 @@ function heroShoppable(s, slide, i) {
                   h('div', {}, 'No products tagged yet.'),
                   h('div', { style:{ fontSize:'13px' }}, 'Open the hotspot editor to place a pin on the image.'))
               : h('div', { class:'hero-prods' },
-                  ...slide.products.map((p, idx) =>
+                  ...shop.products.map((p, idx) =>
                     h('div', { class:'hero-prod' },
                       h('div', { class:'hero-pin sm hero-prod-pin' }, String(idx+1)),
                       h('div', { class:'hero-prod-img' }),
@@ -2386,9 +2483,15 @@ function heroShoppable(s, slide, i) {
                 )
           )
         )
-      )
+      ),
+      extra || null
     )
   );
+}
+function heroShoppable(s, slide, i) {
+  return shoppableCard(slide, { onPatch: p=>setHeroSlide(i, p), onEdit: ()=>hsOpen(i),
+    // live text belongs to the shoppable image, so it lives inside this card
+    extra: heroTextLayer(s, slide, p=>setHeroSlide(i, p), { buttons:false }) });
 }
 
 function heroSlideCard(s, slide, i) {
@@ -2424,20 +2527,13 @@ function heroSlideCard(s, slide, i) {
       heroField('Banner Mode',
         heroSeg(slide.mode, [['standard','Standard Banner','crop_landscape'],['shoppable','Shoppable Image','sell']], v=>setHeroSlide(i,{mode:v}))
       ),
-      slide.mode === 'shoppable' ? heroShoppableBanner(s, slide, i) : heroStandardBanner(s, slide, i)
+      slide.mode === 'shoppable' ? heroShoppable(s, slide, i) : heroStandardBanner(s, slide, i)
     )
   );
   return card;
 }
 
 // A shoppable slide takes live text but no button: its pins are the calls to action.
-function heroShoppableBanner(s, slide, i) {
-  return h('div', { style:{ display:'flex', flexDirection:'column', gap:'var(--mui-spacing-2)' }},
-    heroShoppable(s, slide, i),
-    heroTextLayer(s, slide, i, { buttons:false })
-  );
-}
-
 function heroSlidesSection(s) {
   const n = s.hero_slides.length;
   return heroCard('Slides', null,
@@ -2539,35 +2635,37 @@ function heroVisualSlot(label, present, onAdd) {
     h('div', { class:'hero-link', onClick:onAdd }, icon(present ? 'sync' : 'add_photo_alternate',{fontSize:'16px'}), present ? 'Replace Image' : 'Add Image')
   );
 }
-function heroVisualLayer(s, slide, i) {
-  const dtHidden = heroDesktopHidden(s);
+// The layers below write through `set(patch)`, so a hero slide and a Category
+// Images card can both use them. Desktop can only be hidden on the hero banner.
+function heroVisualLayer(s, slide, set, desktopHideable = true) {
+  const dtHidden = desktopHideable && heroDesktopHidden(s);
   // the stored value is kept, so showing desktop again restores the split
   const responsive = slide.responsive && !dtHidden;
-  return heroLayer('Visual Layer', 'palette', slide.visual, ()=>setHeroSlide(i,{ visual: !slide.visual }), [
+  return heroLayer('Visual Layer', 'palette', slide.visual, ()=>set({ visual: !slide.visual }), [
     h('div', { class:'hero-visual-row' },
       h('div', { class:'hero-imgs' },
         ...(responsive
-          ? [ heroVisualSlot('Mobile',  slide.mobileImage,  ()=>setHeroSlide(i,{ mobileImage:true })),
-              heroVisualSlot('Desktop', slide.desktopImage, ()=>setHeroSlide(i,{ desktopImage:true })) ]
-          : [ heroVisualSlot('Image',   slide.image,        ()=>setHeroSlide(i,{ image:true })) ])
+          ? [ heroVisualSlot('Mobile',  slide.mobileImage,  ()=>set({ mobileImage:true })),
+              heroVisualSlot('Desktop', slide.desktopImage, ()=>set({ desktopImage:true })) ]
+          : [ heroVisualSlot('Image',   slide.image,        ()=>set({ image:true })) ])
       ),
       h('div', { class:'hero-layer-bar' },
         // Responsive splits the single asset into a mobile and a desktop image,
         // which has nothing to describe once desktop is hidden
         h('div', { class:'hero-inline-toggle' + (dtHidden ? ' hero-tip is-disabled' : ''),
           ...(dtHidden ? { 'data-tooltip':'Unavailable while Desktop is hidden — this banner shows on mobile only.' } : {}),
-          onClick: dtHidden ? undefined : ()=>setHeroSlide(i,{ responsive: !slide.responsive }) },
-          toggle(responsive, dtHidden ? ()=>{} : ()=>setHeroSlide(i,{ responsive: !slide.responsive })), 'Responsive'),
-        h('div', { class:'hero-inline-toggle', onClick:()=>setHeroSlide(i,{ videoOverlay: !slide.videoOverlay }) },
-          toggle(slide.videoOverlay, ()=>setHeroSlide(i,{ videoOverlay: !slide.videoOverlay })), 'Video Overlay')
+          onClick: dtHidden ? undefined : ()=>set({ responsive: !slide.responsive }) },
+          toggle(responsive, dtHidden ? ()=>{} : ()=>set({ responsive: !slide.responsive })), 'Responsive'),
+        h('div', { class:'hero-inline-toggle', onClick:()=>set({ videoOverlay: !slide.videoOverlay }) },
+          toggle(slide.videoOverlay, ()=>set({ videoOverlay: !slide.videoOverlay })), 'Video Overlay')
       )
     )
   ]);
 }
 
 // ── live text layer ──────────────────────────────────────────────────────────
-function heroPositionPicker(slide, i) {
-  const pick = key => setHeroSlide(i, { textPos: key });
+function heroPositionPicker(slide, set) {
+  const pick = key => set({ textPos: key });
   return h('div', {},
     h('div', { class:'hero-posgrid' },
       ...HERO_RING.map(([key, ico, label, r, c]) =>
@@ -2585,12 +2683,12 @@ function heroPositionPicker(slide, i) {
   );
 }
 
-function heroTextLayer(s, slide, i, opts) {
+function heroTextLayer(s, slide, set, opts) {
   const withButtons = !opts || opts.buttons !== false;
-  const setText = (j, patch) => setHeroSlide(i, { texts: slide.texts.map((t,k)=> k===j ? {...t, ...patch} : t) });
+  const setText = (j, patch) => set({ texts: slide.texts.map((t,k)=> k===j ? {...t, ...patch} : t) });
   // turning the layer on guarantees a text element: the layer is meaningless
   // without one, which is also why the last one has no delete control
-  const onToggleLayer = () => setHeroSlide(i, {
+  const onToggleLayer = () => set({
     textLayer: !slide.textLayer,
     texts: !slide.textLayer && slide.texts.length === 0 ? [{ text:'', typography:'headline2' }] : slide.texts,
   });
@@ -2602,7 +2700,7 @@ function heroTextLayer(s, slide, i, opts) {
           h('div', { class:'hero-subcard-head' },
             h('div', { class:'hero-subcard-title' }, 'Content Elements:'),
             h('div', { class:'hero-btn hero-btn-outline sm', style:{ marginLeft:'auto' },
-              onClick:()=>setHeroSlide(i,{ texts:[...slide.texts, { text:'', typography:'headline2' }] })},
+              onClick:()=>set({ texts:[...slide.texts, { text:'', typography:'headline2' }] })},
               icon('add',{fontSize:'18px'}), 'Add Text')
           ),
           h('div', { class:'hero-stack' },
@@ -2622,7 +2720,7 @@ function heroTextLayer(s, slide, i, opts) {
                 ),
                 slide.texts.length > 1
                   ? h('div', { class:'hero-icon-remove', title:'Delete text element',
-                      onClick:()=>setHeroSlide(i,{ texts: slide.texts.filter((_,k)=>k!==j) })}, icon('close',{fontSize:'20px'}))
+                      onClick:()=>set({ texts: slide.texts.filter((_,k)=>k!==j) })}, icon('close',{fontSize:'20px'}))
                   : null
               )
             )
@@ -2632,7 +2730,7 @@ function heroTextLayer(s, slide, i, opts) {
           h('div', { class:'hero-subcard-head' },
             h('div', { class:'hero-subcard-title' }, 'Button:'),
             h('div', { class:'hero-btn hero-btn-outline sm', style:{ marginLeft:'auto' },
-              onClick:()=>setHeroSlide(i,{ buttons:[...slide.buttons, { label:'', url:'' }] })},
+              onClick:()=>set({ buttons:[...slide.buttons, { label:'', url:'' }] })},
               icon('add',{fontSize:'18px'}), 'Add Button')
           ),
           slide.buttons.length === 0 ? null : h('div', { class:'hero-stack' },
@@ -2643,19 +2741,19 @@ function heroTextLayer(s, slide, i, opts) {
                     h('div', { class:'hero-label' }, 'Button Label:'),
                     h('div', { class:'hero-ctrls' },
                       h('input', { class:'hero-input', value:b.label, placeholder:'Button label',
-                        onInput:e=>{ const v=e.target.value; setHeroSlide(i,{ buttons: slide.buttons.map((x,k)=>k===j?{...x,label:v}:x) }); }})
+                        onInput:e=>{ const v=e.target.value; set({ buttons: slide.buttons.map((x,k)=>k===j?{...x,label:v}:x) }); }})
                     )
                   ),
                   h('div', { class:'hero-field' },
                     h('div', { class:'hero-label' }, 'Button Link:'),
                     h('div', { class:'hero-ctrls' },
                       h('input', { class:'hero-input', value:b.url, placeholder:'https://…',
-                        onInput:e=>{ const v=e.target.value; setHeroSlide(i,{ buttons: slide.buttons.map((x,k)=>k===j?{...x,url:v}:x) }); }})
+                        onInput:e=>{ const v=e.target.value; set({ buttons: slide.buttons.map((x,k)=>k===j?{...x,url:v}:x) }); }})
                     )
                   )
                 ),
                 h('div', { class:'hero-icon-remove', title:'Delete button',
-                  onClick:()=>setHeroSlide(i,{ buttons: slide.buttons.filter((_,k)=>k!==j) })}, icon('close',{fontSize:'20px'}))
+                  onClick:()=>set({ buttons: slide.buttons.filter((_,k)=>k!==j) })}, icon('close',{fontSize:'20px'}))
               )
             )
           )
@@ -2665,30 +2763,30 @@ function heroTextLayer(s, slide, i, opts) {
       h('div', { class:'hero-subcard' },
         h('div', { class:'hero-subcard-title' }, 'Text Display'),
         h('div', { class:'hero-posrow' },
-          heroPositionPicker(slide, i),
+          heroPositionPicker(slide, set),
           h('div', { class:'hero-posside' },
             h('div', {},
               h('div', { class:'hero-label', style:{ marginBottom:'var(--mui-spacing-xs)' }}, 'Text Color:'),
               h('div', { class:'hero-color' },
                 h('div', { class:'hero-swatch', style:{ background:slide.textColor }},
-                  h('input', { type:'color', value:slide.textColor, onInput:e=>setHeroSlide(i,{ textColor:e.target.value }) })),
+                  h('input', { type:'color', value:slide.textColor, onInput:e=>set({ textColor:e.target.value }) })),
                 h('input', { class:'hero-hex', value:slide.textColor,
-                  onInput:e=>{ const v=e.target.value; setHeroSlide(i,{ textColor: v.startsWith('#') ? v : '#'+v }); }})
+                  onInput:e=>{ const v=e.target.value; set({ textColor: v.startsWith('#') ? v : '#'+v }); }})
               )
             ),
             h('div', {},
               h('div', { class:'hero-label', style:{ marginBottom:'var(--mui-spacing-xs)' }}, 'Padding Block:'),
-              heroSelect(slide.padBlock, HERO_PADDING, v=>setHeroSlide(i,{ padBlock:v }), { width:'100%' })
+              heroSelect(slide.padBlock, HERO_PADDING, v=>set({ padBlock:v }), { width:'100%' })
             ),
             h('div', {},
               h('div', { class:'hero-label', style:{ marginBottom:'var(--mui-spacing-xs)' }}, 'Padding Inline:'),
-              heroSelect(slide.padInline, HERO_PADDING, v=>setHeroSlide(i,{ padInline:v }), { width:'100%' })
+              heroSelect(slide.padInline, HERO_PADDING, v=>set({ padInline:v }), { width:'100%' })
             )
           )
         ),
         h('div', { class:'hero-inline-toggle', style:{ marginTop:'var(--mui-spacing-1)' },
-          onClick:()=>setHeroSlide(i,{ desktopOverrides: !slide.desktopOverrides })},
-          toggle(slide.desktopOverrides, ()=>setHeroSlide(i,{ desktopOverrides: !slide.desktopOverrides })),
+          onClick:()=>set({ desktopOverrides: !slide.desktopOverrides })},
+          toggle(slide.desktopOverrides, ()=>set({ desktopOverrides: !slide.desktopOverrides })),
           'Set different settings on desktop')
       )
     )
@@ -2699,20 +2797,24 @@ function heroTextLayer(s, slide, i, opts) {
 // they already did
 function heroLinkType(slide) { return slide.linkType || 'url'; }
 
+function heroLinkLayer(slide, set) {
+  return heroLayer('Link', 'link', true, null, [
+    heroField('Link Type:', heroRadios(heroLinkType(slide),
+      [['url','URL Link'], ['klaviyo','Klaviyo Form']], v=>set({ linkType:v }))),
+    // the hidden field holds on to whatever was typed, so switching back restores it
+    heroLinkType(slide) === 'klaviyo'
+      ? heroField('Klaviyo Form ID:', h('input', { class:'hero-input', value:slide.klaviyoFormId, placeholder:'Enter Klaviyo form ID…',
+          onInput:e=>set({ klaviyoFormId:e.target.value }) }))
+      : heroField('Link URL:', h('input', { class:'hero-input', value:slide.linkUrl, placeholder:'Enter link URL…',
+          onInput:e=>set({ linkUrl:e.target.value }) }))
+  ]);
+}
 function heroStandardBanner(s, slide, i) {
+  const set = p => setHeroSlide(i, p);
   return h('div', { style:{ display:'flex', flexDirection:'column', gap:'var(--mui-spacing-2)' }},
-    heroVisualLayer(s, slide, i),
-    heroLayer('Link', 'link', true, null, [
-      heroField('Link Type:', heroRadios(heroLinkType(slide),
-        [['url','URL Link'], ['klaviyo','Klaviyo Form']], v=>setHeroSlide(i,{ linkType:v }))),
-      // the hidden field holds on to whatever was typed, so switching back restores it
-      heroLinkType(slide) === 'klaviyo'
-        ? heroField('Klaviyo Form ID:', h('input', { class:'hero-input', value:slide.klaviyoFormId, placeholder:'Enter Klaviyo form ID…',
-            onInput:e=>setHeroSlide(i,{ klaviyoFormId:e.target.value }) }))
-        : heroField('Link URL:', h('input', { class:'hero-input', value:slide.linkUrl, placeholder:'Enter link URL…',
-            onInput:e=>setHeroSlide(i,{ linkUrl:e.target.value }) }))
-    ]),
-    heroTextLayer(s, slide, i)
+    heroVisualLayer(s, slide, set),
+    heroLinkLayer(slide, set),
+    heroTextLayer(s, slide, set)
   );
 }
 
@@ -2779,12 +2881,17 @@ function hsPaint(el, pos, st) {
 }
 
 // ── draft state ──────────────────────────────────────────────────────────────
-function hsOpen(i) {
+// `target` says whose image is being edited: a hero slide (by index) or the
+// Category Images variant's single shoppable image ('ci', slide 0)
+function hsSource(s, d) { return d.target === 'ci' ? s.ci_shop : s.hero_slides[d.slide]; }
+function hsOpen(i, target = 'hero') {
+  const src = hsSource(state, { target, slide:i });
   setState({ hs: {
     slide: i,
-    device: heroDesktopHidden(state) ? 'mobile' : 'desktop',
-    entries: JSON.parse(JSON.stringify(state.hero_slides[i].products)),
-    styles: JSON.parse(JSON.stringify(state.hero_slides[i].pinStyle || hsPinStyleDefaults())),
+    target,
+    device: target === 'hero' && heroDesktopHidden(state) ? 'mobile' : 'desktop',
+    entries: JSON.parse(JSON.stringify(src.products)),
+    styles: JSON.parse(JSON.stringify(src.pinStyle || hsPinStyleDefaults())),
     open: null,     // selected product: its row and pin are highlighted
     placing: null,  // product waiting for a click on the image
   }});
@@ -2793,15 +2900,20 @@ function hsOpen(i) {
 function hsClose() { setState({ hs:null }); syncHash(false); }
 function hsSave() {
   const d = state.hs;
+  if (d.target === 'ci') {
+    setState(p => ({ hs:null, ci_shop: { ...p.ci_shop, products:d.entries, pinStyle:d.styles } }));
+    syncHash(false);
+    return;
+  }
   setHero(p => ({ hs:null, hero_slides: p.hero_slides.map((sl, j) => j === d.slide ? { ...sl, products:d.entries, pinStyle:d.styles } : sl) }));
   syncHash(false);
 }
 function setHs(patch) { setState(p => ({ hs: { ...p.hs, ...(typeof patch === 'function' ? patch(p.hs) : patch) } })); }
 function hsPlacedOn(d, device) { return d.entries.filter(e => e[device]).length; }
 // a mobile-only banner has nowhere to put desktop pins
-function hsDevices(s) {
+function hsDevices(s, d) {
   const mobile = ['mobile','Mobile','phone_iphone'];
-  return heroDesktopHidden(s) ? [mobile] : [['desktop','Desktop','desktop_windows'], mobile];
+  return d.target === 'hero' && heroDesktopHidden(s) ? [mobile] : [['desktop','Desktop','desktop_windows'], mobile];
 }
 
 function hsAddSku(raw) {
@@ -2877,7 +2989,7 @@ function hsPinEl(e, pos, st, selected) {
   return el;
 }
 function hsCanvas(s, d) {
-  const slide = s.hero_slides[d.slide];
+  const slide = hsSource(s, d);
   const mobile = d.device === 'mobile';
   // the mobile canvas falls back to the desktop image until one is uploaded
   const ownMobile = mobile && slide.mobileImage;
@@ -3008,7 +3120,7 @@ function hsRow(d, e, idx) {
 function hsSidebar(s, d) {
   return h('div', { class:'hs-side scroll' },
     h('div', { class:'hs-tabs' },
-      ...hsDevices(s).map(([key, label, ico]) => {
+      ...hsDevices(s, d).map(([key, label, ico]) => {
         const missing = d.entries.filter(e => !e[key]).length;
         return h('div', { class:'hs-tab' + (d.device === key ? ' on' : ''), onClick:()=>setHs({ device:key, open:null, placing:null }) },
           icon(ico, { fontSize:'19px' }), label,
@@ -3031,7 +3143,7 @@ function hsSidebar(s, d) {
 
 function hsModal(s) {
   const d = s.hs;
-  if (!d || !s.hero_slides[d.slide]) return null;
+  if (!d || !hsSource(s, d)) return null;
   // a click outside closes it like Cancel; the press must also start outside,
   // so a pin or slider drag that ends on the backdrop doesn't throw edits away
   let downOutside = false;
