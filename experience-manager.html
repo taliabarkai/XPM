@@ -1617,13 +1617,10 @@ function buildFloatingCartTemplate(s) {
 
 // ── FEEDBACK FORM ─────────────────────────────────────────────────────────────
 // The thank-you screen after a customer leaves feedback. Positive and Negative
-// each get their own message; the Product Carousel can follow either or both,
-// so where it shows is picked explicitly rather than defaulted.
+// each get their own message; the Product Carousel can follow either or both.
+// A new variant leaves Show After unpicked, so the choice is made on purpose.
 const FEEDBACK_FORM = 'Feedback Form';
-const FB_DISPLAY = [
-  { key:'positive', label:'Positive Feedback' },
-  { key:'negative', label:'Negative Feedback' },
-];
+const FB_SHOW_AFTER = [['any','Any feedback'], ['positive','Positive feedback only'], ['negative','Negative feedback only']];
 const FB_STRATEGIES = ['You May Also Like', 'Recently Viewed', 'Category', 'Collection', 'Manual'];
 const FB_COLLECTIONS = ['Best Sellers', 'New Arrivals', 'Personalized', 'Birthstones', 'Mother’s Day'];
 const FB_MAX_ITEMS = 8;
@@ -1647,8 +1644,8 @@ function fbBlank() {
     fb_disclaimer: '',
     fb_negTitle: '',
     fb_negDisclaimer: '',
-    fb_display: { positive:false, negative:false },
-    fb_displayError: false,
+    fb_showAfter: '',
+    fb_showAfterError: false,
     fb_heading: '',
     fb_strategy: 'You May Also Like',
     fb_category: '',
@@ -1680,7 +1677,7 @@ function fbDefaults() {
     fb_strategy: 'Category',
     fb_category: 'Necklaces',
     fb_quickAdd: true,
-    fb_display: { positive:true, negative:true },
+    fb_showAfter: 'any',
   };
 }
 function fbVariants() {
@@ -1700,34 +1697,16 @@ function fbSwitchVariant(p, toId) {
   const store = { ...p.fb_store, [p.selectedVariantId]: fbSnapshot(p) };
   const seeded = fbVariants().some(v => v.id === toId);
   const form = store[toId] || (seeded ? fbDefaults() : fbBlank());
-  return { fb_store: store, ...form, fb_displayError: false,
+  return { fb_store: store, ...form, fb_showAfterError: false,
     ...(seeded ? { fb_open: fbDefaults().fb_open } : {}) };
 }
 
 function feedbackFormErrors(s) {
-  if (FB_DISPLAY.some(d => s.fb_display[d.key])) return null;
-  return { fb_displayError: true, fb_open: { ...s.fb_open, carousel:true } };
+  if (s.fb_showAfter) return null;
+  return { fb_showAfterError: true, fb_open: { ...s.fb_open, carousel:true } };
 }
 
 function fbToggle(key)        { setState(p=>({ fb_open: { ...p.fb_open, [key]: !p.fb_open[key] } })); }
-
-// One checkbox per feedback result, led by "All Feedback" as a select-all: it
-// ticks or clears both, and shows a dash while only one of them is picked.
-function fbDisplayChecks(s) {
-  const chosen = FB_DISPLAY.filter(d => s.fb_display[d.key]).length;
-  const all = chosen === FB_DISPLAY.length;
-  const check = (ico, on, label, onClick) => h('div', { onClick, style:{ display:'inline-flex', alignItems:'center', gap:'10px', fontSize:'15px', cursor:'pointer', userSelect:'none' }},
-    icon(ico, { fontSize:'22px', color: on ? '#1976d2' : 'rgba(0,0,0,0.5)', fontVariationSettings: on ? "'FILL' 1" : "'FILL' 0" }), label);
-  return h('div', { style:{ display:'flex', alignItems:'center', gap:'12px 32px', flexWrap:'wrap', minHeight:'42px' }},
-    check(all ? 'check_box' : chosen ? 'indeterminate_check_box' : 'check_box_outline_blank', chosen > 0, 'All Feedback',
-      ()=>setState({ fb_display: Object.fromEntries(FB_DISPLAY.map(d => [d.key, !all])), fb_displayError:false })),
-    ...FB_DISPLAY.map(d => {
-      const on = !!s.fb_display[d.key];
-      return check(on ? 'check_box' : 'check_box_outline_blank', on, d.label,
-        ()=>setState(p=>({ fb_display: { ...p.fb_display, [d.key]: !on }, fb_displayError:false })));
-    })
-  );
-}
 
 function buildFeedbackFormTemplate(s) {
   const grid = (...rows) => h('div', { style:{ display:'grid', gridTemplateColumns:'160px minmax(0,640px)', gap:'18px 24px', alignItems:'center' }}, ...rows.flat(Infinity));
@@ -1787,10 +1766,10 @@ function buildFeedbackFormTemplate(s) {
     divider(),
     section('carousel', 'Product Carousel',
       grid(
-        label('Display Location*:'),
-        h('div', {},
-          fbDisplayChecks(s),
-          s.fb_displayError ? hbErrText('Choose at least one feedback type') : null),
+        label('Show After*:'),
+        h('div', { style:{ minHeight:'42px', display:'flex', flexDirection:'column', justifyContent:'center' }},
+          npRadios(s.fb_showAfter, FB_SHOW_AFTER, k=>setState({ fb_showAfter:k, fb_showAfterError:false })),
+          s.fb_showAfterError ? hbErrText('Choose when the carousel shows') : null),
         label('Heading*:'), input('fb_heading'),
         label('Carousel Strategy*:'),
         h('div', {}, fSelect(strategy, FB_STRATEGIES, e=>setState({ fb_strategy:e.target.value }), { height:'42px', width:'100%' }))
