@@ -434,6 +434,9 @@ function variantSeedFor(title) {
   if (title === NESTED_PRODUCTS) {
     return { variants: npVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
   }
+  if (title === FEEDBACK_FORM) {
+    return { variants: fbVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank(), ...fbDefaults(), fb_store: {} };
+  }
   return { variants: defaultVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
 }
 
@@ -528,6 +531,9 @@ const state = {
   // ── Floating Cart ──
   ...fcBlank(),
 
+  // ── Feedback Form ──
+  ...fbDefaults(),
+
   // page + targeting
   activePages: ['Product page'],
   pageConditions: {},
@@ -565,7 +571,8 @@ function syncHash(push) {
   else history.replaceState(null, '', target);
 }
 function editorStateFor(comp, variantId, rawTab) {
-  const tab = ['content','page','targeting'].includes(rawTab) ? rawTab : 'content';
+  // a link to a tab the component has disabled lands on content instead
+  const tab = ['content','page','targeting'].includes(rawTab) && !disabledTabTip(displayTitle(comp.name), rawTab) ? rawTab : 'content';
   return {
     view:'editor', section:comp.section, componentId:comp.id, componentTitle:displayTitle(comp.name),
     activePages:comp.pages, selectedVariantId:variantId, tab,
@@ -749,6 +756,18 @@ function addItemRow(count, max, label, onClick) {
   );
 }
 
+// ─── collapsible section ──────────────────────────────────────────────────────
+// A top-level group whose title expands and collapses it, chevron in front.
+function collapsibleSection(open, onToggle, title, ...body) {
+  return h('div', {},
+    h('div', { onClick:onToggle, style:{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer' }},
+      icon(open?'expand_more':'chevron_right', { fontSize:'22px', color:'rgba(0,0,0,0.6)' }),
+      h('div', { style:{ fontSize:'20px', fontWeight:'600' }}, title)
+    ),
+    open ? h('div', { style:{ marginTop:'18px' }}, ...body) : null
+  );
+}
+
 // ─── fieldgrid ────────────────────────────────────────────────────────────────
 function fieldGrid(...rows) {
   return h('div', { style:{ display:'grid', gridTemplateColumns:'160px 1fr', gap:'20px 24px', alignItems:'start', maxWidth:'1200px', marginTop:'24px' }},
@@ -767,6 +786,7 @@ const compsData = [
   [8,  'USP Messages',           ['Cart page','Product page'],                      0, 17],
   [11, 'Primary Carousel - PDP', ['Product page'],                                  0, 50],
   [14, 'Secondary Carousel - PDP',['Product page'],                                 0,  1],
+  [29, 'Feedback Form',          ['Feedback page'],                                 0,  1],
 ];
 
 const bannersData = [
@@ -1023,7 +1043,7 @@ function buildVariantPanel(s) {
       h('div', { class:'tb', onClick:()=>{ setState({view:'list'}); syncHash(true); }, style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
       // a brand-new variant opens on the component's first tab, so it is filled
       // in from the top rather than wherever the last variant was left
-      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank(), ...fcBlank() }; }); syncHash(true); },
+      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank(), ...fcBlank(), ...fbBlank(), ...fbSwitchVariant(prev, id) }; }); syncHash(true); },
         style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
         icon('add',{fontSize:'20px'}), 'ADD VARIANT'
       )
@@ -1047,7 +1067,7 @@ function buildVariantPanel(s) {
         const rowStyle = selected
           ? { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'14px 17px', fontSize:'16px', cursor:'pointer', border:'1.5px solid #1976d2', borderRadius:'8px', background:'#e9f3fc' }
           : { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'15px 18px', fontSize:'16px', cursor:'pointer', borderBottom: isLast?'none':'1px solid rgba(0,0,0,0.12)', background:'#fff', transition:'background 150ms' };
-        return h('div', { onClick:()=>{ setState({selectedVariantId:v.id}); syncHash(true); }, style: rowStyle },
+        return h('div', { onClick:()=>{ setState(p=>({ selectedVariantId:v.id, ...fbSwitchVariant(p, v.id) })); syncHash(true); }, style: rowStyle },
           h('span', {}, v.name || 'New Variant'),
           statusChip(v.pubStatus)
         );
@@ -1073,6 +1093,11 @@ const EDITOR_TABS_NESTED = [
 function editorTabs(s) {
   return s.componentTitle === NESTED_PRODUCTS ? EDITOR_TABS_NESTED : EDITOR_TABS_DEFAULT;
 }
+// component title → tabs it has no settings for, each with the tooltip that says why
+const DISABLED_TABS = {
+  'Feedback Form': { page:'No page targeting available', targeting:'No Targeting available' },
+};
+function disabledTabTip(title, key) { return (DISABLED_TABS[title] || {})[key]; }
 
 function buildFormCard(s) {
   const selV = s.variants.find(v=>v.id===s.selectedVariantId);
@@ -1109,9 +1134,12 @@ function buildFormCard(s) {
     ),
     // tabs
     h('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid rgba(0,0,0,0.12)', margin:'22px 0 0' }},
-      ...editorTabs(s).map(([key,label,ico]) =>
-        h('div', { onClick:()=>{ setState({tab:key}); syncHash(false); }, style:tabStyle(s.tab===key) }, icon(ico,{fontSize:'22px'}), label)
-      )
+      ...editorTabs(s).map(([key,label,ico]) => {
+        const tip = disabledTabTip(s.componentTitle, key);
+        return tip
+          ? h('div', { class:'hero-tip', 'data-tooltip':tip, 'aria-disabled':'true', style:tabStyle(false) + ';color:rgba(0,0,0,0.3);cursor:not-allowed' }, icon(ico,{fontSize:'22px'}), label)
+          : h('div', { onClick:()=>{ setState({tab:key}); syncHash(false); }, style:tabStyle(s.tab===key) }, icon(ico,{fontSize:'22px'}), label);
+      })
     ),
     h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto', padding:'32px 40px' }},
       s.tab==='content'  ? buildContentTab(s) :
@@ -1173,6 +1201,7 @@ function buildContentTab(s) {
   if (s.componentTitle === 'Shipping Promotion') return buildShippingPromotionTemplate(s);
   if (s.componentTitle === 'Smart Message') return buildSmartMessageTemplate(s);
   if (s.componentTitle === 'Floating Cart') return buildFloatingCartTemplate(s);
+  if (s.componentTitle === FEEDBACK_FORM) return buildFeedbackFormTemplate(s);
   // every component in the Banners category shares one template set
   if (s.section === 'banners') return buildBannerTemplates(s);
   const templates = [
@@ -1586,6 +1615,200 @@ function buildFloatingCartTemplate(s) {
   );
 }
 
+// ── FEEDBACK FORM ─────────────────────────────────────────────────────────────
+// The thank-you screen after a customer leaves feedback. Positive and Negative
+// each get their own message; the Product Carousel can follow either or both,
+// so where it shows is picked explicitly rather than defaulted.
+const FEEDBACK_FORM = 'Feedback Form';
+const FB_DISPLAY = [
+  { key:'positive', label:'Positive Feedback' },
+  { key:'negative', label:'Negative Feedback' },
+];
+const FB_STRATEGIES = ['You May Also Like', 'Recently Viewed', 'Category', 'Collection', 'Manual'];
+const FB_COLLECTIONS = ['Best Sellers', 'New Arrivals', 'Personalized', 'Birthstones', 'Mother’s Day'];
+const FB_MAX_ITEMS = 8;
+const FB_MOBILE_IMAGE_TIP = 'Optional. Mobile shows the desktop image when this is empty.';
+const FB_QUICK_ADD_TIP = 'Shows an add-to-cart button on each product card in the carousel.';
+
+// A new variant starts here: every field empty and every section collapsed.
+function fbBlank() {
+  return {
+    fb_open: { positive:false, negative:false, carousel:false },
+    fb_posTitle: '',
+    fb_posIntro: '',
+    fb_posCtaLink: '',
+    fb_posCtaText: '',
+    fb_posDesktopImage: '',
+    fb_posMobileImage: '',
+    fb_posImageAlt: '',
+    fb_promoHeader: '',
+    fb_promoDescription: '',
+    fb_promoCtaText: '',
+    fb_disclaimer: '',
+    fb_negTitle: '',
+    fb_negDisclaimer: '',
+    fb_display: { positive:false, negative:false },
+    fb_displayError: false,
+    fb_heading: '',
+    fb_strategy: 'You May Also Like',
+    fb_category: '',
+    fb_collection: '',
+    fb_items: [{ sku:'', ribbon:false }],
+    fb_catalogRibbon: false,
+    fb_quickAdd: false,
+  };
+}
+// The demo variant opens on Oak & Luna's live copy, with the carousel showing
+// after both feedback results.
+function fbDefaults() {
+  return { ...fbBlank(),
+    // an existing variant opens with everything showing; a new one starts collapsed
+    fb_open: { positive:true, negative:true, carousel:true },
+    fb_posTitle: 'Thank you For Your Great Feedback!',
+    fb_posIntro: 'We want you to share your experience with Oak & Luna with everyone.',
+    fb_posCtaLink: 'https://www.trustpilot.com/evaluate/theograce.com',
+    fb_posCtaText: 'Click here',
+    fb_posDesktopImage: 'https://cdn.oakandluna.com/digital-asset/banners/TRUST_PILOT_DT.jpg',
+    fb_posImageAlt: 'Enter to win - post your review',
+    fb_promoHeader: 'Share The Love',
+    fb_promoDescription: 'Enjoy 15% off your next order with code THANKYOU15',
+    fb_promoCtaText: 'Shop Now',
+    fb_disclaimer: '<ul><li>Full Name needed for Oak &amp; Luna to contact free necklace winners</li><li>Coupon is valid for 14 days</li><li>3 randomly selected winners will be chosen from all eligible reviews</li></ul>',
+    fb_negTitle: 'Thank you For Your Feedback!',
+    fb_negDisclaimer: 'Coupon is valid for 14 days',
+    fb_heading: 'This Week’s Best Sellers',
+    fb_strategy: 'Category',
+    fb_category: 'Necklaces',
+    fb_quickAdd: true,
+    fb_display: { positive:true, negative:true },
+  };
+}
+function fbVariants() {
+  return [{ id: 1, name: 'OAL thank you', status: 'active', pubStatus: 'Live' }];
+}
+
+// Feedback Form keeps each variant's form, so switching variants swaps the
+// content instead of carrying the open one across. The demo variant always
+// comes back expanded; a new variant comes back however it was left.
+function fbSnapshot(s) {
+  const snap = {};
+  for (const k of Object.keys(fbBlank())) snap[k] = s[k];
+  return JSON.parse(JSON.stringify(snap));
+}
+function fbSwitchVariant(p, toId) {
+  if (p.componentTitle !== FEEDBACK_FORM || toId === p.selectedVariantId) return {};
+  const store = { ...p.fb_store, [p.selectedVariantId]: fbSnapshot(p) };
+  const seeded = fbVariants().some(v => v.id === toId);
+  const form = store[toId] || (seeded ? fbDefaults() : fbBlank());
+  return { fb_store: store, ...form, fb_displayError: false,
+    ...(seeded ? { fb_open: fbDefaults().fb_open } : {}) };
+}
+
+function feedbackFormErrors(s) {
+  if (FB_DISPLAY.some(d => s.fb_display[d.key])) return null;
+  return { fb_displayError: true, fb_open: { ...s.fb_open, carousel:true } };
+}
+
+function fbToggle(key)        { setState(p=>({ fb_open: { ...p.fb_open, [key]: !p.fb_open[key] } })); }
+
+// One checkbox per feedback result, led by "All Feedback" as a select-all: it
+// ticks or clears both, and shows a dash while only one of them is picked.
+function fbDisplayChecks(s) {
+  const chosen = FB_DISPLAY.filter(d => s.fb_display[d.key]).length;
+  const all = chosen === FB_DISPLAY.length;
+  const check = (ico, on, label, onClick) => h('div', { onClick, style:{ display:'inline-flex', alignItems:'center', gap:'10px', fontSize:'15px', cursor:'pointer', userSelect:'none' }},
+    icon(ico, { fontSize:'22px', color: on ? '#1976d2' : 'rgba(0,0,0,0.5)', fontVariationSettings: on ? "'FILL' 1" : "'FILL' 0" }), label);
+  return h('div', { style:{ display:'flex', alignItems:'center', gap:'12px 32px', flexWrap:'wrap', minHeight:'42px' }},
+    check(all ? 'check_box' : chosen ? 'indeterminate_check_box' : 'check_box_outline_blank', chosen > 0, 'All Feedback',
+      ()=>setState({ fb_display: Object.fromEntries(FB_DISPLAY.map(d => [d.key, !all])), fb_displayError:false })),
+    ...FB_DISPLAY.map(d => {
+      const on = !!s.fb_display[d.key];
+      return check(on ? 'check_box' : 'check_box_outline_blank', on, d.label,
+        ()=>setState(p=>({ fb_display: { ...p.fb_display, [d.key]: !on }, fb_displayError:false })));
+    })
+  );
+}
+
+function buildFeedbackFormTemplate(s) {
+  const grid = (...rows) => h('div', { style:{ display:'grid', gridTemplateColumns:'160px minmax(0,640px)', gap:'18px 24px', alignItems:'center' }}, ...rows.flat(Infinity));
+  const label = (txt) => h('div', { style:{ fontSize:'15px' }}, txt);
+  const group = (txt) => h('div', { style:{ fontSize:'17px', fontWeight:'500', margin:'28px 0 20px' }}, txt);
+  const divider = () => h('div', { style:{ height:'1px', background:'rgba(0,0,0,0.12)', margin:'34px 0', maxWidth:'1200px' }});
+  const input = (key, opts={}) => fInput(s[key], e=>setState({ [key]:e.target.value }), { ...opts, style:{ height:'42px', ...opts.style }});
+  const tip = (txt) => h('span', { class:'hero-tip', 'data-tooltip':txt, tabindex:'0', 'aria-label':txt, style:{ display:'inline-flex', cursor:'help', color:'rgba(0,0,0,0.5)' }}, icon('info', { fontSize:'18px' }));
+  const tipLabel = (txt, tipTxt) => h('div', { style:{ display:'flex', alignItems:'center', gap:'6px', fontSize:'15px' }}, txt, tip(tipTxt));
+  const switchRow = (on, text, onFlip) => h('div', { onClick:onFlip, style:{ display:'inline-flex', alignItems:'center', gap:'14px', fontSize:'15px', cursor:'pointer', userSelect:'none', width:'fit-content' }}, toggle(on, null), text);
+  const select = (val, placeholder, options, onPick, err) =>
+    h('div', {}, fSelect(val || placeholder, [placeholder, ...options], e=>onPick(e.target.value === placeholder ? '' : e.target.value),
+      { height:'42px', width:'100%', borderColor: err ? HB_ERR : '' }));
+  const disclaimer = (key) => [
+    h('div', { style:{ fontSize:'15px', alignSelf:'start', paddingTop:'14px' }}, 'Disclaimer:'),
+    h('div', { style:{ border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', overflow:'hidden' }},
+      richToolbar(),
+      // typing writes straight to state without a re-render, so the caret stays put
+      richEditor(()=>state[key], html=>{ state[key] = html; }))
+  ];
+  // the body is indented by the chevron's width plus its gap, so it lines up
+  // with the section title rather than the arrow
+  const section = (key, title, ...body) => collapsibleSection(s.fb_open[key], ()=>fbToggle(key), title,
+    h('div', { style:{ paddingLeft:'30px' }}, ...body));
+  const strategy = s.fb_strategy;
+  const ribbonRow = () => [label('Catalog Ribbon:'), switchRow(s.fb_catalogRibbon, 'Show Ribbon', ()=>setState(p=>({ fb_catalogRibbon:!p.fb_catalogRibbon })))];
+
+  return h('div', { style:{ maxWidth:'1200px' }},
+    // subtitled the same way as Nested Products' "Section 1" / "Nested Button"
+    section('positive', 'Positive Feedback',
+      h('div', { style:{ paddingTop:'8px' }}, npSubTitle('Trustpilot Section')),
+      h('div', { style:{ marginTop:'20px' }}, grid(
+        label('Title*:'), input('fb_posTitle'),
+        label('Description:'), fTextarea(s.fb_posIntro, e=>setState({ fb_posIntro:e.target.value }), { style:{ minHeight:'64px' }}),
+        label('CTA Text:'), input('fb_posCtaText'),
+        label('CTA/Image Link:'), input('fb_posCtaLink', { color:'#1976d2', placeholder:'https://' }),
+        label('Desktop image:'), input('fb_posDesktopImage', { color:'#1976d2', placeholder:'https://cdn.example.com/digital-asset/…' }),
+        tipLabel('Mobile image:', FB_MOBILE_IMAGE_TIP), input('fb_posMobileImage', { color:'#1976d2', placeholder:'https://cdn.example.com/digital-asset/…' }),
+        label('Image alt text:'), input('fb_posImageAlt')
+      )),
+      h('div', { style:{ marginTop:'34px' }}, npSubTitle('Promotional Section')),
+      h('div', { style:{ marginTop:'20px' }}, grid(
+        label('Header:'), input('fb_promoHeader'),
+        h('div', { style:{ fontSize:'15px', alignSelf:'start', paddingTop:'12px' }}, 'Description:'),
+        fTextarea(s.fb_promoDescription, e=>setState({ fb_promoDescription:e.target.value }), { placeholder:'Include the promo code, e.g. Enjoy 15% off with code THANKYOU15', style:{ minHeight:'64px' }}),
+        label('CTA Text:'), input('fb_promoCtaText'),
+        disclaimer('fb_disclaimer')
+      ))
+    ),
+    divider(),
+    section('negative', 'Negative Feedback',
+      grid(
+        label('Title*:'), input('fb_negTitle'),
+        disclaimer('fb_negDisclaimer')
+      )
+    ),
+    divider(),
+    section('carousel', 'Product Carousel',
+      grid(
+        label('Display Location*:'),
+        h('div', {},
+          fbDisplayChecks(s),
+          s.fb_displayError ? hbErrText('Choose at least one feedback type') : null),
+        label('Heading*:'), input('fb_heading'),
+        label('Carousel Strategy*:'),
+        h('div', {}, fSelect(strategy, FB_STRATEGIES, e=>setState({ fb_strategy:e.target.value }), { height:'42px', width:'100%' }))
+      ),
+      // each strategy's fields keep their values, so switching back restores them
+      strategy === 'Category' ? [ group('Category Settings:'), grid(
+          label('Select category*:'), select(s.fb_category, 'Select category', SM_CATEGORIES, v=>setState({ fb_category:v })),
+          ...ribbonRow()) ] :
+      strategy === 'Collection' ? [ group('Collection Settings:'), grid(
+          label('Select collection*:'), select(s.fb_collection, 'Select collection', FB_COLLECTIONS, v=>setState({ fb_collection:v })),
+          ...ribbonRow()) ] :
+      strategy === 'Manual' ? [ group('Items:'), skuItemsTable(s, 'fb_items', FB_MAX_ITEMS) ] : null,
+      group('Settings:'),
+      grid(tipLabel('Enable quick add:', FB_QUICK_ADD_TIP), switchRow(s.fb_quickAdd, s.fb_quickAdd ? 'On' : 'Off', ()=>setState(p=>({ fb_quickAdd:!p.fb_quickAdd }))))
+    )
+  );
+}
+
 // ── HIGHLIGHTS BAR ────────────────────────────────────────────────────────────
 const HB_TYPOGRAPHY = ['Text 1','Text 2','Text 3','Text 4','Button'];
 
@@ -1769,6 +1992,7 @@ function activeValidator(s) {
 // component title → the validation that has to pass before SAVE confirms
 const COMPONENT_VALIDATORS = {
   'Shipping Promotion': shippingPromotionErrors,
+  'Feedback Form':      feedbackFormErrors,
 };
 
 // ── AI REVIEW SUMMARY template ────────────────────────────────────────────────
@@ -2917,14 +3141,7 @@ function npMove(si, from, to) {
 }
 
 function npSection(s, key, title, ...body) {
-  const open = s.np_open[key];
-  return h('div', {},
-    h('div', { onClick:()=>npToggleSection(key), style:{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer' }},
-      icon(open?'expand_more':'chevron_right', { fontSize:'22px', color:'rgba(0,0,0,0.6)' }),
-      h('div', { style:{ fontSize:'20px', fontWeight:'600' }}, title)
-    ),
-    open ? h('div', { style:{ marginTop:'18px' }}, ...body) : null
-  );
+  return collapsibleSection(s.np_open[key], ()=>npToggleSection(key), title, ...body);
 }
 
 // Every row keeps the same editable text field, warranty or not: for prototyping
