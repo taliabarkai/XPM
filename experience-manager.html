@@ -3532,19 +3532,14 @@ function buildNestedProductsTemplate(s) {
                 style:{ maxWidth:'1040px', borderColor: headingError ? '#e53935' : 'rgba(0,0,0,0.23)' }}),
               headingError
                 ? h('div', { style:{ fontSize:'13px', color:'#e53935', marginTop:'7px' }}, 'Heading is required for a Drawer section')
-                : drawer
-                  ? h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.6)', marginTop:'7px' }}, 'Shown as the button on the PDP and as the drawer title')
-                  : null
+                : null
             ),
             // Drawer only: an optional line under the heading on the PDP button
             ...(drawer ? [
               fLabel('Description:'),
-              h('div', {},
-                fInput(section.description || '', e=>setNpSection(si,{description:e.target.value}), {
-                  placeholder: 'e.g. Save 20% when you buy 2 or more charms',
-                  style:{ maxWidth:'1040px' }}),
-                h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.6)', marginTop:'7px' }}, 'Optional. Shown under the heading on the PDP button')
-              )
+              fInput(section.description || '', e=>setNpSection(si,{description:e.target.value}), {
+                placeholder: 'e.g. Save 20% when you buy 2 or more charms',
+                style:{ maxWidth:'1040px' }})
             ] : [])
           )
         );
