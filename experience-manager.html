@@ -2106,6 +2106,7 @@ function activeValidator(s) {
 const COMPONENT_VALIDATORS = {
   'Shipping Promotion': shippingPromotionErrors,
   'Feedback Form':      feedbackFormErrors,
+  'Nested Products':    nestedProductsErrors,
 };
 
 // ── AI REVIEW SUMMARY template ────────────────────────────────────────────────
@@ -3181,6 +3182,10 @@ document.addEventListener('keydown', e => {
 const NESTED_PRODUCTS = 'Nested Products';
 const NP_MAX_SKUS = 6;
 const NP_MAX_SECTIONS = 2;
+// A Drawer section is a multi-select grid behind one PDP button, so it holds
+// more products than the inline layouts, and fewer than two is not a choice.
+const NP_DRAWER_MIN_SKUS = 2;
+const NP_DRAWER_MAX_SKUS = 10;
 const NP_ICONS = ['Select','Plus','Chevron','Gift','Shield','Sparkle','Info','Tag'];
 const NP_CENTER = { display:'flex', justifyContent:'center' };
 
@@ -3199,6 +3204,11 @@ function npHasFloatingCart(s) {
   return s.np_sections.some(sec => sec.items.some(it => npIsWarranty(it) && it.floatingCart));
 }
 
+// Display Location still applies to a Drawer section's rows: the drawer itself
+// only holds the rows with PDP selected, and Cart keeps its own behaviour.
+function npIsDrawer(section) { return section.displayType === 'drawer'; }
+function npMaxSkus(section)  { return npIsDrawer(section) ? NP_DRAWER_MAX_SKUS : NP_MAX_SKUS; }
+
 function npNewItem()    { return { sku:'', pdp:false, cart:false, floatingCart:false, ribbon:false, video:false, vimeo:'' }; }
 function npNewSection() { return { heading:'', displayType:'carousel', open:true, items:[npNewItem()] }; }
 
@@ -3216,6 +3226,7 @@ function npBlank() {
     np_fcText: '',
     np_fcShowPhoto: true,
     np_cartHideInCart: false,
+    np_errors: null,
   };
 }
 // Nested Products names its variants after the promotion each one nests, so the
@@ -3241,13 +3252,14 @@ function npDefaults() {
 }
 
 // ── section + row mutations ───────────────────────────────────────────────────
+// any edit to a section clears the save errors, so they only reflect the last SAVE
 function npMapSection(si, fn) {
-  setState(p => ({ np_sections: p.np_sections.map((sec,j) => j===si ? fn(sec) : sec) }));
+  setState(p => ({ np_sections: p.np_sections.map((sec,j) => j===si ? fn(sec) : sec), np_errors:null }));
 }
 function setNpSection(si, patch)   { npMapSection(si, sec => ({ ...sec, ...patch })); }
 function npToggleCard(si)          { npMapSection(si, sec => ({ ...sec, open: !sec.open })); }
 function setNpItem(si, i, patch)   { npMapSection(si, sec => ({ ...sec, items: sec.items.map((x,j)=> j===i ? {...x, ...patch} : x) })); }
-function npAddItem(si)             { npMapSection(si, sec => sec.items.length >= NP_MAX_SKUS ? sec : ({ ...sec, items:[...sec.items, npNewItem()] })); }
+function npAddItem(si)             { npMapSection(si, sec => sec.items.length >= npMaxSkus(sec) ? sec : ({ ...sec, items:[...sec.items, npNewItem()] })); }
 // the open dropdown is addressed by position, so it cannot survive a removal
 function npRemoveItem(si, i)       { setState({ np_locOpen:null }); npMapSection(si, sec => ({ ...sec, items: sec.items.filter((_,j)=>j!==i) })); }
 function npToggleSection(key)      { setState(p=>({ np_open: { ...p.np_open, [key]: !p.np_open[key] } })); }
@@ -3272,6 +3284,26 @@ function npMove(si, from, to) {
     arr.splice(from < to ? to - 1 : to, 0, moved);
     return { ...sec, items: arr };
   });
+}
+
+// A Drawer section needs a heading (it is the PDP button) and at least two
+// SKUs with PDP selected, since only those appear in the drawer. Errors are
+// kept per section index.
+function nestedProductsErrors(s) {
+  const errors = {};
+  s.np_sections.forEach((sec, si) => {
+    if (!npIsDrawer(sec)) return;
+    const heading = !sec.heading.trim();
+    const tooFew = sec.items.filter(it => it.sku.trim() && it.pdp).length < NP_DRAWER_MIN_SKUS;
+    if (heading || tooFew) errors[si] = { heading, tooFew };
+  });
+  if (!Object.keys(errors).length) return null;
+  // open everything an error sits in, so SAVE always shows why it failed
+  return {
+    np_errors: errors,
+    np_open: { ...s.np_open, products:true, pdp:true },
+    np_sections: s.np_sections.map((sec, si) => errors[si] && errors[si].tooFew ? { ...sec, open:true } : sec),
+  };
 }
 
 function npSection(s, key, title, ...body) {
@@ -3389,7 +3421,9 @@ function npRow(s, si, item, i, showVimeo) {
 // The SKU cap is per section, so each table counts its own.
 function npProductsTable(s, si, section) {
   const n = section.items.length;
-  const full = n >= NP_MAX_SKUS;
+  const max = npMaxSkus(section);
+  const full = n >= max;
+  const tooFew = !!(s.np_errors && s.np_errors[si] && s.np_errors[si].tooFew);
   const showVimeo = section.items.some(it => it.video);
   return h('div', { style:{ border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px' }},
     h('div', { style:{ display:'grid', gridTemplateColumns:npGrid(showVimeo), gap:'20px', padding:'18px 20px', fontSize:'15px', color:'rgba(0,0,0,0.7)' }},
@@ -3402,13 +3436,15 @@ function npProductsTable(s, si, section) {
     n === 0 ? h('div', { style:{ padding:'22px 20px', borderTop:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', color:'rgba(0,0,0,0.5)' }}, 'No products yet.') : null,
     h('div', { style:{ display:'flex', alignItems:'center', padding:'20px', borderTop:'1px solid rgba(0,0,0,0.12)' }},
       h('div', { class: full ? '' : 'add-btn', onClick: full ? undefined : ()=>npAddItem(si),
-        title: full ? `Up to ${NP_MAX_SKUS} SKUs can be nested per section` : '',
+        title: full ? `Up to ${max} SKUs can be nested per section` : '',
         style: full
           ? { display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 20px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.35)', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'not-allowed' }
           : {}},
         icon('add',{fontSize:'18px'}), 'ADD ITEM'
       ),
-      h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'rgba(0,0,0,0.6)' }}, `${n} of ${NP_MAX_SKUS} SKUs added`)
+      tooFew ? h('div', { style:{ marginLeft:'16px', fontSize:'13px', color:'#e53935' }}, `A Drawer section needs at least ${NP_DRAWER_MIN_SKUS} SKUs with PDP selected`) : null,
+      h('div', { style:{ marginLeft:'auto', fontSize:'14px', color:'rgba(0,0,0,0.6)' }},
+        npIsDrawer(section) ? `${n} of ${max} SKUs added · min ${NP_DRAWER_MIN_SKUS}` : `${n} of ${max} SKUs added`)
     )
   );
 }
@@ -3463,7 +3499,7 @@ function npRadios(value, options, onPick) {
   );
 }
 
-const NP_PDP_DISPLAY_TYPES = [['carousel','Carousel'], ['stacked','Stacked'], ['grid','Grid']];
+const NP_PDP_DISPLAY_TYPES = [['carousel','Carousel'], ['stacked','Stacked'], ['grid','Grid'], ['drawer','Drawer']];
 
 const NP_SELECT_STYLE = { width:'100%', maxWidth:'1040px', height:'50px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', padding:'0 12px', fontSize:'15px', background:'#fff' };
 
@@ -3479,16 +3515,29 @@ function buildNestedProductsTemplate(s) {
     // the heading and display type belong to a section, so they are grouped and
     // titled the same way the section cards above are
     npSection(s, 'pdp', 'PDP Settings',
-      ...s.np_sections.map((section, si) =>
-        h('div', { style:{ marginTop: si ? '34px' : '0' }},
+      ...s.np_sections.map((section, si) => {
+        const drawer = npIsDrawer(section);
+        const headingError = !!(s.np_errors && s.np_errors[si] && s.np_errors[si].heading);
+        return h('div', { style:{ marginTop: si ? '34px' : '0' }},
           npSubTitle(npSectionTitle(si)),
           fieldGrid(
-            fLabel('Heading:'),
-            fInput(section.heading, e=>setNpSection(si,{heading:e.target.value}), { style:{ maxWidth:'1040px' }}),
+            // a Drawer has no inline products, so its heading is the PDP button
+            // and the drawer's title, and cannot be left empty
+            fLabel(drawer ? 'Heading*:' : 'Heading:'),
+            h('div', {},
+              fInput(section.heading, e=>setNpSection(si,{heading:e.target.value}), {
+                placeholder: 'e.g. Add More Charms',
+                style:{ maxWidth:'1040px', borderColor: headingError ? '#e53935' : 'rgba(0,0,0,0.23)' }}),
+              headingError
+                ? h('div', { style:{ fontSize:'13px', color:'#e53935', marginTop:'7px' }}, 'Heading is required for a Drawer section')
+                : drawer
+                  ? h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.6)', marginTop:'7px' }}, 'Shown as the button on the PDP and as the drawer title')
+                  : null
+            ),
             ...centerRow('Display Type:', npRadios(section.displayType, NP_PDP_DISPLAY_TYPES, k=>setNpSection(si,{displayType:k})))
           )
-        )
-      )
+        );
+      })
     ),
     divider(),
     npSection(s, 'cart', 'Cart Settings',
