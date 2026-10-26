@@ -3521,6 +3521,8 @@ function buildNestedProductsTemplate(s) {
         return h('div', { style:{ marginTop: si ? '34px' : '0' }},
           npSubTitle(npSectionTitle(si)),
           fieldGrid(
+            // the display type comes first: it decides what the fields below ask for
+            ...centerRow('Display Type:', npRadios(section.displayType, NP_PDP_DISPLAY_TYPES, k=>setNpSection(si,{displayType:k}))),
             // a Drawer has no inline products, so its heading is the PDP button
             // and the drawer's title, and cannot be left empty
             fLabel(drawer ? 'Heading*:' : 'Heading:'),
@@ -3534,7 +3536,6 @@ function buildNestedProductsTemplate(s) {
                   ? h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.6)', marginTop:'7px' }}, 'Shown as the button on the PDP and as the drawer title')
                   : null
             ),
-            ...centerRow('Display Type:', npRadios(section.displayType, NP_PDP_DISPLAY_TYPES, k=>setNpSection(si,{displayType:k}))),
             // Drawer only: an optional line under the heading on the PDP button
             ...(drawer ? [
               fLabel('Description:'),
