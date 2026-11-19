@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Experience Manager — TenenGroup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&family=Open+Sans:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
 <style>
   *, *::before, *::after { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; color: rgba(0,0,0,0.87); background: #f4f6f8; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; color: rgba(0,0,0,0.87); background: #F7F7F7; }
   a { color: #1976d2; text-decoration: none; }
   .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; }
   input, textarea { font-family: inherit; }
@@ -20,13 +20,13 @@
   [contenteditable]:focus { outline: none; }
   .row:hover { background: rgba(0,0,0,0.04); }
   /* color picker */
-  .hex-wrap { position: relative; display: inline-flex; align-items: center; border: 1px solid rgba(0,0,0,0.23); border-radius: 6px; overflow: visible; min-width: 160px; }
+  .hex-wrap { position: relative; display: inline-flex; align-items: center; border: 1px solid rgba(0,0,0,0.23); border-radius: 4px; overflow: visible; min-width: 160px; }
   .hex-label { position: absolute; top: -9px; left: 10px; font-size: 11px; color: rgba(0,0,0,0.55); background: #fff; padding: 0 3px; pointer-events: none; }
   .hex-swatch { width: 30px; height: 30px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); cursor: pointer; flex-shrink: 0; margin: 8px 10px 8px 10px; }
   .hex-input { border: none; outline: none; font-size: 14px; font-family: inherit; background: transparent; width: 90px; padding: 8px 10px 8px 0; color: rgba(0,0,0,0.87); }
   input[type=color] { position: absolute; opacity: 0; width: 30px; height: 30px; cursor: pointer; left: 10px; top: 8px; padding: 0; border: none; }
   /* select dropdown */
-  select { font-family: inherit; font-size: 15px; border: 1px solid rgba(0,0,0,0.23); border-radius: 6px; padding: 0 32px 0 14px; height: 46px; appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Cpath fill='rgba(0,0,0,0.54)' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 8px center; cursor: pointer; }
+  select { font-family: inherit; font-size: 15px; border: 1px solid rgba(0,0,0,0.23); border-radius: 4px; padding: 0 32px 0 14px; height: 40px; appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Cpath fill='rgba(0,0,0,0.54)' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 8px center; cursor: pointer; }
   select:focus { outline: 2px solid #1976d2; outline-offset: -1px; }
   /* accordion */
   .accordion { border: 1px solid rgba(0,0,0,0.18); border-radius: 8px; overflow: hidden; max-width: 1200px; }
@@ -87,6 +87,83 @@
     --field-h: 42px;
     --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
   }
+
+  /* ─── Production look ─────────────────────────────────────────────────────
+     Matches site-experience-manager (frontend/src): MUI 5 defaults plus its
+     theme (Paper radius 8 with a near-flat shadow, 13px buttons, 15px body)
+     and layout.css (#F7F7F7 canvas). */
+  .paper { background: #fff; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+  /* MUI Button, medium */
+  .mui-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 64px; height: 36.5px; padding: 6px 16px; border: 1px solid transparent; border-radius: 4px; font-family: inherit; font-size: 13px; font-weight: 500; line-height: 1.75; letter-spacing: .02857em; text-transform: uppercase; white-space: nowrap; cursor: pointer; user-select: none; transition: background-color 250ms, box-shadow 250ms; }
+  .mui-btn-contained { background: #1976d2; color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .mui-btn-contained:hover { background: #1565c0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .mui-btn-outlined { border-color: rgba(25,118,210,0.5); color: #1976d2; background: transparent; padding: 5px 15px; }
+  .mui-btn-outlined:hover { border-color: #1976d2; background: rgba(25,118,210,0.04); }
+  .mui-btn-cancel { border-color: #bdbdbd; color: #9e9e9e; background: transparent; padding: 5px 15px; }
+  .mui-btn-cancel:hover { border-color: #9e9e9e; background: rgba(0,0,0,0.04); }
+  .mui-btn-text { color: #1976d2; background: transparent; padding: 6px 8px; }
+  .mui-btn-text:hover { background: rgba(25,118,210,0.04); }
+  .mui-btn.no-caps { text-transform: none; }
+  .mui-btn.is-disabled, .mui-btn.is-disabled:hover { color: rgba(0,0,0,0.26); box-shadow: none; cursor: default; pointer-events: none; }
+  .mui-btn-contained.is-disabled { background: rgba(0,0,0,0.12); }
+  .mui-btn-cancel.is-disabled, .mui-btn-outlined.is-disabled { border-color: rgba(0,0,0,0.12); background: transparent; }
+
+  /* MUI IconButton, small (5px padding around a 24px icon) */
+  .mui-icon-btn { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: rgba(0,0,0,0.54); cursor: pointer; transition: background-color 150ms; }
+  .mui-icon-btn:hover, .mui-icon-btn.on { background: rgba(0,0,0,0.04); }
+  .mui-icon-btn.on { color: rgba(0,0,0,0.87); }
+
+  /* MUI Chip, small */
+  .mui-chip { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 16px; font-size: 13px; font-weight: 500; line-height: 1; white-space: nowrap; flex-shrink: 0; background: rgba(0,0,0,0.08); color: rgba(0,0,0,0.87); }
+  .mui-chip.clickable { cursor: pointer; }
+  .mui-chip.clickable:hover { background: rgba(0,0,0,0.12); }
+  .mui-chip.primary { background: #1976d2; color: #fff; }
+  .mui-chip.primary:hover { background: #1565c0; }
+
+  /* MUI ListItemButton row with a full-width divider under it */
+  .mui-list-row { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background-color 150ms; }
+  .mui-list-row:hover { background: rgba(0,0,0,0.04); }
+  .mui-list-row.selected { background: rgba(25,118,210,0.08); }
+  .mui-list-row.selected:hover { background: rgba(25,118,210,0.12); }
+  .mui-divider { height: 1px; background: rgba(0,0,0,0.12); flex-shrink: 0; }
+
+  /* MUI Menu */
+  .mui-menu { position: absolute; z-index: 40; min-width: 160px; padding: 8px 0; background: #fff; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  .mui-menu-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 36px; padding: 6px 16px; font-size: 15px; cursor: pointer; white-space: nowrap; }
+  .mui-menu-item:hover { background: rgba(0,0,0,0.04); }
+  .mui-menu-item.selected { background: rgba(25,118,210,0.08); }
+
+  /* outlined input, small: 40px tall, 4px radius, darkens on hover, blue 2px on focus */
+  .mui-input { height: 40px; border: 1px solid rgba(0,0,0,0.23); border-radius: 4px; padding: 0 14px; font-family: inherit; font-size: 15px; color: rgba(0,0,0,0.87); background: #fff; }
+  .mui-input:hover { border-color: rgba(0,0,0,0.87); }
+  .mui-input:focus { outline: none; border-color: #1976d2; box-shadow: inset 0 0 0 1px #1976d2; }
+  .mui-field { display: flex; align-items: center; height: 40px; border: 1px solid rgba(0,0,0,0.23); border-radius: 8px; background: #fff; }
+  .mui-field:hover { border-color: rgba(0,0,0,0.87); }
+  .mui-field:focus-within { border-color: #1976d2; box-shadow: inset 0 0 0 1px #1976d2; }
+  .mui-field input { border: none; outline: none; background: transparent; flex: 1; min-width: 0; height: 100%; font-family: inherit; font-size: 15px; color: rgba(0,0,0,0.87); }
+  .mui-field input::placeholder { color: rgba(0,0,0,0.42); }
+  .mui-field select { height: auto; border: none; padding: 0 22px 0 0; font-size: 14px; background-position: right 0 center; cursor: pointer; }
+  .mui-field select:focus { outline: none; }
+
+  /* MUI Table, medium */
+  .mui-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+  .mui-table th { position: sticky; top: 0; z-index: 2; background: #fff; text-align: left; font-weight: 500; line-height: 24px; padding: 16px; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12); white-space: nowrap; }
+  .mui-table td { padding: 16px; line-height: 1.43; border-bottom: 1px solid rgb(224,224,224); vertical-align: middle; }
+  .mui-table tbody tr { cursor: pointer; }
+  .mui-table tbody tr:hover { background: rgba(0,0,0,0.04); }
+  .mui-table .info-icon { visibility: hidden; }
+  .mui-table tbody tr:hover .info-icon { visibility: visible; }
+  .mui-table .row-reveal { visibility: hidden; }
+  .mui-table tbody tr:hover .row-reveal { visibility: visible; }
+  .mui-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 24px; min-height: 52px; padding: 0 16px; font-size: 14px; color: rgba(0,0,0,0.87); border-top: 1px solid rgba(0,0,0,0.12); }
+
+  /* the variant name shows its pencil only on hover */
+  .nav-item:hover { background: rgba(0,0,0,0.04); }
+  .icon-tooltip.side::after { top: 50%; left: calc(100% + 8px); transform: translateY(-50%); }
+  .mui-table.compact-head th { position: static; padding: 8px 16px; }
+  .variant-name .name-edit { visibility: hidden; }
+  .variant-name:hover .name-edit { visibility: visible; }
 
   /* ─── Hero Banner — content tab ─────────────────────────────────────────── */
   .hero-tab { display: flex; flex-direction: column; gap: var(--mui-spacing-3); max-width: 1180px; }
@@ -174,6 +251,7 @@
     opacity: 0; pointer-events: none; transition: opacity 120ms; z-index: 30;
   }
   .hero-tip.below::after { bottom: auto; top: calc(100% + 8px); }
+  .hero-tip.one-line::after { white-space: nowrap; max-width: none; }
   .hero-tip:hover::after { opacity: 1; }
   .hero-inline-toggle.is-disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -459,6 +537,15 @@ const state = {
   tab: 'content',
   template: 'default',
   statusOpen: false,
+  historyOpen: false,
+  editVersion: loadEditVersion(),
+  listSearch: '',
+  expSearch: '',
+  variantSearchMode: 'title',
+  variantFilter: 'All',
+  variantFilterOpen: false,
+  nameEditing: false,
+  variantPanelCollapsed: true,   // the variants panel always opens narrowed
 
   // ── Default template ──
   d_iconLink: '',
@@ -624,9 +711,6 @@ function applyHash() {
 function icon(name, style) {
   return h('span', { class: 'ms', style: style || {} }, name);
 }
-function tabStyle(active) {
-  return `display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 0;cursor:pointer;font-size:15px;font-weight:500;letter-spacing:.6px;color:${active?'#1976d2':'rgba(0,0,0,0.6)'};border-bottom:3px solid ${active?'#1976d2':'transparent'};transition:color 150ms`;
-}
 function ringStyle(active) {
   const bc = active ? '#1976d2' : 'rgba(0,0,0,0.45)';
   return { width:'22px', height:'22px', borderRadius:'50%', border:`2px solid ${bc}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:'0' };
@@ -639,32 +723,36 @@ function switchThumb(on) {
 }
 function execCmd(cmd, val) { try { document.execCommand(cmd, false, val||null); } catch(e) {} }
 
+// production chip colors (variantStatuses.css, statusSelector.css)
 const statusColors = {
-  Live:      { bg:'#e6f4ea',               fg:'#137333',         dot:'#137333' },
-  Draft:     { bg:'rgba(0,0,0,0.08)',       fg:'rgba(0,0,0,0.7)', dot:'rgba(0,0,0,0.5)' },
-  Scheduled: { bg:'rgba(2,136,209,0.14)',   fg:'#0277bd',         dot:'#0288d1' },
-  Archived:  { bg:'rgba(0,0,0,0.08)',       fg:'rgba(0,0,0,0.55)',dot:'rgba(0,0,0,0.4)' },
+  Live:      { bg:'#DCFCE7',          fg:'#016630',          dot:'#016630' },
+  Draft:     { bg:'rgba(0,0,0,0.08)', fg:'rgba(0,0,0,0.87)', dot:'rgba(0,0,0,0.5)' },
+  Scheduled: { bg:'#e1f5fe',          fg:'#01579b',          dot:'#0288D1' },
+  Archived:  { bg:'#757575',          fg:'#fff',             dot:'#757575' },
 };
+// a scheduled variant carries a small clock on its chip, as production does
 function statusChip(status) {
   const sc = statusColors[status] || statusColors.Draft;
-  return h('span', { style:{ display:'inline-flex', alignItems:'center', padding:'3px 12px', borderRadius:'100px', fontSize:'12px', fontWeight:'600', background:sc.bg, color:sc.fg, flexShrink:'0' }}, status);
+  return h('span', { class:'mui-chip', style:{ background:sc.bg, color:sc.fg }},
+    status === 'Scheduled' ? icon('schedule', { fontSize:'13px' }) : null, status);
 }
 
 // ─── shared form components ───────────────────────────────────────────────────
+// production form rows: a 15px (body1) label beside a small outlined field
 function fLabel(txt) {
-  return h('div', { style:{ fontSize:'16px', paddingTop:'12px' }}, txt);
+  return h('div', { style:{ fontSize:'15px', paddingTop:'9px' }}, txt);
 }
 function centerRow(txt, valueNode) {
   return [
-    h('div', { style:{ fontSize:'16px', alignSelf:'center' }}, txt),
+    h('div', { style:{ fontSize:'15px', alignSelf:'center' }}, txt),
     h('div', { style:{ alignSelf:'center' }}, valueNode),
   ];
 }
 function fInput(val, onInput, opts={}) {
-  return h('input', { value:val, onInput, placeholder:opts.placeholder||'', style:{ width:'100%', height:'50px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', padding:'0 14px', fontSize:'15px', color: opts.color||'inherit', ...opts.style }});
+  return h('input', { class:'mui-input', value:val, onInput, placeholder:opts.placeholder||'', style:{ width:'100%', color: opts.color||'rgba(0,0,0,0.87)', ...opts.style }});
 }
 function fTextarea(val, onInput, opts={}) {
-  const ta = h('textarea', { onInput, placeholder:opts.placeholder||'', style:{ width:'100%', minHeight:'90px', border:'1px solid rgba(0,0,0,0.23)', borderRadius:'6px', padding:'12px 14px', fontSize:'15px', lineHeight:'1.5', ...opts.style }});
+  const ta = h('textarea', { class:'mui-input', onInput, placeholder:opts.placeholder||'', style:{ width:'100%', height:'auto', minHeight:'90px', padding:'8.5px 14px', lineHeight:'1.5', ...opts.style }});
   ta.value = val;
   return ta;
 }
@@ -845,12 +933,6 @@ const experimentsData = [
   { name:'Warranty_MEN_test', code:'Warranty_test_MEN', component:'Nested Products', date:'Started on May 28, 2026', status:'Running' },
 ];
 
-const EXPERIMENT_STATUS_COLORS = {
-  'Editing':         { bg:'#fff3cd', fg:'#8a6d1a' },
-  'Stopped: Winner': { bg:'rgba(229,57,53,0.12)', fg:'#c62828' },
-  'Running':         { bg:'rgba(46,125,50,0.14)', fg:'#2e7d32' },
-};
-
 const EXPERIMENTS_TABS = [
   ['all', 'All Experiments', 4],
   ['running', 'Running', 2],
@@ -902,127 +984,187 @@ function render() {
   restoreFocus(root, focused);
 }
 
+// Production layout: the nav rail on the left and pages on a #F7F7F7 canvas
+// with 16px padding (28px on the left). Experiments runs full bleed, as it does
+// in production. The shell's top header is left out of the mockup.
+const RAIL_W = { collapsed: 69, expanded: 280 };
+const PAGE_H = 'calc(100vh - 32px)';
+
 function buildApp(s) {
-  return h('div', { style:{ display:'flex', height:'100vh', overflow:'hidden' }},
-    buildSecondary(s),
-    h('div', { class:'scroll', style:{ flex:'1', minWidth:'0', overflowY:'auto', padding:'24px' }},
-      s.view === 'list' ? buildListView(s) : s.view === 'experiments' ? buildExperimentsView(s) : buildEditorView(s)
+  return h('div', { style:{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }},
+    h('div', { style:{ flex:'1', minHeight:'0', display:'flex' }},
+      buildSecondary(s),
+      h('div', { class:'scroll', style:{ flex:'1', minWidth:'0', overflowY:'auto', padding: s.view === 'experiments' ? '0' : '16px 16px 16px 28px' }},
+        s.view === 'list' ? buildListView(s) : s.view === 'experiments' ? buildExperimentsView(s) : buildEditorView(s)
+      )
     ),
-    s.view === 'editor' ? hsModal(s) : null
+    s.view === 'editor' ? hsModal(s) : null,
+    s.view === 'editor' ? buildVersionSwitcher(s) : null
   );
 }
 
-// ─── SECONDARY PANEL ─────────────────────────────────────────────────────────
+// ─── NAV RAIL ────────────────────────────────────────────────────────────────
+// Collapsed by default, as production's navbar is: a white icon rail with the
+// site's brand block on top and Site Settings at the foot. Clicking the rail's
+// empty space, or the round chevron, expands it.
 function buildSecondary(s) {
   const collapsed = s.secondaryCollapsed;
-  const items = [['grid_view','Content','content'],['view_carousel','Banners','banners'],['sell','Promotions','promotions'],['science','Experiments','experiments']];
-  return h('div', { onClick:()=>setState(p=>({secondaryCollapsed:!p.secondaryCollapsed})),
-    style:{ width:collapsed?'68px':'236px', flexShrink:'0', background:'#fff', borderRight:'1px solid rgba(0,0,0,0.12)', display:'flex', flexDirection:'column', padding:`22px ${collapsed?10:14}px`, transition:'width 200ms', cursor:'pointer' }},
-    ...items.map(([ico,label,section]) => {
-      const active = section === 'experiments' ? s.view === 'experiments' : (section !== null && s.section === section);
-      return h('div', { class: collapsed?'panelitem icon-tooltip':'panelitem', 'data-tooltip': collapsed?label:undefined,
-        onClick: (e) => { e.stopPropagation(); if (section === 'experiments') setState({view:'experiments'}); else if (section) setState({view:'list', section}); syncHash(true); },
-        style:{ display:'flex', alignItems:'center', gap:collapsed?'0':'14px', justifyContent:collapsed?'center':'flex-start', padding:`11px ${collapsed?0:12}px`, borderRadius:'8px', cursor:'pointer', marginBottom:'2px', background:active?'rgba(25,118,210,0.1)':'transparent' }},
-        icon(ico,{fontSize:'22px', color:active?'#1976d2':'rgba(0,0,0,0.55)'}),
-        !collapsed ? h('span',{style:{fontSize:'15px',fontWeight:active?500:400,color:active?'#1976d2':'rgba(0,0,0,0.75)'}},label) : null
-      );
+  const toggle = e => { e.stopPropagation(); setState(p => ({ secondaryCollapsed: !p.secondaryCollapsed })); };
+  const items = [
+    ['dashboard_customize', 'Content',     'content'],
+    ['view_carousel',       'Banners',     'banners'],
+    ['cases',               'Promotions',  'promotions'],
+    ['science',             'Experiments', 'experiments'],
+  ];
+  const navItem = (ico, label, active, onClick) =>
+    h('div', { class: collapsed ? 'nav-item icon-tooltip side' : 'nav-item', 'data-tooltip': collapsed ? label : undefined, onClick,
+      style:{ display:'flex', alignItems:'center', gap:'8px', padding: collapsed ? '8px 0' : '8px 16px 8px 10px', justifyContent: collapsed ? 'center' : 'flex-start', borderRadius:'4px', cursor:'pointer' }},
+      h('span', { style:{ width:'40px', height:'40px', flexShrink:'0', display:'inline-flex', alignItems:'center', justifyContent:'center' }},
+        h('span', { style:{ width:'36px', height:'36px', borderRadius:'50%', display:'inline-flex', alignItems:'center', justifyContent:'center', background: active ? 'rgba(25,118,210,0.3)' : 'transparent', color:'rgba(0,0,0,0.6)' }},
+          icon(ico, { fontSize:'24px' }))),
+      collapsed ? null : h('span', { style:{ fontSize:'14px', lineHeight:'1.5', letterSpacing:'.15px', color:'rgba(0,0,0,0.87)', whiteSpace:'nowrap' }}, label)
+    );
+  return h('nav', { onClick: toggle,
+    style:{ width:`${collapsed ? RAIL_W.collapsed : RAIL_W.expanded}px`, flexShrink:'0', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.14), 0 2px 1px -1px rgba(0,0,0,.2)', display:'flex', flexDirection:'column', gap:'4px', padding:'4px', transition:'width 300ms', cursor:'pointer', position:'relative', zIndex:'10' }}, // above sticky table headers (z 2) so its tooltips aren't covered
+    h('div', { style:{ height:'56px', flexShrink:'0', borderRadius:'4px', background:'#1976d2', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: collapsed ? '13px' : '15px', fontWeight: collapsed ? '500' : '400', marginBottom:'8px', whiteSpace:'nowrap', overflow:'hidden' }},
+      collapsed ? 'OAL' : 'Oak & Luna'),
+    ...items.map(([ico, label, section]) => {
+      const active = section === 'experiments' ? s.view === 'experiments' : (s.view !== 'experiments' && s.section === section);
+      return navItem(ico, label, active, e => { e.stopPropagation(); if (section === 'experiments') setState({ view:'experiments' }); else setState({ view:'list', section }); syncHash(true); });
     }),
-    h('div', { class:'panelitem', onClick:(e)=>{ e.stopPropagation(); setState(p=>({secondaryCollapsed:!p.secondaryCollapsed})); }, style:{ marginTop:'auto', display:'flex', justifyContent:collapsed?'center':'flex-start', padding:'8px', cursor:'pointer', borderRadius:'8px' }},
-      h('span', { style:{ display:'inline-flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(0,0,0,0.12)', borderRadius:'50%', padding:'2px' }},
-        icon(collapsed?'chevron_right':'chevron_left',{fontSize:'22px',color:'rgba(0,0,0,0.4)'})
-      )
-    )
+    h('div', { style:{ marginTop:'auto' }},
+      navItem('settings', 'Site Settings', false, e => e.stopPropagation())),
+    h('div', { style:{ display:'flex', justifyContent:'center', padding:'8px 0 12px' }},
+      h('span', { onClick: toggle, style:{ width:'30px', height:'30px', borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.14), 0 2px 1px -1px rgba(0,0,0,.2)', display:'inline-flex', alignItems:'center', justifyContent:'center', color:'rgba(0,0,0,0.56)' }},
+        icon(collapsed ? 'chevron_right' : 'chevron_left', { fontSize:'20px' })))
+  );
+}
+
+// ─── SEARCH BOX ──────────────────────────────────────────────────────────────
+// production's dashboard search: a bordered 8px-radius box with a faint search
+// icon, ~40px tall; Escape or the × clears it
+function searchBox(value, onInput, placeholder, width) {
+  return h('div', { style:{ position:'relative', width, flexShrink:'0', display:'flex', alignItems:'center', border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px', background:'#fff' }},
+    h('span', { style:{ position:'absolute', left:'0', top:'0', bottom:'0', padding:'0 8px', display:'flex', alignItems:'center', color:'rgba(0,0,0,0.12)', pointerEvents:'none' }}, icon('search', { fontSize:'24px' })),
+    h('input', { value: value || '', placeholder, onInput: e => onInput(e.target.value), onKeydown: e => { if (e.key === 'Escape') onInput(''); },
+      style:{ width:'100%', height:'40px', border:'none', outline:'none', background:'transparent', padding:'8px 40px 8px calc(1em + 24px)', fontFamily:'inherit', fontSize:'15px', color:'rgba(0,0,0,0.87)' }}),
+    value ? h('span', { class:'mui-icon-btn', onClick: () => onInput(''), style:{ position:'absolute', right:'4px', width:'30px', height:'30px', color:'rgba(0,0,0,0.6)' }}, icon('close', { fontSize:'20px' })) : null
+  );
+}
+function paginationBar(count) {
+  return h('div', { class:'mui-pagination' },
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'8px' }}, 'Rows per page:',
+      h('span', { style:{ display:'inline-flex', alignItems:'center', gap:'2px', marginLeft:'8px' }}, '30', icon('arrow_drop_down', { fontSize:'24px', color:'rgba(0,0,0,0.54)' }))),
+    h('div', {}, count ? `1–${count} of ${count}` : '0–0 of 0'),
+    h('div', { style:{ display:'flex', gap:'4px' }},
+      h('span', { class:'mui-icon-btn', style:{ color:'rgba(0,0,0,0.26)', cursor:'default' }}, icon('chevron_left', { fontSize:'24px' })),
+      h('span', { class:'mui-icon-btn', style:{ color:'rgba(0,0,0,0.26)', cursor:'default' }}, icon('chevron_right', { fontSize:'24px' })))
   );
 }
 
 // ─── LIST VIEW ────────────────────────────────────────────────────────────────
+// Two cards, as in production: a title card with search and the supported-pages
+// filter, then the components table with a sticky header and pagination.
 function buildListView(s) {
   const { title, data } = LIST_SECTIONS[s.section] || LIST_SECTIONS.content;
-  return h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', minHeight:'calc(100vh - 48px)', display:'flex', flexDirection:'column' }},
-    h('div', { style:{ display:'flex', alignItems:'center', gap:'24px', padding:'26px 32px 20px' }},
-      h('h1', { style:{ margin:'0', fontSize:'30px', fontWeight:'400', flexShrink:'0' }}, title),
-      h('div', { style:{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'18px' }},
-        h('div', { style:{ display:'flex', alignItems:'center', gap:'10px', width:'420px', height:'44px', padding:'0 14px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.4)', cursor:'text' }},
-          icon('search',{fontSize:'22px'}), h('span',{style:{fontSize:'15px'}},'Search by name, id, or supported page')
-        ),
-        h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', height:'44px', padding:'0 14px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', fontSize:'15px', color:'rgba(0,0,0,0.6)', cursor:'pointer' }},
-          'Supported pages: ', h('span',{style:{color:'rgba(0,0,0,0.87)'}},'All pages'), icon('arrow_drop_down',{fontSize:'22px'})
-        ),
+  const q = (s.listSearch || '').trim().toLowerCase();
+  const rows = data.filter(([id, name, pages]) => !q || String(id).includes(q) || name.toLowerCase().includes(q) || pages.some(p => p.toLowerCase().includes(q)));
+  const open = (id, name, pages) => {
+    setState({ view:'editor', componentId:id, componentTitle:displayTitle(name), tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'', variantFilter:'All', variantFilterOpen:false, nameEditing:false, variantPanelCollapsed: true, activePages:pages, pageConditions:{}, ...variantSeedFor(displayTitle(name)) });
+    syncHash(true);
+  };
+  const chip = (txt, extra) => h('span', { class:'mui-chip', style:{ maxWidth:'140px', overflow:'hidden', textOverflow:'ellipsis', fontWeight:'400', ...extra }}, txt);
+  return h('div', { style:{ display:'flex', flexDirection:'column', gap:'8px', height:PAGE_H }},
+    h('div', { class:'paper', style:{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'24px', padding:'24px', flexShrink:'0' }},
+      h('h1', { style:{ margin:'0', fontSize:'24px', fontWeight:'400', lineHeight:'1.235' }}, title),
+      h('div', { style:{ display:'flex', alignItems:'center', gap:'16px' }},
+        searchBox(s.listSearch, v => setState({ listSearch:v }), 'Search by name, id, or supported page', '320px'),
+        h('div', { style:{ width:'260px', height:'40px', display:'flex', alignItems:'center', gap:'4px', padding:'0 8px 0 14px', border:'1px solid rgba(0,0,0,0.12)', borderRadius:'8px', fontSize:'14px', cursor:'pointer' }},
+          h('span', { style:{ color:'rgba(0,0,0,0.6)' }}, 'Supported pages:'),
+          h('span', { style:{ fontWeight:'500', flex:'1' }}, 'All pages'),
+          icon('arrow_drop_down', { fontSize:'24px', color:'rgba(0,0,0,0.54)' }))
       )
     ),
-    h('div', { style:{ display:'grid', gridTemplateColumns:'90px 1fr 1fr 220px 150px', gap:'16px', padding:'12px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', fontWeight:'500' }},
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'4px' }}, 'ID', icon('arrow_upward',{fontSize:'18px',color:'rgba(0,0,0,0.6)'})),
-      h('div',{},'Component Name'), h('div',{},'Supported Pages'), h('div',{},'Last Modified'), h('div',{},'Active Variants'),
-    ),
-    ...data.map(([id,name,pages,more,variants]) =>
-      h('div', { class:'row', onClick:()=>{ setState({ view:'editor', componentId:id, componentTitle:displayTitle(name), tab:'content', selectedVariantId:1, variantTab:'active', variantSearch:'', activePages:pages, pageConditions:{}, ...variantSeedFor(displayTitle(name)) }); syncHash(true); },
-        style:{ display:'grid', gridTemplateColumns:'90px 1fr 1fr 220px 150px', gap:'16px', padding:'20px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', cursor:'pointer', alignItems:'center', transition:'background 150ms' }},
-        h('div',{style:{color:'rgba(0,0,0,0.6)'}},id),
-        h('div',{},name),
-        h('div',{style:{display:'flex',flexWrap:'wrap',gap:'8px'}},
-          ...pages.map(p=>h('span',{style:{background:'rgba(0,0,0,0.07)',borderRadius:'9999px',padding:'5px 12px',fontSize:'13px',color:'rgba(0,0,0,0.75)',whiteSpace:'nowrap'}},p)),
-          more>0?h('span',{style:{background:'rgba(0,0,0,0.07)',borderRadius:'9999px',padding:'5px 12px',fontSize:'13px',color:'rgba(0,0,0,0.75)'}},'+'+more):null
+    h('div', { class:'paper', style:{ flex:'1', minHeight:'0', display:'flex', flexDirection:'column', overflow:'hidden' }},
+      h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflow:'auto' }},
+        h('table', { class:'mui-table' },
+          h('thead', {}, h('tr', {},
+            h('th', { style:{ width:'90px' }}, h('span', { style:{ display:'inline-flex', alignItems:'center', gap:'4px' }}, 'ID', icon('arrow_upward', { fontSize:'18px', color:'rgba(0,0,0,0.6)' }))),
+            h('th', {}, 'Component Name'), h('th', {}, 'Supported Pages'), h('th', {}, 'Last Modified'), h('th', {}, 'Active Variants'), h('th', { style:{ width:'48px' }}))),
+          h('tbody', {},
+            ...rows.map(([id, name, pages, more, variants]) =>
+              h('tr', { onClick: () => open(id, name, pages) },
+                h('td', { style:{ color:'#616161' }}, id),
+                h('td', {}, name),
+                h('td', {}, h('div', { style:{ display:'flex', flexWrap:'wrap', gap:'4px' }},
+                  ...pages.slice(0, 3).map(p => chip(p)),
+                  more > 0 ? chip(`+${more}`, { background:'rgba(0,0,0,0.04)' }) : null)),
+                h('td', { style:{ color:'rgba(0,0,0,0.6)' }}, '02/06/2026, 10:59'),
+                h('td', {}, variants),
+                h('td', {})
+              )
+            )
+          )
         ),
-        h('div',{style:{color:'rgba(0,0,0,0.7)'}},'02/06/2026 10:59'),
-        h('div',{},variants),
-      )
-    ),
-    h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'26px', padding:'16px 32px', fontSize:'14px', color:'rgba(0,0,0,0.6)', marginTop:'auto' }},
-      h('div',{style:{display:'flex',alignItems:'center',gap:'6px'}},'Rows per page:',h('span',{style:{color:'rgba(0,0,0,0.87)'}},'15'),icon('arrow_drop_down',{fontSize:'20px'})),
-      h('div',{},`1–${data.length} of ${data.length}`),
-      h('div',{style:{display:'flex',gap:'8px'}},icon('chevron_left',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}),icon('chevron_right',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}))
+        rows.length === 0 ? h('div', { style:{ padding:'24px 16px', fontSize:'14px', color:'rgba(0,0,0,0.6)' }}, 'No components match your search.') : null
+      ),
+      paginationBar(rows.length)
     )
   );
 }
 
 // ─── EXPERIMENTS VIEW ─────────────────────────────────────────────────────────
+// Full bleed: a flat bordered header band, then filter chips and the list in a
+// 12px bordered card with compact header cells.
+const EXPERIMENT_STATUS_COLORS = {
+  'Editing':  { bg:'#fff59d', fg:'#795548' },
+  'Running':  { bg:'#DCFCE7', fg:'#016630' },
+  'Stopped':  { bg:'#ffe2e2', fg:'#d32f2f' },
+};
+function experimentChip(status) {
+  const sc = EXPERIMENT_STATUS_COLORS[status.startsWith('Stopped') ? 'Stopped' : status] || {};
+  return h('span', { class:'mui-chip', style:{ background:sc.bg, color:sc.fg }}, status);
+}
 function buildExperimentsView(s) {
-  const rows = filterExperiments(s.experimentsTab);
-  return h('div', { style:{ display:'flex', flexDirection:'column', minHeight:'calc(100vh - 48px)' }},
-    h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', padding:'28px 32px' }},
-      h('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'24px' }},
-        h('div', {},
-          h('h1', { style:{ margin:'0 0 8px', fontSize:'32px', fontWeight:'400' }}, 'Experiments'),
-          h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.6)' }}, 'Test multiple variations of your content and find which one converts the best.')
-        ),
-        h('div', { style:{ display:'inline-flex', alignItems:'center', gap:'8px', padding:'12px 22px', borderRadius:'6px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'600', letterSpacing:'.3px', cursor:'pointer', flexShrink:'0', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
-          icon('add',{fontSize:'20px'}), 'Create New Test'
-        )
+  const q = (s.expSearch || '').trim().toLowerCase();
+  const rows = filterExperiments(s.experimentsTab).filter(r => !q || [r.name, r.code, r.component].some(t => t.toLowerCase().includes(q)));
+  return h('div', { style:{ minHeight:'100%', display:'flex', flexDirection:'column' }},
+    h('div', { style:{ background:'#fff', border:'1px solid rgba(0,0,0,0.12)', padding:'24px 48px', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'24px' }},
+      h('div', { style:{ flex:'1', minWidth:'0', display:'flex', flexDirection:'column', gap:'8px' }},
+        h('h1', { style:{ margin:'0', fontSize:'28px', fontWeight:'500', lineHeight:'1.235' }}, 'Experiments'),
+        h('div', { style:{ fontSize:'15px', marginBottom:'8px' }}, 'Test multiple variations of your content and find which one converts the best.'),
+        searchBox(s.expSearch, v => setState({ expSearch:v }), 'Search…', '100%')
       ),
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'10px', height:'46px', padding:'0 16px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.4)', margin:'22px 0 4px', cursor:'text' }},
-        icon('search',{fontSize:'22px'}), h('span',{style:{fontSize:'15px'}}, 'Search...')
-      )
+      h('div', { class:'mui-btn mui-btn-contained no-caps' }, icon('add', { fontSize:'16px' }), 'Create New Test')
     ),
-    h('div', { style:{ display:'flex', gap:'10px', flexWrap:'wrap', padding:'20px 4px' }},
-      ...EXPERIMENTS_TABS.map(([key,label,count]) => {
-        const active = s.experimentsTab === key;
-        return h('div', { onClick:()=>setState({experimentsTab:key}),
-          style:{ display:'inline-flex', alignItems:'center', gap:'8px', padding:'10px 18px', borderRadius:'9999px', fontSize:'14px', fontWeight:'600', cursor:'pointer', background:active?'#1976d2':'rgba(0,0,0,0.06)', color:active?'#fff':'rgba(0,0,0,0.7)' }},
-          `${label} (${count})`
-        );
-      })
-    ),
-    h('div', { style:{ background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', flex:'1', display:'flex', flexDirection:'column' }},
-      h('div', { style:{ display:'grid', gridTemplateColumns:'1fr 200px 220px 170px 50px', gap:'16px', padding:'16px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', fontWeight:'500' }},
-        h('div',{},'Test Name'), h('div',{},'Component'), h('div',{},'Date'), h('div',{},'Status'), h('div',{})
+    h('div', { style:{ padding:'24px 48px 48px', display:'flex', flexDirection:'column' }},
+      h('div', { style:{ display:'flex', gap:'8px', flexWrap:'wrap', marginBottom:'16px' }},
+        ...EXPERIMENTS_TABS.map(([key, label, count]) =>
+          h('span', { class:'mui-chip clickable' + (s.experimentsTab === key ? ' primary' : ''), onClick: () => setState({ experimentsTab:key }),
+            style:{ height:'32px', padding:'0 16px', fontFamily:"'Open Sans', sans-serif", fontWeight:'600' }}, `${label} (${count})`))
       ),
-      ...rows.map(row => {
-        const sc = EXPERIMENT_STATUS_COLORS[row.status] || { bg:'rgba(0,0,0,0.08)', fg:'rgba(0,0,0,0.6)' };
-        return h('div', { class:'row', style:{ display:'grid', gridTemplateColumns:'1fr 200px 220px 170px 50px', gap:'16px', padding:'18px 32px', borderBottom:'1px solid rgba(0,0,0,0.12)', fontSize:'15px', alignItems:'center', cursor:'pointer' }},
-          h('div', {},
-            h('div', { style:{ fontWeight:'600' }}, row.name),
-            h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.5)', marginTop:'2px' }}, row.code)
-          ),
-          h('div', { style:{ color:'rgba(0,0,0,0.75)' }}, row.component),
-          h('div', { style:{ color:'rgba(0,0,0,0.7)' }}, row.date),
-          h('div', {}, h('span', { style:{ display:'inline-flex', alignItems:'center', padding:'4px 14px', borderRadius:'100px', fontSize:'13px', fontWeight:'600', background:sc.bg, color:sc.fg }}, row.status)),
-          h('div', { class:'tb', style:{ width:'34px', height:'34px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.5)' }}, icon('more_vert',{fontSize:'20px'})),
-        );
-      }),
-      rows.length === 0 ? h('div', { style:{ padding:'40px 32px', fontSize:'14px', color:'rgba(0,0,0,0.5)' }}, 'No experiments in this filter.') : null,
-      h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'8px', padding:'16px 32px', fontSize:'14px', color:'rgba(0,0,0,0.6)', marginTop:'auto' }},
-        h('div',{}, `1–${rows.length} of ${rows.length}`),
-        h('div',{style:{display:'flex',gap:'8px'}},icon('chevron_left',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}),icon('chevron_right',{fontSize:'22px',color:'rgba(0,0,0,0.26)'}))
+      h('div', { style:{ background:'#fff', border:'1px solid rgba(0,0,0,0.12)', borderRadius:'12px', overflow:'hidden' }},
+        rows.length === 0
+          ? h('div', { style:{ display:'flex', flexDirection:'column', alignItems:'center', padding:'64px 16px', textAlign:'center' }},
+              h('div', { style:{ width:'64px', height:'64px', borderRadius:'50%', background:'#f5f5f5', color:'#bdbdbd', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'16px' }}, icon('bar_chart', { fontSize:'32px' })),
+              h('div', { style:{ fontSize:'17.6px', fontWeight:'500', marginBottom:'4px' }}, 'No tests found'),
+              h('div', { style:{ fontSize:'14px', color:'rgba(0,0,0,0.6)', maxWidth:'28rem' }}, 'Get started by creating your first experiment'))
+          : h('table', { class:'mui-table compact-head' },
+              h('thead', {}, h('tr', {}, h('th', {}, 'Test Name'), h('th', {}, 'Component'), h('th', {}, 'Date'), h('th', {}, 'Status'), h('th', { style:{ width:'50px' }}), h('th', { style:{ width:'50px' }}))),
+              h('tbody', {},
+                ...rows.map(r => h('tr', {},
+                  h('td', {},
+                    h('div', { style:{ fontWeight:'500', maxWidth:'50ch', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}, r.name),
+                    h('div', { style:{ fontSize:'11px', color:'rgba(0,0,0,0.6)', marginTop:'2px' }}, r.code)),
+                  h('td', { style:{ color:'rgba(0,0,0,0.6)' }}, r.component),
+                  h('td', { style:{ color:'rgba(0,0,0,0.6)' }}, r.date),
+                  h('td', {}, experimentChip(r.status)),
+                  h('td', { style:{ paddingRight:'0' }}, h('span', { class:'row-reveal', style:{ display:'inline-flex', color:'rgba(0,0,0,0.6)' }}, icon('open_in_new', { fontSize:'16px' }))),
+                  h('td', {}, h('span', { class:'mui-icon-btn', style:{ color:'rgba(0,0,0,0.6)' }}, icon('more_vert', { fontSize:'20px' })))
+                ))
+              )
+            ),
+        paginationBar(rows.length)
       )
     )
   );
@@ -1030,58 +1172,72 @@ function buildExperimentsView(s) {
 
 // ─── EDITOR VIEW ─────────────────────────────────────────────────────────────
 function buildEditorView(s) {
-  return h('div', {style:{display:'flex',gap:'24px',alignItems:'flex-start'}},
+  return h('div', { style:{ display:'flex', gap:'16px', height:PAGE_H }},
     buildVariantPanel(s),
     buildFormCard(s),
   );
 }
 
+// The variants panel, as production lays it out: Back and ADD VARIANT, the
+// component name, a search with a Title / Details picker, "Variants" with its
+// edit and filter buttons, Active / Archived chips, then the list.
+const VARIANT_FILTERS = ['All', 'Live', 'Draft', 'Scheduled'];
 function buildVariantPanel(s) {
-  const activeVs = s.variants.filter(v=>v.status==='active');
-  const archivedVs = s.variants.filter(v=>v.status==='archived');
+  const inTab = s.variants.filter(v => v.status === (s.variantTab === 'archived' ? 'archived' : 'active'));
   const q = s.variantSearch.trim().toLowerCase();
-  const shownVs = (s.variantTab==='active'?activeVs:archivedVs).filter(v=>!q||(v.name||'new variant').toLowerCase().includes(q));
-  function mkTab(key) {
-    const on = s.variantTab===key;
-    return { s:`display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:9999px;font-size:13px;font-weight:500;cursor:pointer;background:${on?'#1976d2':'rgba(0,0,0,0.08)'};color:${on?'#fff':'rgba(0,0,0,0.65)'}`,
-             b:`min-width:18px;height:18px;padding:0 5px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;background:${on?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.12)'};color:${on?'#fff':'rgba(0,0,0,0.6)'}` };
-  }
-  const at=mkTab('active'), art=mkTab('archived');
-  return h('div', { style:{ width:'360px', flexShrink:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 48px)', overflow:'hidden', padding:'20px 20px 26px', display:'flex', flexDirection:'column' }},
-    h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'6px' }},
-      h('div', { class:'tb', onClick:()=>{ setState({view:'list'}); syncHash(true); }, style:{ width:'42px', height:'42px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.7)' }}, icon('arrow_back')),
-      // a brand-new variant opens on the component's first tab, so it is filled
-      // in from the top rather than wherever the last variant was left
-      h('div', { onClick:()=>{ setState(prev=>{ const id=Math.max(0,...prev.variants.map(v=>v.id))+1; return { variants:[...prev.variants,{id,name:'',status:'active',pubStatus:'Draft'}], selectedVariantId:id, variantTab:'active', tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank(), ...fcBlank(), ...fbBlank(), ...fbSwitchVariant(prev, id), ...ciBlank() }; }); syncHash(true); },
-        style:{ marginLeft:'auto', display:'inline-flex', alignItems:'center', gap:'8px', padding:'11px 18px', borderRadius:'5px', background:'#1976d2', color:'#fff', fontSize:'14px', fontWeight:'500', letterSpacing:'.4px', cursor:'pointer', boxShadow:'0px 3px 1px -2px rgba(0,0,0,0.2),0px 1px 5px 0px rgba(0,0,0,0.12)' }},
-        icon('add',{fontSize:'20px'}), 'ADD VARIANT'
+  const f = s.variantFilter || 'All';
+  const byFilter = k => inTab.filter(v => k === 'All' || v.pubStatus === k);
+  const shownVs = byFilter(f).filter(v => !q || (v.name || 'new variant').toLowerCase().includes(q));
+  // a brand-new variant opens on the component's first tab, so it is filled
+  // in from the top rather than wherever the last variant was left
+  const addVariant = () => { setState(prev => { const id = Math.max(0, ...prev.variants.map(v => v.id)) + 1; return { variants:[...prev.variants, { id, name:'', status:'active', pubStatus:'Draft', isNew:true }], selectedVariantId:id, variantTab:'active', variantFilter:'All', nameEditing:false, tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank(), ...fcBlank(), ...fbBlank(), ...fbSwitchVariant(prev, id), ...ciBlank() }; }); syncHash(true); };
+  const details = s.variantSearchMode === 'details';
+  const searchSelect = h('select', { onInput: e => setState({ variantSearchMode: e.target.value }) },
+    ...[['title', 'Title'], ['details', 'Details']].map(([k, label]) => { const o = h('option', { value:k }, label); if ((s.variantSearchMode || 'title') === k) o.selected = true; return o; }));
+
+  // the round chevron on the panel's right edge narrows it from 500px to 360px
+  // (production narrows to 400px; the mockup goes a little narrower)
+  return h('div', { class:'paper', style:{ position:'relative', width: s.variantPanelCollapsed ? '360px' : '500px', transition:'width 0.3s ease', flexShrink:'0', height:'100%', padding:'16px', display:'flex', flexDirection:'column', gap:'16px' }},
+    h('span', { onClick: () => setState(p => ({ variantPanelCollapsed: !p.variantPanelCollapsed })), title: s.variantPanelCollapsed ? 'Expand' : 'Collapse',
+      style:{ position:'absolute', right:'-10px', top:'50%', transform:'translateY(-50%)', zIndex:'1', width:'20px', height:'20px', borderRadius:'50%', background:'#fff', border:'1px solid rgba(0,0,0,0.12)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.54)' }},
+      icon(s.variantPanelCollapsed ? 'chevron_right' : 'chevron_left', { fontSize:'16px' })),
+    h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between' }},
+      h('div', { class:'mui-btn mui-btn-text no-caps', onClick: () => { setState({ view:'list' }); syncHash(true); }, style:{ gap:'16px', color:'rgba(0,0,0,0.87)', fontSize:'15px', fontWeight:'400', letterSpacing:'normal' }},
+        icon('arrow_back', { fontSize:'20px', color:'rgba(0,0,0,0.6)' }), 'Back'),
+      h('div', { class:'mui-btn mui-btn-contained', onClick: addVariant }, icon('add', { fontSize:'16px' }), 'ADD VARIANT')
+    ),
+    h('h1', { style:{ margin:'0', fontSize:'24px', fontWeight:'400', lineHeight:'1.235' }}, s.componentTitle),
+    h('div', { class:'mui-field', style:{ padding:'0 4px 0 14px' }},
+      searchSelect,
+      h('span', { style:{ width:'1px', height:'20px', background:'rgba(0,0,0,0.12)', margin:'0 8px', flexShrink:'0' }}),
+      h('input', { value:s.variantSearch, onInput: e => setState({ variantSearch:e.target.value }), placeholder: details ? 'Search variant details' : 'Search variant name' }),
+      s.variantSearch ? h('span', { class:'mui-icon-btn', onClick: () => setState({ variantSearch:'' }), style:{ width:'28px', height:'28px' }}, icon('close', { fontSize:'14px' })) : null
+    ),
+    h('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between' }},
+      h('div', { style:{ display:'flex', alignItems:'center', gap:'4px', fontSize:'15px' }}, 'Variants',
+        h('span', { class:'hero-tip below', 'data-tooltip':'Variants are listed by priority. Shoppers see the first one whose targeting they match.', tabindex:'0', style:{ display:'inline-flex', color:'rgba(0,0,0,0.6)', cursor:'help' }}, icon('info', { fontSize:'14px' }))),
+      h('div', { style:{ position:'relative', display:'flex', alignItems:'center', gap:'4px' }},
+        h('span', { class:'mui-icon-btn icon-tooltip', 'data-tooltip':'Edit' }, icon('edit_note', { fontSize:'20px' })),
+        h('span', { class:'mui-icon-btn icon-tooltip', 'data-tooltip':'Filter Variants', onClick: () => setState(p => ({ variantFilterOpen: !p.variantFilterOpen })), style:{ position:'relative', color: f !== 'All' ? '#1976d2' : undefined }},
+          icon('filter_list', { fontSize:'20px' }),
+          f !== 'All' ? h('span', { style:{ position:'absolute', right:'6px', bottom:'6px', width:'6px', height:'6px', borderRadius:'50%', background:'#1976d2' }}) : null),
+        s.variantFilterOpen ? h('div', { class:'mui-menu', style:{ top:'38px', right:'0' }},
+          ...VARIANT_FILTERS.map(k => h('div', { class:'mui-menu-item' + (f === k ? ' selected' : ''), onClick: () => setState({ variantFilter:k, variantFilterOpen:false }) },
+            k, h('span', { style:{ fontSize:'14px', color:'rgba(0,0,0,0.6)' }}, `(${byFilter(k).length})`)))) : null
       )
     ),
-    h('h1', { style:{ margin:'6px 0 20px', fontSize:'24px', fontWeight:'400' }}, s.componentTitle),
-    h('div', { style:{ display:'flex', alignItems:'center', gap:'10px', height:'48px', padding:'0 14px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', color:'rgba(0,0,0,0.45)', marginBottom:'22px' }},
-      icon('search',{fontSize:'22px'}),
-      h('input', { value:s.variantSearch, onInput:e=>setState({variantSearch:e.target.value}), placeholder:'Search by variant name or SKU', style:{ border:'none', outline:'none', flex:'1', fontSize:'15px', background:'transparent', color:'rgba(0,0,0,0.87)' }})
+    h('div', { style:{ display:'flex', gap:'8px' }},
+      ...[['active', 'Active'], ['archived', 'Archived']].map(([k, label]) =>
+        h('span', { class:'mui-chip clickable' + (s.variantTab === k ? ' primary' : ''), onClick: () => setState({ variantTab:k }), style:{ fontWeight:'400' }}, label))
     ),
-    h('div', { style:{ display:'flex', alignItems:'center', marginBottom:'14px' }},
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'6px', fontSize:'15px', fontWeight:'600', color:'rgba(0,0,0,0.7)' }}, 'Variants', icon('info',{fontSize:'18px',color:'rgba(0,0,0,0.4)'})),
-    ),
-    h('div', { style:{ display:'flex', gap:'10px', marginBottom:'16px' }},
-      h('div', { onClick:()=>setState({variantTab:'active'}), style:at.s }, 'Active', h('span',{style:at.b},activeVs.length)),
-      h('div', { onClick:()=>setState({variantTab:'archived'}), style:art.s }, 'Archived', h('span',{style:art.b},archivedVs.length)),
-    ),
-    h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto' }},
-      ...shownVs.map((v, idx) => {
-        const selected = v.id === s.selectedVariantId;
-        const isLast = idx === shownVs.length - 1;
-        const rowStyle = selected
-          ? { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'14px 17px', fontSize:'16px', cursor:'pointer', border:'1.5px solid #1976d2', borderRadius:'8px', background:'#e9f3fc' }
-          : { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'15px 18px', fontSize:'16px', cursor:'pointer', borderBottom: isLast?'none':'1px solid rgba(0,0,0,0.12)', background:'#fff', transition:'background 150ms' };
-        return h('div', { onClick:()=>{ setState(p=>({ selectedVariantId:v.id, ...fbSwitchVariant(p, v.id) })); syncHash(true); }, style: rowStyle },
-          h('span', {}, v.name || 'New Variant'),
-          statusChip(v.pubStatus)
-        );
-      }),
-      shownVs.length===0 ? h('div',{style:{padding:'24px 8px',fontSize:'14px',color:'rgba(0,0,0,0.5)'}},'No variants found.') : null
+    h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto', padding:'8px 8px 8px 0' }},
+      ...shownVs.flatMap(v => [
+        h('div', { class:'mui-list-row' + (v.id === s.selectedVariantId ? ' selected' : ''), onClick: () => { setState(p => ({ selectedVariantId:v.id, nameEditing:false, ...fbSwitchVariant(p, v.id) })); syncHash(true); }},
+          h('div', { style:{ flex:'1', minWidth:'0', fontSize:'15px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}, v.name || 'New Variant'),
+          statusChip(v.pubStatus)),
+        h('div', { class:'mui-divider' })
+      ]),
+      shownVs.length === 0 ? h('div', { class:'mui-list-row', style:{ cursor:'default', fontSize:'15px', color:'rgba(0,0,0,0.6)' }}, s.variantTab === 'archived' ? 'No archived variants' : 'No data available') : null
     )
   );
 }
@@ -1108,67 +1264,217 @@ const DISABLED_TABS = {
 };
 function disabledTabTip(title, key) { return (DISABLED_TABS[title] || {})[key]; }
 
+// The variant name reads as a heading, as in production: a pencil appears on
+// hover, and the pencil or a double-click turns it into a field (Enter, Escape
+// or leaving the field finishes). A new variant shows a labelled field instead.
+function buildVariantNameField(s, v) {
+  if (!v) return h('div');
+  const setName = val => setState(prev => ({ variants: prev.variants.map(x => x.id === prev.selectedVariantId ? { ...x, name:val } : x) }));
+  if (v.isNew) {
+    return h('div', { style:{ display:'flex', alignItems:'center', gap:'16px', minWidth:'0' }},
+      h('div', { style:{ fontSize:'17.6px', fontWeight:'500', whiteSpace:'nowrap' }}, 'Variant Name:'),
+      h('input', { class:'mui-input', value:v.name, placeholder:'New Variant', onInput: e => setName(e.target.value), style:{ width:'280px' }}));
+  }
+  if (s.nameEditing) {
+    return h('div', { class:'mui-field', style:{ width:'360px', maxWidth:'100%', borderRadius:'4px', padding:'0 4px 0 14px' }},
+      h('input', { 'data-name-input':'1', value:v.name, onInput: e => setName(e.target.value),
+        onKeydown: e => { if (e.key === 'Enter' || e.key === 'Escape') setState({ nameEditing:false }); },
+        // every keystroke re-renders, which removes this field and fires blur;
+        // render() puts focus back on the new field straight away, so only a
+        // blur that leaves focus somewhere else ends editing
+        onBlur: () => setTimeout(() => { const a = document.activeElement; if (!(a && a.dataset && a.dataset.nameInput) && state.nameEditing) setState({ nameEditing:false }); }),
+        ref: el => setTimeout(() => { if (el.isConnected && document.activeElement !== el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }) }),
+      h('span', { class:'mui-icon-btn', onMousedown: e => e.preventDefault(), onClick: () => setName(''), style:{ width:'28px', height:'28px' }}, icon('close', { fontSize:'18px' })));
+  }
+  return h('div', { class:'variant-name', onDblclick: () => setState({ nameEditing:true }), style:{ display:'flex', alignItems:'center', gap:'4px', minWidth:'0', minHeight:'34px' }},
+    h('div', { style:{ fontSize:'17.6px', fontWeight:'500', lineHeight:'1.6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}, v.name || 'New Variant'),
+    h('span', { class:'mui-icon-btn name-edit', onClick: () => setState({ nameEditing:true }), style:{ width:'30px', height:'30px' }}, icon('edit', { fontSize:'20px' })));
+}
+
+// status chip with a soft shadow and the arrow on its right; opens a menu
+function buildStatusSelector(s, current) {
+  const sc = statusColors[current] || statusColors.Draft;
+  return h('div', { style:{ position:'relative' }},
+    h('div', { onClick: () => setState(p => ({ statusOpen: !p.statusOpen, historyOpen:false })),
+      style:{ display:'inline-flex', alignItems:'center', height:'26px', padding:'4px 4px 4px 10px', borderRadius:'16px', fontSize:'13px', fontWeight:'500', letterSpacing:'.16px', cursor:'pointer', background:sc.bg, color:sc.fg, boxShadow:'0px 4px 3px -2px rgba(0,0,0,0.2)' }},
+      current, icon('keyboard_arrow_down', { fontSize:'18px' })),
+    s.statusOpen ? h('div', { class:'mui-menu', style:{ top:'34px', right:'0', minWidth:'150px' }},
+      // only Live and Draft can be picked here; scheduling and archiving have
+      // their own toolbar actions
+      ...['Live', 'Draft'].map(k =>
+        h('div', { class:'mui-menu-item' + (k === current ? ' selected' : ''), onClick: () => setState(prev => ({ statusOpen:false, variants: prev.variants.map(v => v.id === prev.selectedVariantId ? { ...v, pubStatus:k } : v) })) }, k))) : null
+  );
+}
+
 function buildFormCard(s) {
-  const selV = s.variants.find(v=>v.id===s.selectedVariantId);
+  const selV = s.variants.find(v => v.id === s.selectedVariantId);
   const currentStatus = selV ? selV.pubStatus : 'Draft';
-  const sc = statusColors[currentStatus];
-  return h('div', { style:{ flex:'1', minWidth:'0', background:'#fff', borderRadius:'8px', boxShadow:'0px 2px 1px -1px rgba(0,0,0,0.06),0px 1px 3px 0px rgba(0,0,0,0.10)', height:'calc(100vh - 48px)', overflow:'hidden', display:'flex', flexDirection:'column' }},
-    // header
-    h('div', { style:{ padding:'22px 40px 0' }},
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'20px', flexWrap:'wrap', rowGap:'14px' }},
-        h('div', { style:{ display:'flex', alignItems:'center', gap:'16px', flex:'1', minWidth:'0' }},
-          h('div', { style:{ fontSize:'18px', fontWeight:'600', flexShrink:'0' }}, 'Variant Name:'),
-          h('input', { value:selV?selV.name:'', placeholder:'Variant name', onInput:e=>{ const v=e.target.value; setState(prev=>({ variants:prev.variants.map(x=>x.id===prev.selectedVariantId?{...x,name:v}:x) })); }, style:{ flex:'1', maxWidth:'440px', height:'48px', border:'1px solid rgba(0,0,0,0.18)', borderRadius:'6px', padding:'0 14px', fontSize:'16px' }})
+  const dirty = hasUnsavedChanges(s);
+  const actionIcon = (ico, label) => h('span', { class:'mui-icon-btn icon-tooltip', 'data-tooltip':label }, icon(ico, { fontSize:'24px', fontVariationSettings:"'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }));
+  return h('div', { class:'paper', style:{ flex:'1', minWidth:'500px', height:'100%', padding:'32px 32px 0', display:'flex', flexDirection:'column' }},
+    // header: name on the left; actions, a divider and the status chip on the right
+    h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'16px', marginBottom:'20px' }},
+      buildVariantNameField(s, selV),
+      selV && selV.isNew ? null : h('div', { style:{ display:'flex', alignItems:'center', gap:'16px', flexShrink:'0' }},
+        h('div', { style:{ display:'flex', alignItems:'center', gap:'8px' }},
+          ...[['library_add', 'Clone'], ['visibility', 'Preview'], ['edit_calendar', 'Schedule'], ['archive', 'Archive']].map(([ico, label]) => actionIcon(ico, label)),
+          // History sits with the other variant actions and opens its edit log
+          // below it (version D only; B and C show the editor in the footer)
+          s.editVersion !== 'D' ? null : h('div', { style:{ position:'relative' }},
+            // the "History" hover tooltip steps aside while its popover is open
+            h('span', { class: s.historyOpen ? 'mui-icon-btn on' : 'mui-icon-btn icon-tooltip', 'data-tooltip': s.historyOpen ? undefined : 'History', 'aria-label':'History', onClick: () => setState(p => ({ historyOpen: !p.historyOpen, statusOpen:false })) },
+              icon('history', { fontSize:'24px' })),
+            s.historyOpen ? buildHistoryPopover(selV) : null)
         ),
-        h('div', { style:{ flexShrink:'0', display:'flex', alignItems:'center', gap:'6px' }},
-          ...[['library_add','Clone'],['visibility','Preview'],['edit_calendar','Schedule'],['archive','Archive']].map(([ico,label]) =>
-            h('div', { class:'tb icon-tooltip', 'data-tooltip':label, style:{ width:'40px', height:'40px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(0,0,0,0.55)' }}, icon(ico,{fontSize:'23px', fontVariationSettings:"'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"}))
-          ),
-          h('div', { style:{ width:'1px', height:'26px', background:'rgba(0,0,0,0.15)', margin:'0 8px' }}),
-          h('div', { style:{ position:'relative' }},
-            h('div', { onClick:()=>setState(p=>({statusOpen:!p.statusOpen})),
-              style:{ display:'inline-flex', alignItems:'center', gap:'2px', padding:'5px 6px 5px 12px', borderRadius:'100px', fontSize:'13px', fontWeight:'600', cursor:'pointer', background:sc.bg, color:sc.fg }},
-              currentStatus, icon('arrow_drop_down',{fontSize:'17px'})
-            ),
-            s.statusOpen ? h('div', { style:{ position:'absolute', top:'44px', right:'0', background:'#fff', borderRadius:'6px', boxShadow:'0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14)', padding:'6px 0', minWidth:'150px', zIndex:'20' }},
-              ...['Live','Draft','Scheduled','Archived'].map(k =>
-                h('div', { class:'panelitem', onClick:()=>setState(prev=>({ statusOpen:false, variants: prev.variants.map(v=>v.id===prev.selectedVariantId?{...v,pubStatus:k}:v) })), style:{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', fontSize:'14px', cursor:'pointer' }},
-                  h('span',{style:{width:'9px',height:'9px',borderRadius:'50%',background:statusColors[k].dot,display:'block',flexShrink:'0'}}), k
-                )
-              )
-            ) : null
-          )
-        )
+        h('div', { style:{ width:'1px', height:'32px', background:'rgba(0,0,0,0.12)' }}),
+        buildStatusSelector(s, currentStatus)
       )
     ),
-    // tabs
-    h('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid rgba(0,0,0,0.12)', margin:'22px 0 0' }},
-      ...editorTabs(s).map(([key,label,ico]) => {
+    // tabs: centered, icon before the label, 2px underline, divider beneath
+    h('div', { style:{ display:'flex', justifyContent:'center', flexShrink:'0' }},
+      ...editorTabs(s).map(([key, label, ico]) => {
         const tip = disabledTabTip(s.componentTitle, key);
+        const on = !tip && s.tab === key;
+        const style = { flex:'1 1 0', maxWidth:'360px', minHeight:'72px', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', padding:'9px 16px', fontSize:'13px', fontWeight:'500', letterSpacing:'.02857em', textTransform:'uppercase', color: tip ? 'rgba(0,0,0,0.38)' : on ? '#1976d2' : 'rgba(0,0,0,0.6)', borderBottom:`2px solid ${on ? '#1976d2' : 'transparent'}`, cursor: tip ? 'not-allowed' : 'pointer', transition:'color 150ms' };
         return tip
-          ? h('div', { class:'hero-tip', 'data-tooltip':tip, 'aria-disabled':'true', style:tabStyle(false) + ';color:rgba(0,0,0,0.3);cursor:not-allowed' }, icon(ico,{fontSize:'22px'}), label)
-          : h('div', { onClick:()=>{ setState({tab:key}); syncHash(false); }, style:tabStyle(s.tab===key) }, icon(ico,{fontSize:'22px'}), label);
+          ? h('div', { class:'hero-tip', 'data-tooltip':tip, 'aria-disabled':'true', style }, icon(ico, { fontSize:'24px' }), label)
+          : h('div', { onClick: () => { setState({ tab:key }); syncHash(false); }, style }, icon(ico, { fontSize:'24px' }), label);
       })
     ),
-    h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto', padding:'32px 40px' }},
-      s.tab==='content'  ? buildContentTab(s) :
-      s.tab==='page'     ? buildPageTab(s) :
-                           buildTargetingTab(s)
+    h('div', { class:'mui-divider' }),
+    h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto', padding:'32px 40px 32px 0' }},
+      s.tab === 'content' ? buildContentTab(s) :
+      s.tab === 'page'    ? buildPageTab(s) :
+                            buildTargetingTab(s)
     ),
-    // footer
-    h('div', { style:{ borderTop:'1px solid rgba(0,0,0,0.12)', padding:'18px 40px', display:'flex', alignItems:'center' }},
-      h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:'rgba(0,0,0,0.55)' }}, icon('history',{fontSize:'20px'}), 'last updated at: 10 minutes ago'),
-      h('div', { style:{ marginLeft:'auto', display:'flex', gap:'14px' }},
-        // Hero Banner tracks unsaved changes, so both actions stay neutral until
+    // footer: pinned by the column layout, a top border, info left, actions right
+    h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'16px', padding:'16px 0', borderTop:'1px solid rgba(0,0,0,0.12)', flexShrink:'0' }},
+      buildFooterInfo(s, selV),
+      h('div', { style:{ display:'flex', gap:'16px', flexShrink:'0' }},
+        // Hero Banner tracks unsaved changes, so both actions stay disabled until
         // there is something to save; the other components save on demand
-        ...(hasUnsavedChanges(s) ? [
-          h('div', { class:'hero-btn hero-btn-ghost', onClick:()=>{ setState({view:'list'}); syncHash(true); }}, 'CANCEL'),
-          h('div', { class:'hero-btn hero-btn-primary', onClick:()=>saveVariant() }, s.saveLabel),
-        ] : [
-          h('div', { class:'hero-btn is-disabled' }, 'CANCEL'),
-          h('div', { class:'hero-btn is-disabled' }, s.saveLabel),
-        ])
+        h('div', { class:'mui-btn mui-btn-cancel' + (dirty ? '' : ' is-disabled'), onClick: () => { setState({ view:'list' }); syncHash(true); }}, 'CANCEL'),
+        h('div', { class:'mui-btn mui-btn-contained' + (dirty ? '' : ' is-disabled'), onClick: () => saveVariant() }, s.saveLabel)
       )
+    )
+  );
+}
+
+// ─── VARIANT HISTORY ─────────────────────────────────────────────────────────
+// The History button in the variant toolbar lists recent edits: who, what and
+// when. Placeholder entries until real edit data exists; every saved variant
+// shows them. A variant added in this session has no history until it is
+// saved, and then starts with its own "created" entry.
+const HISTORY_LOADED_AT = Date.now();
+const PLACEHOLDER_HISTORY = [
+  { by:'Dana Cohen', action:'changed status to Live', min:13 },
+  { by:'Noam Ruth',  action:'edited the content',     min:22 * 60 },
+  { by:'Dana Cohen', action:'created the variant',    min:4 * 1440 + 300 },
+].map(e => ({ ...e, at: HISTORY_LOADED_AT - e.min * 60000 }));
+
+function historyFor(v) {
+  if (!v || v.isNew) return [];
+  if (v.createdAt) return [{ by:'You', action:'created the variant', at:v.createdAt }];
+  return PLACEHOLDER_HISTORY;
+}
+// "13 minutes ago", "5 hours ago", "Yesterday, 16:02", "Nov 15, 2026, 10:11"
+function fmtHistoryTime(t) {
+  const d = new Date(t), now = new Date(), p = n => String(n).padStart(2, '0');
+  const min = Math.floor((now - d) / 60000), hm = `${p(d.getHours())}:${p(d.getMinutes())}`;
+  const dayDiff = Math.round((new Date(now.toDateString()) - new Date(d.toDateString())) / 86400000);
+  if (min < 1) return 'Just now';
+  if (min < 60) return `${min} minute${min === 1 ? '' : 's'} ago`;
+  if (dayDiff === 0) { const hr = Math.floor(min / 60); return `${hr} hour${hr === 1 ? '' : 's'} ago`; }
+  if (dayDiff === 1) return `Yesterday, ${hm}`;
+  return `${d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}, ${hm}`;
+}
+function initials(name) {
+  return name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+// Opens on click and closes once the pointer leaves it. It sits above the
+// toolbar's icon tooltips (z-index 30) so passing over Clone doesn't cover it.
+function buildHistoryPopover(v) {
+  const entries = historyFor(v);
+  return h('div', { onMouseLeave:()=>setState({ historyOpen:false }), style:{ position:'absolute', top:'46px', right:'0', width:'320px', background:'#fff', borderRadius:'6px', boxShadow:'0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14)', zIndex:'31', overflow:'hidden' }},
+    h('div', { style:{ padding:'14px 16px 10px', fontSize:'15px', fontWeight:'600', borderBottom:'1px solid rgba(0,0,0,0.08)' }}, 'History'),
+    entries.length === 0
+      ? h('div', { style:{ padding:'16px', fontSize:'14px', color:'rgba(0,0,0,0.55)', lineHeight:'1.5' }}, 'No edits yet. Edits show here once the variant is saved.')
+      : h('div', { style:{ padding:'4px 0' }},
+          ...entries.map(e =>
+            h('div', { style:{ display:'flex', alignItems:'flex-start', gap:'12px', padding:'10px 16px' }},
+              h('span', { style:{ width:'32px', height:'32px', borderRadius:'50%', background:'#e3f2fd', color:'#1565c0', fontSize:'13px', fontWeight:'600', display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:'0' }}, e.by === 'You' ? 'Y' : initials(e.by)),
+              h('div', { style:{ minWidth:'0' }},
+                h('div', { style:{ fontSize:'14px', color:'rgba(0,0,0,0.87)', lineHeight:'1.4' }}, h('span', { style:{ fontWeight:'600' }}, e.by), ` ${e.action}`),
+                h('div', { style:{ fontSize:'12px', color:'rgba(0,0,0,0.55)', marginTop:'2px' }}, fmtHistoryTime(e.at))
+              )
+            )
+          )
+        )
+  );
+}
+
+// ─── EDITOR-INFO VERSIONS ────────────────────────────────────────────────────
+// Three ways to show who last edited a variant, compared with the floating
+// switcher at the bottom of the editor:
+//   D: a History button in the toolbar; the footer keeps production's line
+//   B: one footer row, production's line | "edited by {name}, {time}"
+//   C: production's line plus a small avatar whose tooltip gives the details
+const EDIT_VERSIONS = [['D','History'], ['B','One row'], ['C','Avatar']];
+// runs while the initial state is built, before EDIT_VERSIONS exists, so the
+// allowed keys are spelled out here
+function loadEditVersion() {
+  try { const v = localStorage.getItem('xpm-edit-version'); if (['D','B','C'].includes(v)) return v; } catch (e) {}
+  return 'D';
+}
+function setEditVersion(v) {
+  try { localStorage.setItem('xpm-edit-version', v); } catch (e) {}
+  setState({ editVersion: v, historyOpen: false });
+}
+// "19/11/2026" and "14:32", as the back office writes dates
+const pad2 = n => String(n).padStart(2, '0');
+function fmtDayMonthYear(t) { const d = new Date(t); return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`; }
+function fmtHourMin(t) { const d = new Date(t); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+
+function buildFooterInfo(s, v) {
+  const muted = 'rgba(0,0,0,0.55)';
+  const production = h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:muted, whiteSpace:'nowrap' }}, icon('history',{fontSize:'20px'}), 'Last updated: 10 min ago');
+  const last = historyFor(v)[0];
+  if (s.editVersion === 'B' && last) {
+    return h('div', { style:{ display:'flex', alignItems:'center', gap:'16px', flexWrap:'wrap', rowGap:'6px' }},
+      production,
+      h('div', { style:{ width:'1px', height:'20px', background:'rgba(0,0,0,0.15)' }}),
+      h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:muted, whiteSpace:'nowrap' }},
+        icon('person',{fontSize:'20px'}), `Last edited by ${last.by}, ${fmtHistoryTime(last.at).replace(/^Just now$/, 'just now')}`)
+    );
+  }
+  if (s.editVersion === 'C' && last) {
+    // the same thin divider as version B keeps the avatar apart from the site line
+    return h('div', { style:{ display:'flex', alignItems:'center', gap:'16px' }},
+      production,
+      h('div', { style:{ width:'1px', height:'20px', background:'rgba(0,0,0,0.15)' }}),
+      h('span', { class:'hero-tip one-line', tabindex:'0', 'aria-label':`Last edited by ${last.by}`,
+        'data-tooltip':`Last edited by ${last.by} on ${fmtDayMonthYear(last.at)} at ${fmtHourMin(last.at)}`,
+        style:{ width:'26px', height:'26px', borderRadius:'50%', background:'#e3f2fd', color:'#1565c0', fontSize:'11px', fontWeight:'600', display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'default', flexShrink:'0' }},
+        last.by === 'You' ? 'Y' : initials(last.by))
+    );
+  }
+  return production;
+}
+
+// A floating switcher flips between the versions. It sits in the empty foot of
+// the variants panel (rail + page padding + panel padding from the left) so it
+// never covers the editor's footer.
+function buildVersionSwitcher(s) {
+  const left = (s.secondaryCollapsed ? RAIL_W.collapsed : RAIL_W.expanded) + 28 + 16;
+  return h('div', { style:{ position:'fixed', left:`${left}px`, bottom:'40px', zIndex:'50', display:'flex', flexDirection:'column', gap:'6px', padding:'8px 8px 6px', background:'#212121', borderRadius:'12px', boxShadow:'0 4px 16px rgba(0,0,0,0.25)' }},
+    h('span', { style:{ padding:'0 6px', fontSize:'11px', letterSpacing:'.3px', color:'rgba(255,255,255,0.6)' }}, 'Prototype: last edited by'),
+    h('div', { style:{ display:'flex', gap:'4px' }},
+      ...EDIT_VERSIONS.map(([k, label]) => {
+        const on = s.editVersion === k;
+        return h('div', { onClick:()=>setEditVersion(k), role:'button', 'aria-pressed':String(on),
+          style:{ padding:'5px 11px', borderRadius:'999px', fontSize:'12px', fontWeight:'500', cursor:'pointer', whiteSpace:'nowrap', background: on ? '#fff' : 'transparent', color: on ? 'rgba(0,0,0,0.87)' : 'rgba(255,255,255,0.85)' }},
+          `${k} · ${label}`);
+      })
     )
   );
 }
@@ -1186,7 +1492,9 @@ function saveVariant() {
   const validate = activeValidator(state);
   const errors = validate ? validate(state) : null;
   if (errors) { setState({ ...errors, tab:'content' }); return; }
-  setState({ saveLabel:'SAVED ✓', hero_dirty:false });
+  // the first save of a new variant starts its history with a "created" entry
+  setState(prev => ({ saveLabel:'SAVED ✓', hero_dirty:false,
+    variants: prev.variants.map(v => v.id === prev.selectedVariantId && v.isNew ? { ...v, isNew:false, createdAt:Date.now() } : v) }));
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(()=>setState({saveLabel:'SAVE'}), 1600);
 }
