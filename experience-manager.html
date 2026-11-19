@@ -162,6 +162,9 @@
   .nav-item:hover { background: rgba(0,0,0,0.04); }
   .icon-tooltip.side::after { top: 50%; left: calc(100% + 8px); transform: translateY(-50%); }
   .mui-table.compact-head th { position: static; padding: 8px 16px; }
+  @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: none; } }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .footer-activity:hover .footer-activity-text, .footer-activity:focus-visible .footer-activity-text { text-decoration: underline; }
   .variant-name .name-edit { visibility: hidden; }
   .variant-name:hover .name-edit { visibility: visible; }
 
@@ -539,6 +542,8 @@ const state = {
   statusOpen: false,
   historyOpen: false,
   editVersion: loadEditVersion(),
+  historyPanelOpen: false,   // version F's side panel
+  footerPopover: null,   // version E's card: null, 'last' or 'full'
   listSearch: '',
   expSearch: '',
   variantSearchMode: 'title',
@@ -999,7 +1004,8 @@ function buildApp(s) {
       )
     ),
     s.view === 'editor' ? hsModal(s) : null,
-    s.view === 'editor' ? buildVersionSwitcher(s) : null
+    s.view === 'editor' ? buildVersionSwitcher(s) : null,
+    s.view === 'editor' && s.historyPanelOpen ? buildHistoryPanel(s) : null
   );
 }
 
@@ -1366,15 +1372,20 @@ function buildFormCard(s) {
 // shows them. A variant added in this session has no history until it is
 // saved, and then starts with its own "created" entry.
 const HISTORY_LOADED_AT = Date.now();
+// `action` is the short wording the cards use; `verb` and `field` let the side
+// panel write "changed the Status".
 const PLACEHOLDER_HISTORY = [
-  { by:'Dana Cohen', action:'changed status to Live', min:13 },
-  { by:'Noam Ruth',  action:'edited the content',     min:22 * 60 },
-  { by:'Dana Cohen', action:'created the variant',    min:4 * 1440 + 300 },
+  { by:'Dana Cohen', action:'changed status to Live',  verb:'changed', field:'Status',    min:13 },
+  { by:'Noam Ruth',  action:'edited the content',      verb:'edited',  field:'Content',   min:22 * 60 },
+  { by:'Dana Cohen', action:'changed the targeting',   verb:'changed', field:'Targeting', min:2 * 1440 + 90 },
+  { by:'Noam Ruth',  action:'changed status to Draft', verb:'changed', field:'Status',    min:3 * 1440 + 200 },
+  { by:'Dana Cohen', action:'edited the content',      verb:'edited',  field:'Content',   min:3 * 1440 + 260 },
+  { by:'Dana Cohen', action:'created the variant',     verb:'created', field:'variant',   min:4 * 1440 + 300 },
 ].map(e => ({ ...e, at: HISTORY_LOADED_AT - e.min * 60000 }));
 
 function historyFor(v) {
   if (!v || v.isNew) return [];
-  if (v.createdAt) return [{ by:'You', action:'created the variant', at:v.createdAt }];
+  if (v.createdAt) return [{ by:'You', action:'created the variant', verb:'created', field:'variant', at:v.createdAt }];
   return PLACEHOLDER_HISTORY;
 }
 // "13 minutes ago", "5 hours ago", "Yesterday, 16:02", "Nov 15, 2026, 10:11"
@@ -1391,18 +1402,24 @@ function fmtHistoryTime(t) {
 function initials(name) {
   return name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
-// Opens on click and closes once the pointer leaves it. It sits above the
-// toolbar's icon tooltips (z-index 30) so passing over Clone doesn't cover it.
-function buildHistoryPopover(v) {
-  const entries = historyFor(v);
-  return h('div', { onMouseLeave:()=>setState({ historyOpen:false }), style:{ position:'absolute', top:'46px', right:'0', width:'320px', background:'#fff', borderRadius:'6px', boxShadow:'0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14)', zIndex:'31', overflow:'hidden' }},
+// The white history card shared by the toolbar's History button (D) and the
+// footer avatar (E): a "History" header over the list of recent edits.
+const POPOVER_CARD = { background:'#fff', borderRadius:'6px', boxShadow:'0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14)', overflow:'hidden' };
+function avatarBubble(name, size) {
+  return h('span', { style:{ width:`${size}px`, height:`${size}px`, borderRadius:'50%', background:'#e3f2fd', color:'#1565c0', fontSize: size >= 32 ? '13px' : '11px', fontWeight:'600', display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:'0' }},
+    name === 'You' ? 'Y' : initials(name));
+}
+function historyCardBody(entries) {
+  return [
     h('div', { style:{ padding:'14px 16px 10px', fontSize:'15px', fontWeight:'600', borderBottom:'1px solid rgba(0,0,0,0.08)' }}, 'History'),
     entries.length === 0
       ? h('div', { style:{ padding:'16px', fontSize:'14px', color:'rgba(0,0,0,0.55)', lineHeight:'1.5' }}, 'No edits yet. Edits show here once the variant is saved.')
-      : h('div', { style:{ padding:'4px 0' }},
+      // three and a half 56px rows show before the list scrolls; the cut-off
+      // row hints that there is more
+      : h('div', { class:'scroll', style:{ padding:'4px 0', maxHeight:'200px', overflowY:'auto' }},
           ...entries.map(e =>
-            h('div', { style:{ display:'flex', alignItems:'flex-start', gap:'12px', padding:'10px 16px' }},
-              h('span', { style:{ width:'32px', height:'32px', borderRadius:'50%', background:'#e3f2fd', color:'#1565c0', fontSize:'13px', fontWeight:'600', display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:'0' }}, e.by === 'You' ? 'Y' : initials(e.by)),
+            h('div', { style:{ display:'flex', alignItems:'flex-start', gap:'12px', padding:'10px 16px', minHeight:'56px', boxSizing:'border-box' }},
+              avatarBubble(e.by, 32),
               h('div', { style:{ minWidth:'0' }},
                 h('div', { style:{ fontSize:'14px', color:'rgba(0,0,0,0.87)', lineHeight:'1.4' }}, h('span', { style:{ fontWeight:'600' }}, e.by), ` ${e.action}`),
                 h('div', { style:{ fontSize:'12px', color:'rgba(0,0,0,0.55)', marginTop:'2px' }}, fmtHistoryTime(e.at))
@@ -1410,25 +1427,46 @@ function buildHistoryPopover(v) {
             )
           )
         )
-  );
+  ];
+}
+// D: opens on click and closes once the pointer leaves it. It sits above the
+// toolbar's icon tooltips (z-index 30) so passing over Clone doesn't cover it.
+function buildHistoryPopover(v) {
+  return h('div', { onMouseLeave:()=>setState({ historyOpen:false }), style:{ position:'absolute', top:'46px', right:'0', width:'320px', zIndex:'31', ...POPOVER_CARD }},
+    ...historyCardBody(historyFor(v)));
 }
 
 // ─── EDITOR-INFO VERSIONS ────────────────────────────────────────────────────
-// Three ways to show who last edited a variant, compared with the floating
-// switcher at the bottom of the editor:
+// Ways to show who last edited a variant, compared with the floating switcher
+// at the bottom of the editor:
 //   D: a History button in the toolbar; the footer keeps production's line
-//   B: one footer row, production's line | "edited by {name}, {time}"
+//   B: one footer row, production's line | "Last edited by {name}, {time}"
 //   C: production's line plus a small avatar whose tooltip gives the details
-const EDIT_VERSIONS = [['D','History'], ['B','One row'], ['C','Avatar']];
+//   E: C's footer avatar with D's white card: hovering shows the last edit,
+//      clicking (or "View full history") shows every edit in the card
+//   F: the footer's avatar + "Last edited {time} by {name}" is a link
+//      (underlined on hover) that opens the activity log in a side panel
+const EDIT_VERSIONS = [['D','History'], ['B','One row'], ['C','Avatar'], ['E','Combined'], ['F','Side panel']];
 // runs while the initial state is built, before EDIT_VERSIONS exists, so the
 // allowed keys are spelled out here
 function loadEditVersion() {
-  try { const v = localStorage.getItem('xpm-edit-version'); if (['D','B','C'].includes(v)) return v; } catch (e) {}
+  try { const v = localStorage.getItem('xpm-edit-version'); if (['D','B','C','E','F'].includes(v)) return v; } catch (e) {}
   return 'D';
 }
 function setEditVersion(v) {
   try { localStorage.setItem('xpm-edit-version', v); } catch (e) {}
-  setState({ editVersion: v, historyOpen: false });
+  setState({ editVersion: v, historyOpen: false, footerPopover: null, historyPanelOpen: false });
+}
+// "13 min ago", "2 hours ago", "3 days ago": the footer's short relative time,
+// matching "Published 10 min ago"
+function fmtShortAgo(t) {
+  const min = Math.floor((Date.now() - t) / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hour${hr === 1 ? '' : 's'} ago`;
+  const d = Math.floor(hr / 24);
+  return `${d} day${d === 1 ? '' : 's'} ago`;
 }
 // "19/11/2026" and "14:32", as the back office writes dates
 const pad2 = n => String(n).padStart(2, '0');
@@ -1437,7 +1475,7 @@ function fmtHourMin(t) { const d = new Date(t); return `${pad2(d.getHours())}:${
 
 function buildFooterInfo(s, v) {
   const muted = 'rgba(0,0,0,0.55)';
-  const production = h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:muted, whiteSpace:'nowrap' }}, icon('history',{fontSize:'20px'}), 'Last updated: 10 min ago');
+  const production = h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:muted, whiteSpace:'nowrap' }}, icon('history',{fontSize:'20px'}), 'Published 10 min ago');   // the site publish/update time, not the last edit
   const last = historyFor(v)[0];
   if (s.editVersion === 'B' && last) {
     return h('div', { style:{ display:'flex', alignItems:'center', gap:'16px', flexWrap:'wrap', rowGap:'6px' }},
@@ -1458,7 +1496,128 @@ function buildFooterInfo(s, v) {
         last.by === 'You' ? 'Y' : initials(last.by))
     );
   }
+  if ((s.editVersion === 'E' || s.editVersion === 'F') && last) {
+    // who last edited comes first, then the publish time after the divider
+    return h('div', { style:{ display:'flex', alignItems:'center', gap:'16px' }},
+      buildFooterAvatar(s, v, last),
+      h('div', { style:{ width:'1px', height:'20px', background:'rgba(0,0,0,0.15)' }}),
+      production
+    );
+  }
   return production;
+}
+
+// ─── E: footer avatar with a history card ────────────────────────────────────
+// Hovering the avatar (after a short pause) opens a card with just the last
+// edit and a "View full history" link; clicking the avatar or the link opens
+// the full list in the same card. The card closes a moment after the pointer
+// leaves the avatar and card, or on Escape.
+//
+// Hover is tracked from one document-level mousemove listener rather than
+// mouseenter/mouseleave: every state change re-renders the page, and a
+// re-rendered avatar never gets the leave event for the node it replaced.
+let _footerOpenTimer = null, _footerCloseTimer = null;
+document.addEventListener('mousemove', e => {
+  if (state.view !== 'editor' || state.editVersion !== 'E' || state.historyPanelOpen) return;
+  const inside = e.target.closest && e.target.closest('[data-footer-pop]');
+  if (inside) {
+    clearTimeout(_footerCloseTimer); _footerCloseTimer = null;
+    if (!state.footerPopover && !_footerOpenTimer) _footerOpenTimer = setTimeout(() => { _footerOpenTimer = null; setState({ footerPopover:'last' }); }, 150);
+  } else {
+    clearTimeout(_footerOpenTimer); _footerOpenTimer = null;
+    if (state.footerPopover && !_footerCloseTimer) _footerCloseTimer = setTimeout(() => { _footerCloseTimer = null; setState({ footerPopover:null }); }, 250);
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (state.historyPanelOpen) setState({ historyPanelOpen:false });
+  else if (state.footerPopover) setState({ footerPopover:null });
+});
+
+function buildFooterAvatar(s, v, last) {
+  // the avatar leads its phrase, the way the history icon leads the site line;
+  // the label says what the avatar means before anyone hovers
+  const phrase = () => [avatarBubble(last.by, 26), h('span', {}, 'Last edited by ', h('span', { class:'footer-editor-name', style:{ color:'rgba(0,0,0,0.87)' }}, last.by))];
+  const phraseStyle = { display:'inline-flex', alignItems:'center', gap:'8px', fontSize:'15px', color:'rgba(0,0,0,0.55)', whiteSpace:'nowrap', cursor:'pointer' };
+  // F: the avatar and "Last edited {time} by {name}" together are the link:
+  // hovering anywhere on them underlines the text and shows "View activity
+  // log"; clicking opens the panel. The edit time sits beside the publish time
+  // so unpublished changes are easy to spot.
+  if (s.editVersion === 'F') {
+    const openPanel = () => setState({ historyPanelOpen:true });
+    return h('span', { class:'footer-activity hero-tip one-line', 'data-tooltip':'View activity log', role:'button', tabindex:'0', 'aria-haspopup':'dialog',
+      'aria-label':`Last edited ${fmtShortAgo(last.at)} by ${last.by}. View activity log`,
+      onClick: openPanel, onKeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPanel(); } },
+      style: phraseStyle },
+      avatarBubble(last.by, 26),
+      h('span', { class:'footer-activity-text', style:{ textUnderlineOffset:'3px' }}, `Last edited ${fmtShortAgo(last.at)} by ${last.by}`));
+  }
+  const open = s.footerPopover;
+  // E: hovering shows the last edit in a card; clicking grows it into the full list
+  const showFull = () => { clearTimeout(_footerOpenTimer); _footerOpenTimer = null; setState({ footerPopover:'full' }); };
+  const lastCard = h('div', { style:{ width:'300px', ...POPOVER_CARD }},
+    h('div', { style:{ padding:'12px 16px 4px', fontSize:'12px', color:'rgba(0,0,0,0.6)' }}, 'Last edited by'),
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'12px', padding:'6px 16px 12px' }},
+      avatarBubble(last.by, 32),
+      h('div', { style:{ minWidth:'0' }},
+        h('div', { style:{ fontSize:'14px', fontWeight:'600', color:'rgba(0,0,0,0.87)' }}, last.by),
+        h('div', { style:{ fontSize:'12px', color:'rgba(0,0,0,0.6)', marginTop:'2px' }}, `${fmtDayMonthYear(last.at)} at ${fmtHourMin(last.at)}`))),
+    h('div', { class:'mui-divider' }),
+    h('div', { class:'panelitem', onClick: showFull, style:{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', fontSize:'14px', fontWeight:'500', color:'#1976d2', cursor:'pointer' }},
+      `View full history (${historyFor(v).length})`, icon('chevron_right', { fontSize:'20px' }))
+  );
+  const fullCard = h('div', { style:{ width:'320px', ...POPOVER_CARD }}, ...historyCardBody(historyFor(v)));
+  return h('div', { 'data-footer-pop':'1', style:{ position:'relative', display:'inline-flex' }},
+    h('span', { role:'button', tabindex:'0', 'aria-haspopup':'dialog', 'aria-expanded': String(!!open), 'aria-label':`Last edited by ${last.by}. Show edit history`,
+      onClick: showFull, onKeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showFull(); } },
+      class:'footer-editor', style: phraseStyle },
+      ...phrase()),
+    // the card sits above the avatar; its 8px bottom padding bridges the gap so
+    // moving the pointer up into it doesn't count as leaving
+    open ? h('div', { style:{ position:'absolute', left:'-16px', bottom:'100%', paddingBottom:'8px', zIndex:'31' }},
+      open === 'full' ? fullCard : lastCard) : null
+  );
+}
+
+// ─── F: history side panel ───────────────────────────────────────────────────
+// Slides in from the right over a dimmed page, like production's Live Version
+// panel: a header with the variant's name and a close button, then every edit,
+// newest first. Each edit reads like an activity feed: the person's avatar,
+// "{name} {verb} the {field}", and the date and time beneath. Closes on ×, a
+// click on the dimmed page, or Escape.
+function buildHistoryPanel(s) {
+  const v = s.variants.find(x => x.id === s.selectedVariantId);
+  const entries = historyFor(v);
+  const close = () => setState({ historyPanelOpen:false });
+  return h('div', {},
+    h('div', { onClick: close, style:{ position:'fixed', inset:'0', zIndex:'60', background:'rgba(0,0,0,0.5)', animation:'fade-in 200ms ease' }}),
+    h('aside', { role:'dialog', 'aria-label':'Activity log', style:{ position:'fixed', top:'0', right:'0', bottom:'0', width:'440px', maxWidth:'100vw', zIndex:'61', background:'#fff', boxShadow:'0 4px 16px rgba(0,0,0,0.1)', display:'flex', flexDirection:'column', animation:'slide-in-right 225ms cubic-bezier(0,0,0.2,1)' }},
+      h('div', { style:{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'16px', padding:'24px' }},
+        // "Activity Log" is the title; the variant's name sits beneath it in
+        // secondary text and shortens with an ellipsis when it's long
+        h('div', { style:{ minWidth:'0' }},
+          h('h2', { style:{ margin:'0', fontSize:'17.6px', fontWeight:'500', lineHeight:'1.6' }}, 'Activity Log'),
+          h('div', { style:{ fontSize:'14px', color:'rgba(0,0,0,0.6)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}, v ? (v.name || 'New Variant') : '')),
+        h('span', { class:'mui-icon-btn', role:'button', 'aria-label':'Close', onClick: close }, icon('close', { fontSize:'24px' }))),
+      h('div', { class:'mui-divider' }),
+      h('div', { class:'scroll', style:{ flex:'1', minHeight:'0', overflowY:'auto', padding:'8px 0 24px' }},
+        entries.length === 0
+          ? h('div', { style:{ padding:'16px 24px', fontSize:'14px', color:'rgba(0,0,0,0.6)' }}, 'No edits yet. Edits show here once the variant is saved.')
+          : null,
+        ...entries.map(e =>
+          h('div', { style:{ display:'flex', alignItems:'flex-start', gap:'16px', padding:'16px 24px' }},
+            avatarBubble(e.by, 36),
+            h('div', { style:{ flex:'1', minWidth:'0', display:'flex', flexDirection:'column', gap:'4px' }},
+              h('div', { style:{ fontSize:'15px', color:'rgba(0,0,0,0.87)', lineHeight:'1.4' }},
+                h('span', { style:{ fontWeight:'600' }}, e.by), ` ${e.verb || 'changed'} the `,
+                e.field === 'variant' ? 'variant' : h('span', { style:{ fontWeight:'600' }}, e.field || 'variant')),
+              h('div', { style:{ fontSize:'13px', color:'rgba(0,0,0,0.6)' }}, `${fmtDayMonthYear(e.at)} at ${fmtHourMin(e.at)}`)
+            )
+          )
+        )
+      )
+    )
+  );
 }
 
 // A floating switcher flips between the versions. It sits in the empty foot of
@@ -1466,9 +1625,9 @@ function buildFooterInfo(s, v) {
 // never covers the editor's footer.
 function buildVersionSwitcher(s) {
   const left = (s.secondaryCollapsed ? RAIL_W.collapsed : RAIL_W.expanded) + 28 + 16;
-  return h('div', { style:{ position:'fixed', left:`${left}px`, bottom:'40px', zIndex:'50', display:'flex', flexDirection:'column', gap:'6px', padding:'8px 8px 6px', background:'#212121', borderRadius:'12px', boxShadow:'0 4px 16px rgba(0,0,0,0.25)' }},
+  return h('div', { style:{ position:'fixed', left:`${left}px`, bottom:'40px', zIndex:'50', maxWidth:'328px', display:'flex', flexDirection:'column', gap:'6px', padding:'8px 8px 6px', background:'#212121', borderRadius:'12px', boxShadow:'0 4px 16px rgba(0,0,0,0.25)' }},
     h('span', { style:{ padding:'0 6px', fontSize:'11px', letterSpacing:'.3px', color:'rgba(255,255,255,0.6)' }}, 'Prototype: last edited by'),
-    h('div', { style:{ display:'flex', gap:'4px' }},
+    h('div', { style:{ display:'flex', flexWrap:'wrap', gap:'4px' }},
       ...EDIT_VERSIONS.map(([k, label]) => {
         const on = s.editVersion === k;
         return h('div', { onClick:()=>setEditVersion(k), role:'button', 'aria-pressed':String(on),
