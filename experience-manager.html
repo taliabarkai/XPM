@@ -461,6 +461,315 @@
     .hs-body { grid-template-columns: 1fr; overflow-y: auto; }
     .hs-side { overflow: visible; }
   }
+  /* ─── Hero Banner — production Billboard editor ────────────────────────────
+     Ported from site-experience-manager (develop): shared/editors/billboardEditor
+     and the siteSettings field kit. Class names match production so the two can
+     be diffed. Tokens production defines in layout.css but the prototype lacks
+     are scoped to .bb-scope so nothing else in the prototype shifts. */
+  .bb-scope {
+    --mui-palette-secondary-background: rgba(243, 243, 245, 1);
+    --mui-palette-background-light: #FAFAFA;
+    --mui-palette-error-main: #D4183D;
+    --mui-palette-error-background: #ffe2e2;
+    --mui-palette-warning-main: #ed6c02;
+    --mui-palette-warning-background: #fff3e0;
+    --mui-palette-info-warning: #5F2120;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+    color: var(--mui-palette-text-primary);
+  }
+  .bb-scope button, .bb-scope input, .bb-scope select, .bb-scope textarea { font-family: inherit; }
+  .bb-scope select { height: auto; }
+
+  /* summary card on the Content tab */
+  .billboard-summary { width: 100%; max-width: 1180px; box-sizing: border-box; }
+  .billboard-summary__head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--mui-spacing-1); }
+  .billboard-summary__title { font-size: 1.0625rem; font-weight: 600; }
+  .billboard-summary__none { margin: var(--mui-spacing-2) 0 0; font-size: 0.8125rem; color: var(--mui-palette-text-secondary); }
+  .billboard-summary__views { display: grid; grid-template-columns: 1fr; gap: var(--mui-spacing-2); margin-top: var(--mui-spacing-2); }
+  .billboard-summary__edit { margin-left: auto; flex-shrink: 0; padding: var(--mui-spacing-1) var(--mui-spacing-2-half); border: 1px solid var(--mui-palette-primary-main); border-radius: 10px; background: var(--mui-palette-primary-main); color: #fff; font-size: 0.875rem; font-weight: 500; cursor: pointer; }
+  .billboard-summary__edit:hover { background: #0a75e0; }
+
+  /* billboard view: a device "screen" with the slides laid out as the storefront would */
+  .billboard-view { display: flex; flex-direction: column; gap: 6px; }
+  .billboard-view__label { font-size: 0.6875rem; font-weight: 600; color: var(--mui-palette-text-secondary); display: inline-flex; align-items: center; gap: 3px; }
+  .billboard-view__screen { display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 16px; border-radius: 10px; background: #fff; border: 1px solid var(--mui-palette-border); overflow: hidden; }
+  .billboard-view__header { font-size: 15px; font-weight: 600; }
+  .billboard-view__row { display: grid; gap: 8px; align-items: start; }
+  .billboard-view__face { cursor: pointer; border-radius: 4px; outline: 2px solid transparent; outline-offset: 2px; }
+  .billboard-view__face:hover { outline-color: rgba(25,118,210,0.4); }
+  .bb-stage .billboard-view { width: 100%; max-width: 940px; }
+  .bb-stage .billboard-view--mobile { width: 330px; }
+
+  /* full-screen editor dialog */
+  .billboard-dialog { position: fixed; inset: 0; z-index: 1200; display: flex; flex-direction: column; background: #fff; }
+  .billboard-dialog__head { flex-shrink: 0; height: 52px; display: flex; align-items: center; gap: var(--mui-spacing-1-half); padding: 0 var(--mui-spacing-2); border-bottom: 1px solid var(--mui-palette-border); background: var(--mui-palette-background); }
+  .billboard-dialog__close { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--mui-palette-border); border-radius: 8px; background: var(--mui-palette-background); color: var(--mui-palette-text-secondary); font-size: 0.9375rem; cursor: pointer; }
+  .billboard-dialog__close:hover { background: var(--mui-palette-background-light); color: var(--mui-palette-text-primary); }
+  .billboard-dialog__title { font-size: 0.875rem; font-weight: 600; }
+  .billboard-dialog__title span { font-weight: 400; color: var(--mui-palette-text-secondary); }
+  .billboard-dialog__actions { display: flex; align-items: center; gap: var(--mui-spacing-1); margin-left: auto; }
+  .billboard-dialog__button { display: inline-flex; align-items: center; gap: var(--mui-spacing-xs); padding: var(--mui-spacing-1) var(--mui-spacing-2); border: 1px solid var(--mui-palette-border); border-radius: 8px; background: var(--mui-palette-background); color: var(--mui-palette-text-primary); font-size: 0.78125rem; cursor: pointer; }
+  .billboard-dialog__button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .billboard-dialog__button--primary { border-color: var(--mui-palette-primary-main); background: var(--mui-palette-primary-main); color: #fff; font-weight: 500; }
+  .billboard-dialog__button--primary:hover:not(:disabled) { background: #0a75e0; }
+
+  /* editor shell */
+  .bb-editor { display: flex; flex: 1; min-height: 0; }
+  .bb-stage { display: flex; flex: 1 1 0; min-width: 320px; flex-direction: column; background: #2a2d34; }
+  .bb-stage__bar { position: relative; flex-shrink: 0; display: flex; align-items: center; gap: var(--mui-spacing-1); padding: var(--mui-spacing-1-half) var(--mui-spacing-2); }
+  .bb-stage__devices { display: inline-flex; margin-left: auto; padding: 2px; border-radius: 8px; background: rgba(0, 0, 0, 0.28); }
+  .bb-stage__devices button { position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: var(--mui-spacing-xs); min-width: 68px; padding: var(--mui-spacing-1) var(--mui-spacing-1-half); border: 0; border-radius: 6px; background: transparent; color: #9aa0ab; font-size: 0.6875rem; cursor: pointer; }
+  .bb-stage__devices button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.15); color: #fff; }
+  .bb-stage__deviceWidth { font-size: 0.5625rem; font-style: normal; font-variant-numeric: tabular-nums; opacity: 0.6; }
+  .bb-stage__devices button[aria-pressed="true"] .bb-stage__deviceWidth { opacity: 0.85; }
+  .bb-stage__deviceGlyph { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+  .bb-stage__view { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 var(--mui-spacing-3); overflow: hidden; }
+  .bb-stage__hint { flex-shrink: 0; margin: 0; padding: var(--mui-spacing-1-half) var(--mui-spacing-2) var(--mui-spacing-2); text-align: center; font-size: 0.6875rem; color: #8b909b; }
+
+  /* rail */
+  .bb-rail { flex: 0 1 268px; min-width: 188px; overflow-y: auto; padding: var(--mui-spacing-2) var(--mui-spacing-1); background: var(--mui-palette-secondary-background); border-right: 1px solid var(--mui-palette-border); }
+  .bb-rail__section + .bb-rail__section { margin-top: var(--mui-spacing-3); padding-top: var(--mui-spacing-2); border-top: 1px solid var(--mui-palette-border); }
+  .bb-rail__head { display: flex; align-items: center; justify-content: space-between; padding: 0 var(--mui-spacing-1) var(--mui-spacing-1-half); }
+  .bb-rail__legend { font-size: 0.75rem; font-weight: 600; }
+  .bb-rail__add { padding: var(--mui-spacing-xxs) var(--mui-spacing-xs); border: 0; border-radius: 5px; background: transparent; color: var(--mui-palette-primary-main); font-size: 0.75rem; cursor: pointer; }
+  .bb-rail__add:hover { background: rgba(10, 132, 255, 0.12); }
+  .bb-rail__item { display: flex; align-items: center; gap: var(--mui-spacing-1-half); width: 100%; box-sizing: border-box; min-height: 40px; margin: var(--mui-spacing-xs) 0; padding: var(--mui-spacing-1); border: 0; border-radius: 8px; background: transparent; color: inherit; font-size: inherit; text-align: left; cursor: pointer; }
+  .bb-rail__item:hover { background: rgba(0, 0, 0, 0.04); }
+  .bb-rail__item[aria-current="true"], .bb-rail__item[aria-current="true"]:hover { background: rgba(10, 132, 255, 0.12); }
+  .bb-rail__item[aria-current="true"] .bb-rail__label { color: var(--mui-palette-primary-main); font-weight: 500; }
+  .bb-rail__slide { min-height: 66px; padding: var(--mui-spacing-xs) var(--mui-spacing-1); cursor: grab; touch-action: none; user-select: none; background: var(--mui-palette-secondary-background); }
+  .bb-rail__slide.is-dragging { opacity: 0.6; cursor: grabbing; position: relative; z-index: 2; box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+  .bb-rail__glyph { flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 6px; color: #fff; font-size: 0.75rem; }
+  .bb-rail__glyph--header { background: #5e6ad2; }
+  .bb-rail__glyph--display { background: #e08a3c; }
+  .bb-rail__thumb { position: relative; flex-shrink: 0; width: 84px; height: 54px; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 5px; overflow: hidden; background-color: var(--mui-palette-background); background-size: cover; background-position: center; }
+  .bb-rail__index { position: absolute; top: 2px; left: 2px; padding: 0 3px; border-radius: 3px; background: rgba(0, 0, 0, 0.5); color: #fff; font-size: 0.5rem; font-style: normal; }
+  .bb-rail__copy { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 3px 5px; }
+  .bb-rail__copyText { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; font-size: 6.5px; font-weight: 600; line-height: 1.25; text-align: center; }
+  .bb-rail__label { min-width: 0; font-size: 0.8125rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .bb-rail__grab { flex-shrink: 0; width: 10px; height: 16px; margin-left: auto; fill: var(--mui-palette-text-secondary); opacity: 0.5; }
+  .bb-rail__slide:hover .bb-rail__grab, .bb-rail__slide[aria-current="true"] .bb-rail__grab { opacity: 1; }
+  .bb-rail__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .bb-rail__summary { font-size: 0.6875rem; line-height: 1.35; color: var(--mui-palette-text-secondary); }
+  .bb-rail__summary--clip { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .bb-rail__edit { flex-shrink: 0; margin-left: auto; font-size: 15px !important; color: var(--mui-palette-text-secondary); }
+
+  /* stage sheet */
+  .bb-sheet { position: relative; display: flex; flex-direction: column; container-type: inline-size; width: 100%; background: var(--mui-palette-background); }
+  .bb-sheet--desktop { max-width: 880px; }
+  .bb-sheet--mobile { max-width: 320px; }
+  .bb-sheet__middle { position: relative; display: flex; align-items: stretch; }
+  .bb-band { position: relative; display: flex; }
+  .bb-band--before, .bb-band--after { flex: 1 1 50%; min-width: 0; flex-direction: column; justify-content: center; }
+  .bb-sheet__middle:has(.bb-band--before) .bb-picture, .bb-sheet__middle:has(.bb-band--after) .bb-picture { flex: 1 1 50%; min-width: 0; }
+  .bb-picture { position: relative; z-index: 1; flex: 1; min-width: 0; overflow: hidden; cursor: pointer; outline: 2px solid transparent; outline-offset: -2px; background-size: cover; background-position: center; }
+  .bb-sheet--desktop .bb-picture { aspect-ratio: 16 / 6; }
+  .bb-sheet--mobile .bb-picture { aspect-ratio: 3 / 4; }
+  .bb-picture--auto { aspect-ratio: auto !important; }
+  .bb-picture--selected { outline-color: var(--mui-palette-primary-main); }
+  .bb-picture__empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--mui-palette-text-secondary); }
+  .bb-overlay { position: absolute; inset: 0; display: flex; padding: 3.5%; pointer-events: none; }
+  .bb-picture--auto .bb-overlay { position: static; }
+  .bb-text { display: flex; flex-direction: column; width: 100%; box-sizing: border-box; border-radius: 6px; pointer-events: auto; cursor: pointer; }
+  .bb-text--selected { outline: 1.5px dashed rgba(10,132,255,0.8); outline-offset: 2px; }
+  .bb-text__line { width: 100%; margin: 0; line-height: 1.18; overflow-wrap: break-word; }
+  .bb-text__empty { font-size: 0.75rem; font-style: italic; opacity: 0.7; }
+  .bb-text__button { display: inline-flex; align-items: center; justify-content: center; gap: 0.3em; margin-top: 0.25em; border-radius: 999px; background: #1c1c1e; color: #fff; font-weight: 500; white-space: nowrap; }
+  .bb-text__button--secondary { background: #fff; color: #1c1c1e; border: 1px solid #1c1c1e; }
+  .bb-text__button--link, .bb-text__button--button-link { background: none; color: inherit; text-decoration: underline; padding-inline: 0 !important; }
+
+  /* context strip */
+  .bb-map { flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: var(--mui-spacing-1-half); padding: 0 var(--mui-spacing-2) var(--mui-spacing-1-half); }
+  .bb-map__tiles { display: flex; align-items: center; justify-content: center; gap: 3px; }
+  .bb-map__tile { position: relative; display: flex; width: 46px; height: 30px; padding: 0; border: 0; border-radius: 3px; overflow: hidden; background-size: cover; opacity: 0.5; cursor: pointer; }
+  .bb-map__tile:hover { opacity: 0.8; }
+  .bb-map__tile[aria-current="true"] { opacity: 1; outline: 2px solid var(--mui-palette-primary-main); outline-offset: 1px; }
+  .bb-map__index { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.5625rem; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
+  .bb-map__note { flex-shrink: 0; font-size: 0.625rem; color: #7d838f; white-space: nowrap; }
+
+  /* inspector */
+  .bb-inspector { container-type: inline-size; flex: 0 1 560px; min-width: 372px; overflow-y: auto; padding: var(--mui-spacing-2); background: var(--mui-palette-background-light); border-left: 1px solid var(--mui-palette-border); }
+  .bb-inspector__head { display: flex; align-items: baseline; gap: var(--mui-spacing-1); margin-bottom: var(--mui-spacing-1-half); }
+  .bb-inspector__rename { flex: 1 1 auto; min-width: 0; padding: var(--mui-spacing-xs) var(--mui-spacing-1); margin-inline-start: calc(var(--mui-spacing-1) * -1); border: 1px solid transparent; border-radius: 7px; background: transparent; font-size: 0.9375rem; font-weight: 600; color: inherit; }
+  .bb-inspector__rename:hover { border-color: var(--mui-palette-border); }
+  .bb-inspector__rename:focus { border-color: var(--mui-palette-primary-main); background: var(--mui-palette-background); outline: none; }
+  .bb-inspector__name { font-size: 0.9375rem; font-weight: 600; }
+  .bb-inspector__delete { display: inline-flex; margin-left: auto; padding: 3px; border: 0; border-radius: 4px; background: transparent; color: var(--mui-palette-text-secondary); cursor: pointer; }
+  .bb-inspector__delete:hover:not(:disabled) { color: var(--mui-palette-error-main); background: var(--mui-palette-error-background); }
+  .bb-inspector__delete:disabled { opacity: 0.35; cursor: not-allowed; }
+  .bb-inspector .setting-group { margin-bottom: var(--mui-spacing-2); }
+  .bb-inspector .setting-group__card { border-radius: 10px; }
+  .bb-inspector .setting-group__body { display: flex; flex-direction: column; gap: var(--mui-spacing-2); padding: var(--mui-spacing-2); }
+  .bb-inspector .setting-group__body > * { padding: 0; }
+  .bb-inspector .setting-group__header + .setting-group__body { padding-left: var(--mui-spacing-3); }
+  .bb-inspector .setting-group__body > button { align-self: flex-start; }
+  .bb-inspector .setting-group__body > * + *::before { border-top: 0; }
+
+  /* siteSettings kit: setting group */
+  .setting-group__card { background: #fff; border-radius: 16px; overflow: hidden; }
+  .setting-group__header { display: flex; align-items: center; justify-content: flex-end; gap: var(--mui-spacing-2); padding: var(--mui-spacing-2) var(--mui-spacing-2) 0; }
+  .setting-group__title { display: inline-flex; align-items: center; gap: var(--mui-spacing-xs); margin-right: auto; font-size: 0.875rem; font-weight: 600; }
+  .setting-group__body > * { position: relative; margin: 0; }
+
+  /* list field */
+  .setting-list__icon-btn { display: inline-flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--mui-palette-text-secondary); padding: var(--mui-spacing-xxs); border-radius: 6px; cursor: pointer; }
+  .setting-list__icon-btn:hover:not(:disabled) { color: var(--mui-palette-text-primary); background-color: color-mix(in srgb, currentColor 8%, transparent); }
+  .setting-list__icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .setting-list__icon-btn .ms { font-size: 17px; }
+  .setting-list__item-controls { display: flex; gap: var(--mui-spacing-xxs); }
+  .setting-list__add { display: inline-flex; align-items: center; gap: var(--mui-spacing-xxs); align-self: flex-start; margin-top: var(--mui-spacing-2); font-size: 0.8125rem; font-weight: 500; color: #0a84ff; background: #fff; border: 1px solid var(--mui-palette-border); cursor: pointer; padding: var(--mui-spacing-xxs) var(--mui-spacing-1-half); border-radius: 999px; }
+  .setting-list__add:hover { background-color: color-mix(in srgb, #0a84ff 8%, transparent); border-color: #0a84ff; }
+  .setting-list__add .ms { font-size: 17px; }
+  .setting-list__item--inline { display: flex; align-items: center; gap: var(--mui-spacing-2); margin-top: var(--mui-spacing-1); background: #fff; }
+  .setting-list__item--inline .setting-list__item-body { flex: 1 1 0; min-width: 0; }
+  .setting-list__item--inline .setting-list__item-controls { flex-shrink: 0; justify-content: flex-end; }
+  .setting-list__header { display: flex; align-items: flex-end; gap: var(--mui-spacing-2); margin-top: var(--mui-spacing-1); }
+  .setting-list__header .setting-list__item-body { flex: 1 1 0; min-width: 0; }
+  .setting-list__header-spacer { width: 24px; flex-shrink: 0; }
+  .setting-list__controls--ghost { flex-shrink: 0; visibility: hidden; }
+  .setting-list__num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; line-height: 1; background-color: color-mix(in srgb, #0a84ff 22%, transparent); color: #0a84ff; }
+
+  /* text field */
+  .text-setting-field { min-width: 0; }
+  .text-setting-field--row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--mui-spacing-2); }
+  .text-setting-field--row .text-setting-field__labels { flex: 1 1 0; min-width: 0; }
+  .text-setting-field__label { display: block; font-size: 0.8125rem; }
+  .text-setting-field__hint { display: block; font-size: 0.6875rem; color: var(--mui-palette-text-secondary); margin-top: 1px; }
+  .text-setting-field__control { font-size: 0.8125rem; color: var(--mui-palette-text-primary); background: #fff; border: 1px solid var(--mui-palette-border); border-radius: 7px; padding: 6px 10px; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  .text-setting-field--row .text-setting-field__control { flex: 0 0 60%; box-sizing: border-box; }
+  .text-setting-field__control:focus { border-color: #0a84ff; box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2); }
+
+  /* toggle */
+  .toggle-setting-field { display: flex; align-items: center; justify-content: space-between; gap: var(--mui-spacing-2); cursor: pointer; }
+  .toggle-setting-field__labels { display: flex; flex-direction: column; min-width: 0; }
+  .toggle-setting-field__label { font-size: 0.8125rem; }
+  .toggle-setting-field__hint { font-size: 0.6875rem; color: var(--mui-palette-text-secondary); margin-top: 1px; }
+  .toggle-setting-field__switch { appearance: none; -webkit-appearance: none; flex-shrink: 0; width: 38px; height: 22px; margin: 0; border-radius: 11px; background: #e4e4e9; position: relative; cursor: pointer; transition: background 0.15s ease; }
+  .toggle-setting-field__switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); transition: transform 0.15s ease; }
+  .toggle-setting-field__switch:checked { background: #0a84ff; }
+  .toggle-setting-field__switch:checked::after { transform: translateX(16px); }
+
+  /* color field + color pair (production colorSettingField / colorPairField) */
+  .color-setting-field { display: flex; align-items: center; justify-content: space-between; gap: var(--mui-spacing-2); min-width: 0; }
+  .color-setting-field__label { display: block; font-size: 0.8125rem; }
+  .color-setting-field__row { display: flex; align-items: stretch; flex-shrink: 0; height: 30px; background: #fff; border: 1px solid var(--mui-palette-border); border-radius: 8px; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  .color-setting-field__row:focus-within { border-color: #0a84ff; box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2); }
+  .color-setting-field__swatch { position: relative; width: 40px; flex: none; border-right: 1px solid var(--mui-palette-border); cursor: pointer; }
+  .color-setting-field__swatch--clear { background: repeating-conic-gradient(#d9d9d9 0% 25%, #ffffff 0% 50%) 0 0 / 10px 10px; }
+  .color-setting-field__swatch input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; padding: 0; border: 0; cursor: pointer; }
+  .color-setting-field__hex { font-size: 0.8125rem; width: 96px; color: var(--mui-palette-text-primary); background: transparent; border: none; padding: 0 var(--mui-spacing-1); outline: none; }
+  .color-setting-field--stacked { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .color-setting-field--stacked .color-setting-field__label { font-size: 0.6875rem; color: var(--mui-palette-text-secondary); }
+  .color-pair { display: flex; align-items: center; gap: var(--mui-spacing-2); }
+  .color-pair__left { display: flex; align-items: center; gap: var(--mui-spacing-2); flex: 1; min-width: 0; }
+  .color-pair__meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .color-pair__name { font-size: 0.8125rem; color: var(--mui-palette-text-primary); }
+  .color-pair__colors { display: flex; align-items: flex-start; gap: var(--mui-spacing-2); flex: none; }
+  .color-pair__contrast { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .color-pair__contrast-label { font-size: 0.6875rem; color: var(--mui-palette-text-secondary); }
+  .color-pair__contrast-tag { box-sizing: border-box; width: 52px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.6875rem; font-variant-numeric: tabular-nums; }
+  .color-pair__contrast-tag--pass { background: rgba(26, 127, 55, 0.12); color: #1a7f37; }
+  .color-pair__contrast-tag--large { background: rgba(201, 138, 0, 0.16); color: #8a5a00; }
+  .color-pair__contrast-tag--fail { background: rgba(200, 68, 47, 0.12); color: #c8442f; }
+  .color-pair__contrast-tag--none { background: transparent; color: var(--mui-palette-text-secondary); border: 1px solid var(--mui-palette-border); }
+  /* choice / step */
+  .bb-choice { display: flex; flex-wrap: wrap; align-items: center; gap: var(--mui-spacing-xs) var(--mui-spacing-2); min-width: 0; }
+  .bb-choice__labels { flex: 1 1 0; min-width: 0; }
+  .bb-choice__label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; }
+  .bb-choice__hint { display: block; margin-top: 1px; font-size: 0.6875rem; color: var(--mui-palette-text-secondary); }
+  .bb-choice__segments { display: inline-flex; flex-shrink: 0; padding: 2px; border-radius: 8px; background: var(--mui-palette-secondary-background); }
+  .bb-choice__segment { padding: 3px 7px; border: 0; border-radius: 6px; background: transparent; color: var(--mui-palette-text-secondary); font-size: 0.75rem; white-space: nowrap; cursor: pointer; }
+  .bb-choice__segment[aria-pressed="true"] { background: var(--mui-palette-background); color: var(--mui-palette-text-primary); font-weight: 500; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+  .bb-choice__select { flex: 0 1 auto; min-width: 0; max-width: 60%; height: auto; padding: 6px var(--mui-spacing-3) 6px 10px; border: 1px solid var(--mui-palette-border); border-radius: 7px; background-color: var(--mui-palette-background); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238e8e93' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; appearance: none; -webkit-appearance: none; font-size: 0.75rem; color: inherit; cursor: pointer; }
+  .bb-choice__select:focus { border-color: var(--mui-palette-primary-main); box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2); outline: none; }
+  .bb-step { display: inline-flex; align-items: center; padding: 2px; border-radius: 8px; background: var(--mui-palette-secondary-background); }
+  .bb-step__button { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: var(--mui-palette-background); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); color: var(--mui-palette-text-primary); padding: 0; cursor: pointer; }
+  .bb-step__button .ms { font-size: 15px; }
+  .bb-step__button:disabled { background: none; box-shadow: none; opacity: 0.3; cursor: not-allowed; }
+  .bb-step__value { min-width: 42px; text-align: center; font-size: 0.75rem; font-weight: 500; }
+
+  /* position grid */
+  .bb-pos__grid { display: grid; grid-template-columns: 20px repeat(3, 36px) 20px; grid-template-rows: 20px repeat(3, 36px) 20px; gap: 3px; width: max-content; }
+  .bb-pos__side { display: flex; }
+  .bb-pos__image { grid-row: 2 / 5; grid-column: 2 / 5; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 5px; background-color: var(--mui-palette-secondary-background); background-size: cover; background-position: center; }
+  .bb-pos__cell { width: 100%; height: 100%; padding: 0; border: 1px solid var(--mui-palette-border); border-radius: 4px; background: var(--mui-palette-background-light); color: var(--mui-palette-text-secondary); font-size: 0.625rem; line-height: 1; cursor: pointer; }
+  .bb-pos__cell:hover { background: #e8eef7; }
+  .bb-pos__cell[aria-pressed="true"] { background: var(--mui-palette-primary-main); border-color: var(--mui-palette-primary-main); color: #fff; }
+  .bb-pos__image .bb-pos__cell { border-color: rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.22); color: #fff; }
+  .bb-pos__image .bb-pos__cell:hover { background: rgba(255, 255, 255, 0.42); }
+  .bb-pos__image .bb-pos__cell[aria-pressed="true"] { background: var(--mui-palette-primary-main); border-color: #fff; }
+  .bb-pos--overlay-only .bb-pos__image { width: 114px; height: 114px; }
+
+  /* slide tabs + kind */
+  .bb-tabs { display: flex; gap: var(--mui-spacing-xs); margin: 0 0 var(--mui-spacing-2); padding: 3px; border-radius: 9px; background: var(--mui-palette-secondary-background); }
+  .bb-tabs__tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: var(--mui-spacing-1) var(--mui-spacing-1-half); border: none; border-radius: 7px; background: none; font-size: 0.8125rem; color: var(--mui-palette-text-secondary); cursor: pointer; }
+  .bb-tabs__tab[aria-selected="true"] { background: var(--mui-palette-background); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); font-weight: 600; color: var(--mui-palette-text-primary); }
+  .bb-tabs__glyph { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; }
+  .bb-tabs__tab[aria-selected="true"] .bb-tabs__glyph { stroke-width: 1.6; opacity: 1; color: var(--mui-palette-primary-main); }
+  .bb-kind { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--mui-spacing-1); padding: var(--mui-spacing-1) var(--mui-spacing-1-half) !important; }
+  .bb-kind__option { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: var(--mui-spacing-xs); border: 1px solid var(--mui-palette-border); border-radius: 9px; background: var(--mui-palette-background); text-align: center; cursor: pointer; color: inherit; }
+  .bb-kind__option[aria-pressed="true"] { border-color: var(--mui-palette-primary-main); box-shadow: inset 0 0 0 1px var(--mui-palette-primary-main); }
+  .bb-kind__option:hover:not([aria-pressed="true"]) { background: var(--mui-palette-background-light); }
+  .bb-kind__figure { width: 100%; height: auto; max-height: 20px; margin-bottom: 2px; fill: var(--mui-palette-text-secondary); }
+  .bb-kind__option[aria-pressed="true"] .bb-kind__figure { fill: var(--mui-palette-primary-main); }
+  .bb-kind__option b { font-size: 0.75rem; white-space: nowrap; }
+
+  /* inspector layers */
+  .bb-layer__hint { margin: 0; font-size: 0.6875rem; color: var(--mui-palette-text-secondary); }
+  .bb-line { display: grid; grid-template-columns: minmax(0, 1fr) 152px; align-items: center; gap: var(--mui-spacing-1); width: 100%; }
+  .bb-line--split { grid-template-columns: minmax(0, 1fr) 118px 118px; }
+  .bb-line--split .bb-device-label { text-transform: none; letter-spacing: 0; font-size: 0.6875rem; }
+  .bb-lines__split { margin-top: var(--mui-spacing-2); padding-top: var(--mui-spacing-1-half); border-top: 1px solid var(--mui-palette-border); }
+  .bb-lines__split .bb-theme-link { margin-inline-start: 4px; }
+  .bb-line--button { grid-template-columns: minmax(0, 1fr) 148px 108px 28px; }
+  .bb-line--head > span, .setting-list__header .bb-line > span { padding-inline-start: 11px; }
+  .bb-line--head, .setting-list__header .bb-line { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mui-palette-text-secondary); }
+  .bb-line .text-setting-field__control, .bb-line .bb-choice__select { box-sizing: border-box; width: 100%; max-width: 100%; height: 30px; font-size: 0.75rem; padding-inline: 10px; }
+  .bb-line .bb-choice__select { padding-right: var(--mui-spacing-3); }
+  .bb-button { display: flex; flex-direction: column; gap: var(--mui-spacing-1); min-width: 0; }
+  .bb-button > button { align-self: flex-start; }
+  .bb-button__colors { display: flex; flex-direction: column; gap: var(--mui-spacing-1-half); margin-top: var(--mui-spacing-1); padding-top: var(--mui-spacing-1-half); border-top: 1px solid var(--mui-palette-border); }
+  .bb-button__colors--flat { margin-top: 0; padding-top: 0; border-top: 0; }
+  .bb-colors__head { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mui-palette-text-secondary); }
+  .bb-colors__head--divided { margin-top: var(--mui-spacing-xs); padding-top: var(--mui-spacing-2) !important; border-top: 1px solid var(--mui-palette-border); }
+  .bb-place { display: flex; align-items: center; gap: var(--mui-spacing-3); min-width: 0; }
+  .bb-place__grid { display: flex; flex-direction: column; align-items: flex-start; flex-shrink: 0; }
+  .bb-place__label { margin-bottom: var(--mui-spacing-1); font-size: 0.8125rem; }
+  .bb-place__pad { display: flex; flex-direction: column; gap: var(--mui-spacing-2); flex: 1 1 0; min-width: 0; }
+  .bb-layer__add { display: inline-flex; align-items: center; gap: var(--mui-spacing-xxs); border: 1px solid var(--mui-palette-border); border-radius: 999px; background: var(--mui-palette-background); padding: var(--mui-spacing-xxs) var(--mui-spacing-1-half); color: var(--mui-palette-primary-main); font-size: 0.8125rem; font-weight: 500; white-space: nowrap; cursor: pointer; }
+  .bb-layer__add .ms { font-size: 17px; }
+  .bb-layer__add:hover { background: rgba(10, 132, 255, 0.12); }
+  .bb-color-row { display: flex; flex-direction: column; align-items: flex-end; gap: var(--mui-spacing-xxs); }
+  .bb-color-row > :first-child { align-self: stretch; }
+  .bb-apply-link { display: inline-flex; align-items: center; gap: 3px; padding: 0; border: 0; background: none; color: var(--mui-palette-text-secondary); font-size: 0.6875rem; text-decoration: underline; cursor: pointer; align-self: flex-start; }
+  .bb-apply-link:hover { color: var(--mui-palette-primary-main); }
+  .bb-apply-link .ms { font-size: 14px; }
+  .bb-device-label { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; }
+  .bb-device-label__glyph { width: 1.15em; height: 1.15em; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+  .bb-theme-link { margin-inline-start: var(--mui-spacing-1); color: var(--mui-palette-text-secondary); opacity: 0.7; font-size: 0.625rem; font-weight: 400; text-transform: none; letter-spacing: 0; text-decoration: none; white-space: nowrap; }
+  .bb-theme-link::after { content: " ↗"; font-size: 0.625rem; }
+  .bb-artwork { display: flex; align-items: center; gap: var(--mui-spacing-2); }
+  .bb-artwork__preview { flex: 0 0 auto; width: 180px; height: 101px; border-radius: 7px; border: 1px solid var(--mui-palette-border); background-size: cover; background-position: center; }
+  .bb-artwork__actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .bb-artwork-dims { font-size: 0.6875rem; color: var(--mui-palette-text-secondary); font-variant-numeric: tabular-nums; }
+  .bb-gap { display: flex; gap: var(--mui-spacing-1); padding: var(--mui-spacing-1) var(--mui-spacing-1-half); border-radius: 9px; background: var(--mui-palette-warning-background); font-size: 0.75rem; line-height: 1.35; color: var(--mui-palette-info-warning); margin: 0; }
+
+  /* ── PROPOSED (design reference, not in production) ── */
+  .bb-new { display: inline-flex; align-items: center; height: 16px; padding: 0 6px; border-radius: 999px; background: #ede7fb; color: #6a3fd1; font-size: 0.625rem; font-weight: 600; letter-spacing: 0.02em; text-transform: none; }
+  .bb-handle { flex-shrink: 0; width: 24px; height: 30px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: var(--mui-palette-text-secondary); cursor: grab; touch-action: none; padding: 0; }
+  .bb-handle svg { width: 10px; height: 16px; fill: currentColor; opacity: 0.6; }
+  .bb-handle:hover svg, .bb-handle:focus-visible svg { opacity: 1; }
+  .bb-handle:hover { background: var(--mui-palette-secondary-background); color: var(--mui-palette-text-primary); }
+  .bb-handle:focus-visible { outline: 2px solid var(--mui-palette-primary-main); outline-offset: 1px; }
+  .bb-lines--proposed .setting-list__item--inline { gap: var(--mui-spacing-1); border-radius: 8px; }
+  .bb-lines--proposed .setting-list__header { gap: var(--mui-spacing-1); }
+  .bb-lines.is-sorting .setting-list__item--inline:not(.is-dragging) { transition: transform 160ms ease; }
+  .setting-list__item--inline.is-dragging { position: relative; z-index: 3; box-shadow: 0 6px 18px rgba(0,0,0,0.14); cursor: grabbing; }
+  .setting-list__item--inline.is-dragging .bb-handle { cursor: grabbing; }
+  .bb-proto { display: inline-flex; gap: 2px; margin-left: var(--mui-spacing-1); padding: 2px; border-radius: 999px; background: #ece4fd; border: 1px solid #cdbcf7; box-shadow: 0 2px 8px rgba(106,63,209,0.2); font-family: 'Roboto', sans-serif; }
+  .bb-proto__opt { padding: 3px 11px; line-height: 1.4; border: 0; border-radius: 999px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; background: transparent; color: #4b2a9e; }
+  .bb-proto__opt:hover:not([aria-pressed="true"]) { background: rgba(106,63,209,0.12); }
+  .bb-proto__opt[aria-pressed="true"] { background: #7c4ddf; color: #fff; box-shadow: 0 1px 3px rgba(76,42,158,0.4); }
 </style>
 </head>
 <body>
@@ -515,15 +824,15 @@ function defaultVariants() {
 // doesn't leak into the next component the user opens.
 function variantSeedFor(title) {
   if (title === OLD_REFERENCE_BANNER) {
-    return { variants: hbVariants(), selectedVariantId: 1, ...hbSeeded(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
+    return { variants: hbVariants(), selectedVariantId: 1, ...hbSeeded(), ...heroDefaults(), ...bbDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
   }
   if (title === NESTED_PRODUCTS) {
-    return { variants: npVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
+    return { variants: npVariants(), ...heroDefaults(), ...bbDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank() };
   }
   if (title === FEEDBACK_FORM) {
-    return { variants: fbVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank(), ...fbDefaults(), fb_store: {} };
+    return { variants: fbVariants(), ...heroDefaults(), ...bbDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank(), ...fbDefaults(), fb_store: {} };
   }
-  return { variants: defaultVariants(), ...heroDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank(), ...ciDefaults() };
+  return { variants: defaultVariants(), ...heroDefaults(), ...bbDefaults(), ...npDefaults(), ...smBlank(), ...fcBlank(), ...ciDefaults() };
 }
 
 const state = {
@@ -542,6 +851,7 @@ const state = {
   statusOpen: false,
   editVersion: loadEditVersion(),
   historyPanelOpen: false,   // version 4's side panel
+  ref_template: '1',         // Highlights Bar (Old Reference): which earlier layout to show
   footerPopover: null,   // version 3's history card: null or 'full'
   listSearch: '',
   expSearch: '',
@@ -617,6 +927,7 @@ const state = {
 
   // ── Hero Banner ──
   ...heroDefaults(),
+  ...bbDefaults(),
 
   // ── Nested Products ──
   ...npDefaults(),
@@ -1003,7 +1314,8 @@ function buildApp(s) {
       )
     ),
     s.view === 'editor' ? hsModal(s) : null,
-    s.view === 'editor' ? buildVersionSwitcher(s) : null,
+    s.view === 'editor' && s.bb_open && bbUsesBillboard(s) ? bbDialog(s) : null,
+    s.view === 'editor' && s.section !== 'banners' ? buildVersionSwitcher(s) : null,
     s.view === 'editor' && s.historyPanelOpen ? buildHistoryPanel(s) : null
   );
 }
@@ -1195,7 +1507,7 @@ function buildVariantPanel(s) {
   const shownVs = byFilter(f).filter(v => !q || (v.name || 'new variant').toLowerCase().includes(q));
   // a brand-new variant opens on the component's first tab, so it is filled
   // in from the top rather than wherever the last variant was left
-  const addVariant = () => { setState(prev => { const id = Math.max(0, ...prev.variants.map(v => v.id)) + 1; return { variants:[...prev.variants, { id, name:'', status:'active', pubStatus:'Draft', isNew:true }], selectedVariantId:id, variantTab:'active', variantFilter:'All', nameEditing:false, tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...npBlank(), ...smBlank(), ...fcBlank(), ...fbBlank(), ...fbSwitchVariant(prev, id), ...ciBlank() }; }); syncHash(true); };
+  const addVariant = () => { setState(prev => { const id = Math.max(0, ...prev.variants.map(v => v.id)) + 1; return { variants:[...prev.variants, { id, name:'', status:'active', pubStatus:'Draft', isNew:true }], selectedVariantId:id, variantTab:'active', variantFilter:'All', nameEditing:false, tab:editorTabs(prev)[0][0], ...hbDefaults(), ...heroBlank(), ...bbBlank(), ...npBlank(), ...smBlank(), ...fcBlank(), ...fbBlank(), ...fbSwitchVariant(prev, id), ...ciBlank() }; }); syncHash(true); };
   const details = s.variantSearchMode === 'details';
   const searchSelect = h('select', { onInput: e => setState({ variantSearchMode: e.target.value }) },
     ...[['title', 'Title'], ['details', 'Details']].map(([k, label]) => { const o = h('option', { value:k }, label); if ((s.variantSearchMode || 'title') === k) o.selected = true; return o; }));
@@ -1460,6 +1772,8 @@ function fmtDayMonthYear(t) { const d = new Date(t); return `${pad2(d.getDate())
 function fmtHourMin(t) { const d = new Date(t); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
 
 function buildFooterInfo(s, v) {
+  // Banners settled on version 1 (One row); the switcher is hidden there
+  if (s.section === 'banners') s = { ...s, editVersion: '1' };
   const muted = 'rgba(0,0,0,0.55)';
   const production = h('div', { style:{ display:'flex', alignItems:'center', gap:'8px', fontSize:'15px', color:muted, whiteSpace:'nowrap' }}, icon('history',{fontSize:'20px'}), 'Published 10 min ago');   // the site publish/update time, not the last edit
   const last = historyFor(v)[0];
@@ -1629,15 +1943,26 @@ function saveVariant() {
 }
 
 // ─── BANNER TEMPLATES ─────────────────────────────────────────────────────────
-// Every Banners component uses the Highlights Banner layout. The one exception
-// is the Old Reference component, kept as-is so the two can be compared
-// side by side during prototyping.
+// Every Banners component uses the production Billboard editor (see HERO BANNER
+// below). The Old Reference component keeps the two earlier layouts behind a
+// Template 1 / Template 2 switch so they can still be compared:
+//  • Template 1 — the original Highlights Bar reference
+//  • Template 2 — the card layout (Header / Display Settings / Slides) that
+//                 every banner used before the Billboard
 const OLD_REFERENCE_BANNER = 'Highlights Bar (Old Reference)';
+function bbUsesBillboard(s) { return s.section === 'banners' && s.componentTitle !== OLD_REFERENCE_BANNER; }
 
 function buildBannerTemplates(s) {
-  return s.componentTitle === OLD_REFERENCE_BANNER
-    ? buildHighlightsBarTemplate(s)
-    : buildHeroBannerTemplate(s);
+  if (s.componentTitle !== OLD_REFERENCE_BANNER) return buildBillboardTemplate(s);
+  const opt = (key, label, tip) => h('button', { type:'button', class:'bb-proto__opt', title: tip, 'aria-pressed':String(s.ref_template === key), onClick:()=>setState({ ref_template:key }) }, label);
+  return h('div', {},
+    h('div', { class:'bb-scope', style:{ display:'flex', alignItems:'center', gap:'4px', marginBottom:'24px' }},
+      h('span', { style:{ fontSize:'16px', fontWeight:'600', fontFamily:'Roboto, sans-serif' }}, 'Template:'),
+      h('div', { class:'bb-proto', role:'group', 'aria-label':'Template' },
+        opt('1', 'Template 1', 'Highlights Bar — original reference'),
+        opt('2', 'Template 2', 'Card layout — Header, Display Settings, Slides'))),
+    s.ref_template === '2' ? buildHeroBannerTemplate(s) : buildHighlightsBarTemplate(s)
+  );
 }
 
 // ─── CONTENT TAB ─────────────────────────────────────────────────────────────
@@ -2535,7 +2860,7 @@ function buildHighlightsBarTemplate(s) {
 // The Old Reference banner keeps the item-list rules; every other component
 // keys off its own name.
 function activeValidator(s) {
-  if (s.section === 'banners') return s.componentTitle === OLD_REFERENCE_BANNER ? highlightsBarErrors : null;
+  if (s.section === 'banners') return s.componentTitle === OLD_REFERENCE_BANNER && s.ref_template !== '2' ? highlightsBarErrors : null;
   return COMPONENT_VALIDATORS[s.componentTitle];
 }
 
@@ -3263,6 +3588,900 @@ function buildHeroBannerTemplate(s) {
     heroSlidesSection(s)
   );
 }
+
+// ─── BANNERS — PRODUCTION BILLBOARD EDITOR ────────────────────────────────────
+// Every Banners component (except the Old Reference) runs the editor
+// site-experience-manager ships today (shared/editors/billboardEditor, develop):
+// a summary card on the Content tab, and Edit opens it full screen — slide rail,
+// live stage, inspector. Ported so changes can be designed against production.
+// The older card layout (buildHeroBannerTemplate) lives on as Template 2 of the
+// Old Reference component.
+//
+// The purple switch beside "Text lines" flips the Live text tab between:
+//  • Current — production as it is: lines reorder one step at a time with the
+//              arrows, a fixed 8px gap between lines, no width control, so a
+//              break means splitting the copy into a second line
+//  • V1      — the text-lines ticket: drag to reorder, Line spacing + Max width
+//              per device. Rows stay single-line: Max width decides where text
+//              wraps, so it can wrap on Desktop and not on Mobile
+//  • V2      — V1, with Colors and Position & spacing as separate sections
+// (state keys stay 'proposed' / 'new2' for V1 / V2)
+// Each mode keeps its own copy of the banner so the two can be compared as authored.
+const BB_DEVICE_W = { mobile: 390, desktop: 1600 };
+const BB_TYPO = ['headline1','headline2','headline3','headline4','headline5','headline6','headline7','headline8','headline9','headline10','headline11','headline12',
+  'text1','text2','text3','text4','text5','text6','text7','text8','text9','caption1','caption2','paragraph1','paragraph2','paragraph3','paragraph4',
+  'links1','button1','button2','disclaimer1','disclaimer2','ribbons1'];
+const BB_TYPE_PX = {
+  headline1: 44, headline2: 38, headline3: 33, headline4: 29, headline5: 26, headline6: 23,
+  headline7: 21, headline8: 19, headline9: 18, headline10: 17, headline11: 16, headline12: 15,
+  text1: 30, text2: 26, text3: 23, text4: 20, text5: 18, text6: 16, text7: 15, text8: 14, text9: 13,
+  paragraph1: 15, paragraph2: 14, paragraph3: 13, paragraph4: 12, caption1: 12, caption2: 11,
+  links1: 13, button1: 13, button2: 12, disclaimer1: 11, disclaimer2: 10, ribbons1: 11,
+};
+const bbTypoLabel = v => v.replace(/([a-z])(\d)/, '$1 $2').replace(/^./, c => c.toUpperCase());
+// [token, stepper label, preview px] — the labels and px are production's
+// (textDisplayBlock PADDING_SHORT for the label, effective.ts padPx for the preview)
+const BB_PAD = [['none','0',0],['spacing-xs','12px',4],['spacing-sm','16px',8],['spacing-md','24px',16],['spacing-lg','32px',24],['spacing-xl','40px',32],['spacing-xxl','60px',40],['spacing-xxxl','72px',48]];
+// Proposed: the existing gapOptions scale (effective.ts gapPx) — default XX Small,
+// which is the 4px the storefront renders today
+const BB_GAP = [['none','0',0],['spacing-xxxs','2px',2],['spacing-xxs','4px',4],['spacing-xs','8px',8],['spacing-sm','12px',12],['spacing-md','16px',16],['spacing-lg','24px',24]];
+// Proposed: narrowest first, so "−" narrows the block
+const BB_MAXW = [['20','20%'],['30','30%'],['40','40%'],['50','50%'],['60','60%'],['70','70%'],['80','80%'],['90','90%'],['full','Full']];
+const BB_CURRENT_GAP_PX = 8; // liveTextBlock.css hard-codes `gap: 8px`
+const bbPx = (table, id, fallback) => { const r = table.find(t => t[0] === id); return r ? r[2] : fallback; };
+
+const BB_OVERLAY = ['top-left','top-center','top-right','middle-left','center','middle-right','bottom-left','bottom-center','bottom-right'];
+const BB_TOP = ['above-start','above-center','above-end'];
+const BB_LEFT = ['before-start','before-center','before-end'];
+const BB_RIGHT = ['after-start','after-center','after-end'];
+const BB_BOTTOM = ['below-start','below-center','below-end'];
+const BB_OVERLAY_ARROWS = { 'top-left':'↖','top-center':'↑','top-right':'↗','middle-left':'←',center:'','middle-right':'→','bottom-left':'↙','bottom-center':'↓','bottom-right':'↘' };
+const BB_PLACE_ARROWS = { 'above-start':'↖','above-center':'↑','above-end':'↗','before-start':'↖','before-center':'←','before-end':'↙','after-start':'↗','after-center':'→','after-end':'↘','below-start':'↙','below-center':'↓','below-end':'↘' };
+const bbIsOverlay = p => BB_OVERLAY.includes(p);
+const bbSide = p => BB_TOP.includes(p) ? 'above' : BB_BOTTOM.includes(p) ? 'below' : BB_LEFT.includes(p) ? 'before' : BB_RIGHT.includes(p) ? 'after' : null;
+const BB_FLEX = ['flex-start','center','flex-end'];
+function bbAlign(p) {
+  if (p === 'center') return 'center';
+  const suffix = p.slice(p.lastIndexOf('-') + 1);
+  return suffix === 'center' ? 'center' : (suffix === 'end' || suffix === 'right') ? 'flex-end' : 'flex-start';
+}
+function bbTextAlign(p) { const side = bbSide(p); return side === 'before' ? 'flex-end' : side === 'after' ? 'flex-start' : bbAlign(p); }
+function bbCell(p) { const i = BB_OVERLAY.indexOf(p); return i < 0 ? { row:1, col:1 } : { row: Math.floor(i / 3), col: i % 3 }; }
+
+// placeholder artwork (no real assets in the prototype)
+const BB_ART = [
+  'radial-gradient(circle at 74% 42%, rgba(255,255,255,0.6) 0 7%, transparent 7.5%), radial-gradient(circle at 82% 58%, rgba(255,255,255,0.4) 0 4.5%, transparent 5%), linear-gradient(120deg, #f1e7dc 0%, #dcc3ad 50%, #b08d74 100%)',
+  'radial-gradient(circle at 30% 55%, rgba(255,255,255,0.45) 0 10%, transparent 10.5%), linear-gradient(160deg, #e5ecee 0%, #aebfc6 60%, #6f8893 100%)',
+  'radial-gradient(circle at 65% 40%, rgba(255,255,255,0.5) 0 8%, transparent 8.5%), linear-gradient(135deg, #f5e8e4 0%, #e0b5ae 60%, #a96b64 100%)',
+  'linear-gradient(135deg, #ebe6de 0%, #bdb3a2 60%, #847966 100%)',
+];
+const BB_KINDS = [['image','Image','One image, or one per device'],['video','Video','Plays over the image'],['text','Text only','Copy on a color, no artwork'],['hotspot','Shoppable','Image with product pins']];
+
+// function declarations: the initial state seeds the banner before this
+// section of the script has run (see hsSeedProduct)
+function bbId(p) { return p + Math.random().toString(36).slice(2, 9); }
+function bbLine(text, variant) { return { id: bbId('l'), text, variant }; }
+
+function bbSeed(mode) {
+  const proposed = mode === 'proposed';
+  const spring = proposed
+    ? [bbLine('NEW IN', 'caption1'), bbLine('The Art of the Spring Stack', 'headline2'), bbLine('Layer delicate chains for an effortless, everyday look.', 'paragraph1')]
+    : [bbLine('NEW IN', 'caption1'), bbLine('The Art of the', 'headline2'), bbLine('Spring Stack', 'headline2'), bbLine('Layer delicate chains for an effortless, everyday look.', 'paragraph1')];
+  return {
+    displayType: 'carousel',
+    perView: { mobile: 1, desktop: 1 },
+    autoplay: true, loop: true,
+    header: { text: '', variant: 'headline4', align: 'start', cta: '', ctaLink: '' },
+    slides: [
+      { id:'s1', name:'Spring stack', kind:'image', art:0, artDesktop:false, link:'/collections/new-in', linkType:'url',
+        liveText: { content: spring, button: { text:'Shop now', buttonVariant:'primary', buttonIcon:'none' },
+          position:'bottom-center', color:'#1c1c1c', bg:'transparent', padBlock:'spacing-sm', padInline:'spacing-sm',
+          gap: proposed ? 'spacing-xs' : undefined, maxWidth: proposed ? 'full' : undefined,
+          desktop: { position:'middle-left', color:'#1c1c1c', bg:'transparent', padBlock:'spacing-md', padInline:'spacing-xl',
+            gap: proposed ? 'spacing-sm' : undefined, maxWidth: proposed ? '50' : undefined } } },
+      { id:'s2', name:'Gift guide', kind:'text', art:null, artDesktop:false, link:'/collections/gifts', linkType:'url',
+        liveText: { content: [bbLine('Gifts she’ll treasure', 'headline3'), bbLine('Free engraving on every necklace', 'text7')],
+          button: { text:'Shop gifts', buttonVariant:'secondary', buttonIcon:'arrow' },
+          position:'center', color:'#ffffff', bg:'#7a4b3a', padBlock:'spacing-md', padInline:'spacing-md',
+          gap: proposed ? 'spacing-xs' : undefined, maxWidth: proposed ? 'full' : undefined, desktop: null } },
+      { id:'s3', name:'Bestsellers', kind:'image', art:2, artDesktop:false, link:'/collections/bestsellers', linkType:'url', liveText: null },
+    ],
+  };
+}
+// V2: the V1 banner, but colors are one set for both devices and only
+// position/spacing can split to Desktop (splitMode 'separate' + layoutSplit)
+function bbSeedV2() {
+  const v = bbSeed('proposed');
+  v.slides.forEach(sl => { if (sl.liveText) Object.assign(sl.liveText, { splitMode:'separate', layoutSplit: !!sl.liveText.desktop }); });
+  return v;
+}
+function bbDefaults() {
+  return { bb_open:false, bb_mode:'current', bb_device:'desktop', bb_sel:'s1', bb_tab:'text',
+    bb_values: { current: bbSeed('current'), proposed: bbSeed('proposed'), new2: bbSeedV2() } };
+}
+// a new variant opens with no slides, as in production
+function bbBlank() {
+  const blank = () => ({ ...bbSeed('current'), slides: [] });
+  return { ...bbDefaults(), bb_sel:'display', bb_values: { current: blank(), proposed: blank(), new2: blank() } };
+}
+
+// ── state helpers ─────────────────────────────────────────────────────────────
+const bbVal = s => s.bb_values[s.bb_mode];
+// V1 and V2 share every text-lines change; V2 only regroups the styling
+const bbProposed = s => s.bb_mode !== 'current';
+const bbNew2 = s => s.bb_mode === 'new2';
+function bbUpdate(fn, extra) {
+  setState(p => ({ bb_values: { ...p.bb_values, [p.bb_mode]: fn(p.bb_values[p.bb_mode]) }, hero_dirty: true, ...(extra || {}) }));
+}
+function bbSlide(id, patch, extra) {
+  bbUpdate(v => ({ ...v, slides: v.slides.map(sl => sl.id === id ? { ...sl, ...(typeof patch === 'function' ? patch(sl) : patch) } : sl) }), extra);
+}
+function bbLT(id, patch) { bbSlide(id, sl => ({ liveText: { ...sl.liveText, ...(typeof patch === 'function' ? patch(sl.liveText) : patch) } })); }
+// display settings live on the base (Mobile) or on .desktop once Desktop is split;
+// editing one also turns the stage to that device, as DeviceFocus does
+function bbDisplay(id, desktop, patch, device) {
+  bbSlide(id, sl => ({ liveText: desktop
+    ? { ...sl.liveText, desktop: { ...sl.liveText.desktop, ...patch } }
+    : { ...sl.liveText, ...patch } }), device ? { bb_device: device } : null);
+}
+function bbMoveIn(arr, from, to) { const next = arr.slice(); const [m] = next.splice(from, 1); next.splice(to, 0, m); return next; }
+// Proposed: with typoSplit on, each line carries a desktopVariant beside its (Mobile) variant
+function bbLineVariant(lt, line, device) { return device === 'desktop' && lt.typoSplit && line.desktopVariant ? line.desktopVariant : line.variant; }
+const BB_LAYOUT_KEYS = ['position','padBlock','padInline','gap','maxWidth'];
+function bbResolved(lt, device) {
+  if (device !== 'desktop' || !lt.desktop) return lt;
+  if (lt.splitMode !== 'separate') return { ...lt, ...lt.desktop };
+  const out = { ...lt };
+  if (lt.layoutSplit) BB_LAYOUT_KEYS.forEach(k => { out[k] = lt.desktop[k]; });
+  return out;
+}
+function bbEnsureDesktop(lt) {
+  return lt.desktop || { position: lt.position, color: lt.color, bg: lt.bg, padBlock: lt.padBlock, padInline: lt.padInline, gap: lt.gap, maxWidth: lt.maxWidth };
+}
+
+// ── tiny pieces ───────────────────────────────────────────────────────────────
+function bbSvg(cls, viewBox, inner) {
+  const wrap = document.createElement('span');
+  wrap.innerHTML = `<svg class="${cls}" viewBox="${viewBox}" aria-hidden="true">${inner}</svg>`;
+  return wrap.firstChild;
+}
+const BB_DEVICE_GLYPH = {
+  mobile: '<rect x="5" y="1.5" width="6" height="13" rx="1.5"/><path d="M6.9 12.9h2.2"/>',
+  desktop: '<rect x="1.5" y="2.5" width="13" height="9" rx="1.5"/><path d="M6 14h4"/>',
+};
+const BB_GRAB = '<circle cx="3" cy="4" r="1.15"/><circle cx="7" cy="4" r="1.15"/><circle cx="3" cy="8" r="1.15"/><circle cx="7" cy="8" r="1.15"/><circle cx="3" cy="12" r="1.15"/><circle cx="7" cy="12" r="1.15"/>';
+function bbDeviceLabel(device) {
+  return h('span', { class:'bb-device-label' }, bbSvg('bb-device-label__glyph', '0 0 16 16', BB_DEVICE_GLYPH[device]), device === 'mobile' ? 'Mobile' : 'Desktop');
+}
+const bbNew = () => h('span', { class:'bb-new', title:'Proposed — not in production yet' }, 'New');
+const bbThemeLink = () => h('a', { class:'bb-theme-link', href:'#', onClick: e => e.preventDefault() }, 'site rules');
+
+function bbGroup(title, action, ...children) {
+  return h('div', { class:'setting-group' },
+    h('div', { class:'setting-group__card' },
+      (title || action) ? h('div', { class:'setting-group__header' }, title ? h('span', { class:'setting-group__title' }, title) : null, action || null) : null,
+      h('div', { class:'setting-group__body' }, ...children)
+    )
+  );
+}
+function bbToggle(label, hint, value, onChange) {
+  return h('label', { class:'toggle-setting-field' },
+    h('span', { class:'toggle-setting-field__labels' },
+      h('span', { class:'toggle-setting-field__label' }, label),
+      hint ? h('span', { class:'toggle-setting-field__hint' }, hint) : null),
+    h('input', { type:'checkbox', class:'toggle-setting-field__switch', checked: value || null, onChange: e => onChange(e.target.checked) })
+  );
+}
+function bbSelect(value, options, onChange) {
+  const sel = h('select', { class:'bb-choice__select', onChange: e => onChange(e.target.value) });
+  options.forEach(o => { const opt = h('option', { value:o.value }, o.label); if (o.value === value) opt.selected = true; sel.appendChild(opt); });
+  return sel;
+}
+function bbChoice(label, value, options, onChange, opts) {
+  opts = opts || {};
+  const menu = opts.menu || (!opts.segmented && options.length > 7);
+  return h('div', { class:'bb-choice' },
+    label || opts.labelAfter ? h('span', { class:'bb-choice__labels' },
+      h('span', { class:'bb-choice__label' }, label, opts.labelAfter || null),
+      opts.hint ? h('span', { class:'bb-choice__hint' }, opts.hint) : null) : null,
+    menu ? bbSelect(value, options, onChange)
+      : h('span', { class:'bb-choice__segments', role:'group', 'aria-label':label },
+          ...options.map(o => h('button', { type:'button', class:'bb-choice__segment', 'aria-pressed':String(value === o.value), onClick:()=>onChange(o.value) }, o.label)))
+  );
+}
+function bbStep(label, value, table, onChange, badge) {
+  const at = table.findIndex(t => t[0] === value);
+  const go = by => { const next = at >= 0 ? table[at + by] : table[by > 0 ? 0 : table.length - 1]; if (next) onChange(next[0]); };
+  return h('div', { class:'bb-choice' },
+    h('span', { class:'bb-choice__labels' }, h('span', { class:'bb-choice__label' }, label, badge || null)),
+    h('div', { class:'bb-step', role:'group', 'aria-label':label },
+      h('button', { type:'button', class:'bb-step__button', 'aria-label':`Less ${label.toLowerCase()}`, disabled: at === 0 || null, onClick:()=>go(-1) }, icon('remove')),
+      h('span', { class:'bb-step__value' }, at >= 0 ? table[at][1] : value),
+      h('button', { type:'button', class:'bb-step__button', 'aria-label':`More ${label.toLowerCase()}`, disabled: at === table.length - 1 || null, onClick:()=>go(1) }, icon('add'))
+    )
+  );
+}
+function bbTextField(label, value, placeholder, onInput) {
+  return h('div', { class:'text-setting-field text-setting-field--row' },
+    h('span', { class:'text-setting-field__labels' }, h('span', { class:'text-setting-field__label' }, label)),
+    h('input', { type:'text', class:'text-setting-field__control', value, placeholder, onInput: e => onInput(e.target.value) })
+  );
+}
+function bbColor(label, value, onChange, opts) {
+  opts = opts || {};
+  const hex = /^#[0-9a-f]{6}$/i.test(value || '') ? value : '#000000';
+  const clear = (value || '').trim().toLowerCase() === 'transparent';
+  // The native picker stays open only while its <input> lives, and every setState
+  // rebuilds the DOM — so dragging just repaints this swatch and hex field in
+  // place, and the colour is saved once the picker closes ('change').
+  const hexField = h('input', { type:'text', class:'color-setting-field__hex', value: value || '', maxlength:'7', onInput: e => onChange(e.target.value.trim()) });
+  const swatch = h('span', { class:'color-setting-field__swatch' + (clear ? ' color-setting-field__swatch--clear' : ''), style: clear ? null : { backgroundColor: hex }},
+    h('input', { type:'color', value: hex, 'aria-label':`${label} colour`,
+      onInput: e => { swatch.classList.remove('color-setting-field__swatch--clear'); swatch.style.backgroundColor = e.target.value; hexField.value = e.target.value; },
+      onChange: e => onChange(e.target.value) }));
+  return h('div', { class:'color-setting-field' + (opts.stacked ? ' color-setting-field--stacked' : '') },
+    h('span', { class:'color-setting-field__label' }, label),
+    h('div', { class:'color-setting-field__row' }, swatch, hexField)
+  );
+}
+// WCAG 2.2 contrast — production's colorPairField/contrast.ts
+function bbRgb(v) {
+  const m = /^#?([0-9a-f]{6})$/i.exec((v || '').trim()) || /^#?([0-9a-f]{3})$/i.exec((v || '').trim());
+  if (!m) return null;
+  const x = m[1].length === 3 ? m[1].split('').map(c => c + c).join('') : m[1];
+  const n = parseInt(x, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function bbLum([r, g, b]) { const c = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * c(r) + 0.7152 * c(g) + 0.0722 * c(b); }
+function bbContrast(bg, fg) {
+  const a = bbRgb(bg), b = bbRgb(fg);
+  if (!a || !b) return null;
+  const [hi, lo] = [bbLum(a), bbLum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+function bbGrade(r) { return r >= 4.5 ? ['pass', 'AA'] : r >= 3 ? ['large', 'AA large only'] : ['fail', 'Low contrast']; }
+// production's ColorPairField: name on the left, Background + Text + a graded Ratio tag
+function bbColorPair(name, value, onChange) {
+  const ratio = bbContrast(value.background, value.text);
+  const grade = ratio != null ? bbGrade(ratio) : null;
+  return h('div', { class:'color-pair' },
+    h('div', { class:'color-pair__left' }, h('div', { class:'color-pair__meta' }, h('span', { class:'color-pair__name' }, name))),
+    h('div', { class:'color-pair__colors' },
+      bbColor('Background', value.background, c => onChange({ background: c }), { stacked:true }),
+      bbColor('Text', value.text, c => onChange({ text: c }), { stacked:true }),
+      h('div', { class:'color-pair__contrast' },
+        h('span', { class:'color-pair__contrast-label' }, 'Ratio'),
+        h('span', { class:`color-pair__contrast-tag color-pair__contrast-tag--${grade ? grade[0] : 'none'}`,
+          title: grade ? `WCAG 2.2 contrast — ${ratio.toFixed(2)}:1 · ${grade[1]}` : 'Set both colours to check contrast' },
+          ratio != null ? ratio.toFixed(1) : '—')))
+  );
+}
+
+// ── live text, as the stage and the summary paint it ──────────────────────────
+// Sizes are storefront px scaled to the drawn slide with container units, the
+// way production zooms the block (--bb-zoom = picture width / device width).
+function bbTextBlock(s, slide, device, slideW, opts) {
+  const proposed = bbProposed(s);
+  const lt = bbResolved(slide.liveText, device);
+  const u = px => `calc(${px} * 100cqw / ${slideW})`;
+  const align = bbTextAlign(opts.position);
+  const gap = proposed ? bbPx(BB_GAP, lt.gap || 'spacing-xxs', 4) : BB_CURRENT_GAP_PX;
+  const narrow = proposed && lt.maxWidth && lt.maxWidth !== 'full';
+  const lines = slide.liveText.content || [];
+  const b = slide.liveText.button;
+  return h('div', {
+      class:'bb-text' + (opts.selected ? ' bb-text--selected' : ''),
+      style:{ color: lt.color, gap: u(gap), paddingBlock: u(bbPx(BB_PAD, lt.padBlock, 12)), paddingInline: u(bbPx(BB_PAD, lt.padInline, 12)),
+        width: narrow ? `${lt.maxWidth}%` : '100%', alignSelf: opts.inBand ? align : null,
+        textAlign: align === 'center' ? 'center' : align === 'flex-end' ? 'right' : 'left' },
+      onClick: opts.onClick ? e => { e.stopPropagation(); opts.onClick(); } : null },
+    lines.length === 0 && !b ? h('span', { class:'bb-text__empty' }, 'No copy yet') : null,
+    ...lines.map(line => { const variant = bbLineVariant(slide.liveText, line, device); return h('p', { class:'bb-text__line', style:{
+        fontSize: u(BB_TYPE_PX[variant] || 15), fontWeight: /^headline/.test(variant) ? '600' : '400' }},
+      // rows are single-line in every mode; wrapping comes from the block's width
+      line.text.replace(/\n+/g, ' ') || ' '); }),
+    b && b.text ? h('span', { class:`bb-text__button bb-text__button--${b.buttonVariant}`, style:{
+        alignSelf: align, fontSize: u(14), padding: `${u(12)} ${u(28)}`, gap: u(8),
+        background: b.buttonBackgroundColor && b.buttonVariant !== 'button-link' && b.buttonVariant !== 'link' ? b.buttonBackgroundColor : null,
+        borderColor: b.buttonBackgroundColor && b.buttonVariant === 'secondary' ? b.buttonBackgroundColor : null,
+        color: b.buttonTextColor || null }},
+      // the arrow is its own flex item so the gap applies (as a bare text node it merged with the label)
+      h('span', {}, b.text), b.buttonIcon === 'arrow' ? h('span', { 'aria-hidden':'true' }, '→') : null) : null
+  );
+}
+
+// One slide drawn as on the storefront: the picture with the copy over it or in
+// a band beside it. `face` is the non-interactive copy used in billboard views.
+function bbSheet(s, slide, device, opts) {
+  opts = opts || {};
+  const v = bbVal(s);
+  const slideW = opts.slideW || BB_DEVICE_W[device];
+  const textOnly = slide.kind === 'text';
+  const lt = slide.liveText;
+  const r = lt ? bbResolved(lt, device) : null;
+  let position = r ? r.position : 'center';
+  if ((textOnly || slide.kind === 'hotspot') && !bbIsOverlay(position)) position = 'center';
+  const overlay = bbIsOverlay(position), side = bbSide(position);
+  const editing = !opts.face;
+  const block = lt ? bbTextBlock(s, slide, device, slideW, { position, inBand: !overlay,
+    selected: editing && s.bb_tab === 'text', onClick: editing ? () => setState({ bb_tab:'text' }) : null }) : null;
+  const cell = bbCell(position);
+  const picture = h('div', {
+      class:'bb-picture' + (textOnly ? ' bb-picture--auto' : '') + (editing && s.bb_tab === 'artwork' && !textOnly ? ' bb-picture--selected' : ''),
+      style:{ background: textOnly ? (r && r.bg !== 'transparent' ? r.bg : 'var(--mui-palette-secondary-background)') : (slide.art != null ? BB_ART[slide.art % BB_ART.length] : null),
+        backgroundSize:'cover', minHeight: textOnly ? `calc(${device === 'mobile' ? 520 : 600} * 100cqw / ${BB_DEVICE_W[device]})` : null,
+        display: textOnly ? 'flex' : null },
+      onClick: editing && !textOnly ? () => setState({ bb_tab:'artwork' }) : null },
+    slide.art == null && !textOnly ? h('span', { class:'bb-picture__empty' }, 'No artwork') : null,
+    block && overlay ? h('div', { class:'bb-overlay', style:{ justifyContent: BB_FLEX[cell.col], alignItems: BB_FLEX[cell.row], flex: textOnly ? '1' : null }}, block) : null
+  );
+  const band = which => block && side === which
+    ? h('div', { class:`bb-band bb-band--${which}`, style:{ justifyContent: bbAlign(position) }}, block)
+    : null;
+  return h('div', { class:`bb-sheet bb-sheet--${device}`, style: opts.face ? { maxWidth:'none' } : null },
+    band('above'),
+    h('div', { class:'bb-sheet__middle' }, band('before'), picture, band('after')),
+    band('below')
+  );
+}
+
+// the whole billboard laid out the way the storefront lays it out
+function bbBillboardView(s, device, opts) {
+  opts = opts || {};
+  const v = bbVal(s);
+  const cols = opts.cols || (v.displayType === 'grid' ? v.perView[device] : v.perView[device]);
+  const shown = opts.all ? v.slides : v.slides.slice(0, Math.max(cols, 1));
+  const span = Math.max(1, Math.min(shown.length || 1, opts.all ? shown.length : cols));
+  return h('div', { class:`billboard-view billboard-view--${device}` },
+    opts.label ? h('span', { class:'billboard-view__label' }, opts.label) : null,
+    h('div', { class:'billboard-view__screen', style: opts.height ? { minHeight: opts.height } : null },
+      v.header.text ? h('div', { class:'billboard-view__header', style:{ textAlign: v.header.align === 'center' ? 'center' : 'left' }}, v.header.text) : null,
+      v.slides.length === 0 ? h('p', { class:'billboard-summary__none' }, 'No slides yet.') :
+      h('div', { class:'billboard-view__row', style:{ gridTemplateColumns:`repeat(${span}, minmax(0, 1fr))` }},
+        ...shown.map(sl => h('div', { class:'billboard-view__face', onClick: opts.onSelect ? () => opts.onSelect(sl.id) : null },
+          bbSheet(s, sl, device, { face:true, slideW: BB_DEVICE_W[device] / (opts.all ? 1 : cols) }))))
+    )
+  );
+}
+
+// ── Content tab: the summary card ─────────────────────────────────────────────
+function buildBillboardTemplate(s) {
+  const v = bbVal(s);
+  return h('div', { class:'bb-scope billboard-summary' },
+    h('div', { class:'billboard-summary__head' },
+      h('span', { class:'billboard-summary__title' }, `${v.displayType === 'grid' ? 'Grid' : 'Carousel'} (${v.slides.length} slide${v.slides.length === 1 ? '' : 's'})`),
+      h('button', { type:'button', class:'billboard-summary__edit', onClick:()=>setState({ bb_open:true }) }, 'Edit')
+    ),
+    v.slides.length === 0 ? h('p', { class:'billboard-summary__none' }, 'No slides yet.') :
+      h('div', { class:'billboard-summary__views' }, bbBillboardView(s, 'desktop', { label:'Slides', all:true })),
+    h('p', { style:{ margin:'14px 0 0', fontSize:'12px', color:'var(--mui-palette-text-secondary)' }},
+      'Prototype: in the editor, the Live text tab has a Current / V1 / V2 switch next to the Text lines title.')
+  );
+}
+
+// ── rail ──────────────────────────────────────────────────────────────────────
+// Pointer-driven sorting: rows slide out of the way while dragging and the list
+// only re-renders on drop, since every setState rebuilds the DOM. `threshold`
+// keeps a plain click on a rail slide a click (production: 4px activation).
+let _bbSuppressClick = false;
+function bbSortable(e, opts) {
+  if (e.button !== 0) return;
+  const item = opts.item, list = item.parentElement;
+  const items = Array.from(list.querySelectorAll(opts.selector));
+  const from = items.indexOf(item);
+  if (from < 0 || items.length < 2) return;
+  const rects = items.map(el => el.getBoundingClientRect());
+  const shift = rects[from].height + Math.max(0, rects[1].top - rects[0].bottom);
+  const startY = e.clientY;
+  let to = from, active = false;
+  if (!opts.threshold) e.preventDefault();
+  const move = ev => {
+    const dy = ev.clientY - startY;
+    if (!active) {
+      if (Math.abs(dy) < (opts.threshold || 0)) return;
+      active = true; item.classList.add('is-dragging'); list.classList.add('is-sorting');
+    }
+    ev.preventDefault();
+    const d = Math.max(rects[0].top - rects[from].top, Math.min(rects[items.length - 1].bottom - rects[from].bottom, dy));
+    item.style.transform = `translateY(${d}px)`;
+    // the pointer picks the slot, so a tall row can still be dropped first or last
+    to = items.reduce((n, el, i) => n + (i !== from && rects[i].top + rects[i].height / 2 < ev.clientY ? 1 : 0), 0);
+    items.forEach((el, i) => {
+      if (i === from) return;
+      const t = from < to && i > from && i <= to ? -shift : from > to && i >= to && i < from ? shift : 0;
+      el.style.transform = t ? `translateY(${t}px)` : '';
+    });
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
+    if (!active) return;
+    _bbSuppressClick = true; setTimeout(() => { _bbSuppressClick = false; }, 0);
+    items.forEach(el => { el.style.transform = ''; });
+    item.classList.remove('is-dragging'); list.classList.remove('is-sorting');
+    if (to !== from) opts.onCommit(from, to);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+}
+
+function bbRail(s) {
+  const v = bbVal(s);
+  const summary = ['mobile','desktop'].map(d => `${d === 'mobile' ? 'Mobile' : 'Desktop'}: ${v.perView[d]}`).join(' → ');
+  const addSlide = () => {
+    const id = bbId('s');
+    bbUpdate(val => ({ ...val, slides: [...val.slides, { id, name:'', kind:'image', art:(val.slides.length + 1) % BB_ART.length, artDesktop:false, link:'', linkType:'url', liveText:null }] }),
+      { bb_sel:id, bb_tab:'artwork' });
+  };
+  return h('nav', { class:'bb-rail scroll', 'aria-label':'Billboard sections' },
+    h('div', { class:'bb-rail__section' },
+      h('div', { class:'bb-rail__head' }, h('span', { class:'bb-rail__legend' }, 'Billboard')),
+      h('button', { type:'button', class:'bb-rail__item', 'aria-current':String(s.bb_sel === 'display'), onClick:()=>setState({ bb_sel:'display' }) },
+        h('span', { class:'bb-rail__glyph bb-rail__glyph--display' }, '▦'),
+        h('span', { class:'bb-rail__text' },
+          h('span', { class:'bb-rail__label' }, `Display settings (${v.displayType === 'carousel' ? 'Carousel' : 'Grid'})`),
+          h('span', { class:'bb-rail__summary' }, summary)),
+        h('span', { class:'ms bb-rail__edit' }, 'edit')),
+      h('button', { type:'button', class:'bb-rail__item', 'aria-current':String(s.bb_sel === 'header'), onClick:()=>setState({ bb_sel:'header' }) },
+        h('span', { class:'bb-rail__glyph bb-rail__glyph--header' }, 'T'),
+        h('span', { class:'bb-rail__text' },
+          h('span', { class:'bb-rail__label' }, 'Header settings'),
+          h('span', { class:'bb-rail__summary bb-rail__summary--clip' }, v.header.text || 'Not set')),
+        h('span', { class:'ms bb-rail__edit' }, 'edit'))
+    ),
+    h('div', { class:'bb-rail__section' },
+      h('div', { class:'bb-rail__head' },
+        h('span', { class:'bb-rail__legend' }, `Slides · ${v.slides.length}`),
+        h('button', { type:'button', class:'bb-rail__add', onClick: addSlide }, '+ Add')),
+      h('div', { class:'bb-rail__slides' },
+        ...v.slides.map((sl, i) => {
+          const r = sl.liveText ? bbResolved(sl.liveText, s.bb_device) : null;
+          const textOnly = sl.kind === 'text';
+          const words = (sl.liveText?.content || []).map(l => l.text.replace(/\n+/g, ' ')).filter(Boolean);
+          return h('div', { class:'bb-rail__item bb-rail__slide', tabindex:'0', 'aria-current':String(s.bb_sel === sl.id),
+              onPointerdown: e => bbSortable(e, { item: e.currentTarget, selector:'.bb-rail__slide', threshold: 4,
+                onCommit: (from, to) => bbUpdate(val => ({ ...val, slides: bbMoveIn(val.slides, from, to) })) }),
+              onClick: () => { if (!_bbSuppressClick) setState({ bb_sel: sl.id, bb_tab: s.bb_sel === sl.id ? s.bb_tab : 'text' }); },
+              onKeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setState({ bb_sel: sl.id }); } } },
+            h('span', { class:'bb-rail__thumb', style:{ background: textOnly ? (r && r.bg) || '#fff' : (sl.art != null ? BB_ART[sl.art % BB_ART.length] : '#fff') }},
+              h('i', { class:'bb-rail__index' }, String(i + 1)),
+              textOnly ? h('span', { class:'bb-rail__copy', style:{ color: r ? r.color : null }}, h('span', { class:'bb-rail__copyText' }, words.length ? words.join(' ') : 'Text')) : null),
+            h('span', { class:'bb-rail__label' }, sl.name || `Slide ${i + 1}`),
+            bbSvg('bb-rail__grab', '0 0 10 16', BB_GRAB)
+          );
+        })
+      )
+    )
+  );
+}
+
+// ── stage ─────────────────────────────────────────────────────────────────────
+function bbStage(s) {
+  const v = bbVal(s);
+  const slide = v.slides.find(sl => sl.id === s.bb_sel);
+  const billboardLevel = !slide;
+  const hint = billboardLevel
+    ? 'The whole billboard, laid out the way the storefront lays it out.'
+    : 'Click the artwork or the copy to select it. Drag the copy onto the image to overlay it, or into the space around it to place it.';
+  return h('div', { class:'bb-stage', style:{ position:'relative' }},
+    h('div', { class:'bb-stage__bar' },
+      h('span', { class:'bb-stage__devices', role:'group', 'aria-label':'Preview device' },
+        ...['mobile','desktop'].map(d => h('button', { type:'button', 'aria-pressed':String(s.bb_device === d), onClick:()=>setState({ bb_device:d }) },
+          bbSvg('bb-stage__deviceGlyph', '0 0 16 16', BB_DEVICE_GLYPH[d]),
+          d === 'mobile' ? 'Mobile' : 'Desktop',
+          h('i', { class:'bb-stage__deviceWidth' }, `${BB_DEVICE_W[d]}px`))))
+    ),
+    h('div', { class:'bb-stage__view' },
+      billboardLevel ? bbBillboardView(s, s.bb_device, { label: bbDeviceLabel(s.bb_device), onSelect: id => setState({ bb_sel:id, bb_tab:'text' }) })
+        : bbSheet(s, slide, s.bb_device)
+    ),
+    h('p', { class:'bb-stage__hint' }, hint),
+    billboardLevel ? null : h('nav', { class:'bb-map', 'aria-label':'Slides in this billboard' },
+      h('div', { class:'bb-map__tiles' },
+        ...v.slides.map((sl, i) => h('button', { type:'button', class:'bb-map__tile', 'aria-current':String(s.bb_sel === sl.id), title: sl.name || `Slide ${i + 1}`,
+            style:{ background: sl.kind === 'text' ? (sl.liveText?.bg || '#fff') : (sl.art != null ? BB_ART[sl.art % BB_ART.length] : 'transparent') },
+            onClick:()=>setState({ bb_sel: sl.id }) },
+          h('span', { class:'bb-map__index' }, String(i + 1))))),
+      v.displayType === 'carousel' ? h('span', { class:'bb-map__note' }, `${v.perView[s.bb_device]} in view`) : null
+    )
+  );
+}
+
+// prototype-only: sits beside the "Text lines" title on the Live text tab
+function bbProtoSwitch(s) {
+  const opt = (mode, label) => h('button', { type:'button', class:'bb-proto__opt', 'aria-pressed':String(s.bb_mode === mode), onClick:()=>setState({ bb_mode: mode }) }, label);
+  return h('div', { class:'bb-proto', role:'group', 'aria-label':'Prototype: text lines' }, opt('current', 'Current'), opt('proposed', 'V1'), opt('new2', 'V2'));
+}
+
+// ── inspector: text lines ─────────────────────────────────────────────────────
+function bbMoveLine(slideId, from, to, focusId) {
+  bbLT(slideId, lt => ({ content: bbMoveIn(lt.content, from, to) }));
+  if (focusId) { const el = document.querySelector(`.bb-handle[data-id="${focusId}"]`); if (el) el.focus(); }
+}
+function bbTextLines(s, slide) {
+  const proposed = bbProposed(s);
+  const lines = slide.liveText.content || [];
+  const setLines = fn => bbLT(slide.id, lt => ({ content: fn(lt.content || []) }));
+  const split = proposed && !!slide.liveText.typoSplit;
+  // editing one device's typography turns the stage to that device, as DeviceFocus does
+  const setVariant = (id, key, device, v) => bbSlide(slide.id, sl => ({ liveText: { ...sl.liveText,
+    content: sl.liveText.content.map(l => l.id === id ? { ...l, [key]: v } : l) } }), { bb_device: device });
+  const options = BB_TYPO.map(v => ({ value:v, label: bbTypoLabel(v) }));
+  // Proposed drops the up/down arrows: the drag handle (and arrow keys on it) does the reordering
+  const ghost = () => h('div', { class:'setting-list__item-controls setting-list__controls--ghost', 'aria-hidden':'true' },
+    ...(proposed ? ['delete'] : ['arrow_upward','arrow_downward','delete']).map(n => h('button', { type:'button', class:'setting-list__icon-btn', tabindex:'-1' }, icon(n))));
+  return h('div', { class:'setting-list bb-lines' + (proposed ? ' bb-lines--proposed' : '') },
+    lines.length ? h('div', { class:'setting-list__header' },
+      h('div', { class:'setting-list__header-spacer', 'aria-hidden':'true' }),
+      h('div', { class:'setting-list__item-body' },
+        split
+          ? h('div', { class:'bb-line bb-line--split' }, h('span', {}, 'Text'), h('span', {}, bbDeviceLabel('mobile')), h('span', {}, bbDeviceLabel('desktop')))
+          : h('div', { class:'bb-line' }, h('span', {}, 'Text'), h('span', {}, 'Typography', bbThemeLink()))),
+      ghost()) : null,
+    ...lines.map((line, i) => {
+      const update = patch => setLines(ls => ls.map(l => l.id === line.id ? { ...l, ...patch } : l));
+      const lead = proposed
+        ? h('button', { type:'button', class:'bb-handle', 'data-id': line.id, title:'Drag to reorder', 'aria-label':`Reorder line ${i + 1}. Use the arrow keys to move it.`,
+            onPointerdown: e => bbSortable(e, { item: e.currentTarget.closest('.setting-list__item'), selector:'.setting-list__item--inline',
+              onCommit: (from, to) => bbMoveLine(slide.id, from, to) }),
+            onKeydown: e => {
+              const by = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+              if (!by) return;
+              e.preventDefault();
+              if (i + by >= 0 && i + by < lines.length) bbMoveLine(slide.id, i, i + by, line.id);
+            } }, bbSvg('', '0 0 10 16', BB_GRAB))
+        : h('div', { class:'setting-list__num' }, String(i + 1));
+      const field = h('input', { type:'text', class:'text-setting-field__control', value: line.text.replace(/\n+/g, ' '), placeholder:'Enter text…',
+        onInput: e => update({ text: e.target.value }) });
+      return h('div', { class:'setting-list__item setting-list__item--inline', 'data-id': line.id },
+        lead,
+        h('div', { class:'setting-list__item-body' },
+          split
+            ? h('div', { class:'bb-line bb-line--split' },
+                h('div', { class:'text-setting-field' }, field),
+                bbSelect(line.variant, options, v => setVariant(line.id, 'variant', 'mobile', v)),
+                bbSelect(line.desktopVariant || line.variant, options, v => setVariant(line.id, 'desktopVariant', 'desktop', v)))
+            : h('div', { class:'bb-line' },
+                h('div', { class:'text-setting-field' }, field),
+                bbSelect(line.variant, options, v => update({ variant: v })))),
+        h('div', { class:'setting-list__item-controls' },
+          proposed ? null : h('button', { type:'button', class:'setting-list__icon-btn', 'aria-label':'Move up', disabled: i === 0 || null, onClick:()=>setLines(ls => bbMoveIn(ls, i, i - 1)) }, icon('arrow_upward')),
+          proposed ? null : h('button', { type:'button', class:'setting-list__icon-btn', 'aria-label':'Move down', disabled: i === lines.length - 1 || null, onClick:()=>setLines(ls => bbMoveIn(ls, i, i + 1)) }, icon('arrow_downward')),
+          h('button', { type:'button', class:'setting-list__icon-btn', 'aria-label':'Delete', onClick:()=>setLines(ls => ls.filter(l => l.id !== line.id)) }, icon('delete')))
+      );
+    }),
+    h('button', { type:'button', class:'setting-list__add', onClick:()=>setLines(ls => [...ls, split ? { ...bbLine('', 'text1'), desktopVariant:'text1' } : bbLine('', 'text1')]) }, icon('add'), 'Add line'),
+    proposed ? h('div', { class:'bb-lines__split' },
+      h('label', { class:'toggle-setting-field' },
+        h('span', { class:'toggle-setting-field__labels' },
+          h('span', { class:'toggle-setting-field__label', style:{ display:'inline-flex', alignItems:'center', gap:'6px' }}, 'Different typography on Desktop', bbNew()),
+          h('span', { class:'toggle-setting-field__hint' }, split
+            ? ['Each line gets a Mobile and a Desktop rule.', bbThemeLink()]
+            : 'Desktop uses the same typography as Mobile.')),
+        h('input', { type:'checkbox', class:'toggle-setting-field__switch', checked: split || null,
+          // turning it on starts Desktop from the Mobile rule; off drops the Desktop rules
+          onChange: e => { const on = e.target.checked; bbLT(slide.id, lt => ({ typoSplit: on,
+            content: lt.content.map(l => on ? { ...l, desktopVariant: l.desktopVariant || l.variant } : (({ desktopVariant, ...rest }) => rest)(l)) })); } }))) : null
+  );
+}
+
+function bbButtonBlock(s, slide) {
+  const b = slide.liveText.button;
+  const set = patch => bbLT(slide.id, lt => ({ button: { ...lt.button, ...patch } }));
+  if (!b) return h('div', { class:'bb-button' },
+    h('button', { type:'button', class:'bb-layer__add', onClick:()=>bbLT(slide.id, { button:{ text:'', buttonVariant:'primary', buttonIcon:'none' } }) }, icon('add'), 'Add button'));
+  return h('div', { class:'bb-button' },
+    h('div', { class:'bb-line bb-line--button bb-line--head' }, h('span', {}, 'Label'), h('span', {}, 'Style', bbThemeLink()), h('span', {}, 'Icon'), h('span', {})),
+    h('div', { class:'bb-line bb-line--button' },
+      h('div', { class:'text-setting-field' }, h('input', { type:'text', class:'text-setting-field__control', value: b.text, placeholder:'Shop now', onInput: e => set({ text: e.target.value }) })),
+      bbSelect(b.buttonVariant, [['primary','Primary'],['secondary','Secondary'],['link','Link'],['button-link','Button Link']].map(([value, label]) => ({ value, label })), v => set({ buttonVariant: v })),
+      bbSelect(b.buttonIcon, [{ value:'none', label:'None' }, { value:'arrow', label:'Arrow' }], v => set({ buttonIcon: v })),
+      h('button', { type:'button', class:'setting-list__icon-btn', 'aria-label':'Remove button', title:'Remove button', onClick:()=>bbLT(slide.id, { button:null }) }, icon('delete'))),
+    s.bb_mode === 'proposed' ? bbButtonColors(b, set) : null
+  );
+}
+
+// Proposed: production's LiveTextButton already carries buttonBackgroundColor /
+// buttonTextColor and the storefront paints them (textLayer.tsx), but the editor
+// never exposes them. The storefront skips the background on Button Link, so a
+// link-style button only offers the text color.
+function bbButtonColors(b, set, flat) {
+  const custom = !!(b.buttonBackgroundColor || b.buttonTextColor);
+  const linkish = b.buttonVariant === 'link' || b.buttonVariant === 'button-link';
+  return h('div', { class:'bb-button__colors' + (flat ? ' bb-button__colors--flat' : '') },
+    h('label', { class:'toggle-setting-field' },
+      h('span', { class:'toggle-setting-field__labels' },
+        h('span', { class:'toggle-setting-field__label', style:{ display:'inline-flex', alignItems:'center', gap:'6px' }}, 'Custom colors', bbNew()),
+        h('span', { class:'toggle-setting-field__hint' }, custom ? 'Overrides the site button style on this slide.' : 'Uses the site button style.')),
+      h('input', { type:'checkbox', class:'toggle-setting-field__switch', checked: custom || null,
+        onChange: e => set(e.target.checked
+          ? { buttonBackgroundColor: linkish ? '' : '#1c1c1c', buttonTextColor: linkish ? '#1c1c1c' : '#ffffff' }
+          : { buttonBackgroundColor: '', buttonTextColor: '' }) })),
+    custom ? (linkish
+      ? bbColor('Text color', b.buttonTextColor || '#1c1c1c', c => set({ buttonTextColor: c }))
+      : bbColorPair('Colors', { background: b.buttonBackgroundColor || '#1c1c1c', text: b.buttonTextColor || '#ffffff' },
+          next => set('background' in next ? { buttonBackgroundColor: next.background } : { buttonTextColor: next.text }))) : null
+  );
+}
+
+function bbPosGrid(position, art, overlayOnly, onChange) {
+  const label = p => p.replace(/-/g, ' ');
+  const cell = (p, arrows) => h('button', { type:'button', class:'bb-pos__cell', 'aria-pressed':String(position === p), title: label(p), 'aria-label': label(p), onClick:()=>onChange(p) }, arrows[p] || '');
+  const face = h('div', { class:'bb-pos__image', style: art ? { backgroundImage: art } : null }, ...BB_OVERLAY.map(p => cell(p, BB_OVERLAY_ARROWS)));
+  if (overlayOnly) return h('div', { class:'bb-pos bb-pos--overlay-only' }, face);
+  return h('div', { class:'bb-pos' },
+    h('div', { class:'bb-pos__grid' },
+      h('span', {}), ...BB_TOP.map(p => cell(p, BB_PLACE_ARROWS)), h('span', {}),
+      ...BB_LEFT.map((p, i) => h('div', { class:'bb-pos__side', style:{ gridRow: String(i + 2), gridColumn: '1' }}, cell(p, BB_PLACE_ARROWS))),
+      face,
+      ...BB_RIGHT.map((p, i) => h('div', { class:'bb-pos__side', style:{ gridRow: String(i + 2), gridColumn: '5' }}, cell(p, BB_PLACE_ARROWS))),
+      h('span', {}), ...BB_BOTTOM.map(p => cell(p, BB_PLACE_ARROWS)), h('span', {})
+    )
+  );
+}
+
+// "Text colors & position" for one device (device = null when Desktop isn't split)
+function bbTextDisplay(s, slide, device) {
+  const v = bbVal(s);
+  const proposed = bbProposed(s);
+  const desktop = device === 'desktop';
+  const lt = slide.liveText;
+  const r = desktop ? { ...lt, ...lt.desktop } : lt;
+  const set = patch => bbDisplay(slide.id, desktop, patch, device);
+  const textOnly = slide.kind === 'text';
+  const others = v.slides.filter(o => o.id !== slide.id && o.liveText).length;
+  const applyAll = keys => bbUpdate(val => ({ ...val, slides: val.slides.map(o => {
+    if (o.id === slide.id || !o.liveText) return o;
+    const pick = Object.fromEntries(keys.map(k => [k, r[k]]));
+    return { ...o, liveText: desktop && o.liveText.desktop ? { ...o.liveText, desktop: { ...o.liveText.desktop, ...pick } } : { ...o.liveText, ...pick } };
+  }) }));
+  return [
+    textOnly
+      ? h('div', { class:'bb-color-row' },
+          bbColorPair('Colors', { background: r.bg, text: r.color }, next => set('background' in next ? { bg: next.background } : { color: next.text })),
+          others ? h('button', { type:'button', class:'bb-apply-link', onClick:()=>applyAll(['color','bg']) }, icon('done_all'), 'Apply the same text color to all slides') : null)
+      : h('div', { class:'bb-color-row' },
+          bbColor('Text color', r.color, c => set({ color: c })),
+          others ? h('button', { type:'button', class:'bb-apply-link', onClick:()=>applyAll(['color']) }, icon('done_all'), 'Apply the same text color to all slides') : null),
+    h('div', { class:'bb-place' },
+      h('div', { class:'bb-place__grid' },
+        h('span', { class:'bb-place__label' }, 'Position'),
+        bbPosGrid(r.position, textOnly ? null : (slide.art != null ? BB_ART[slide.art % BB_ART.length] : null), textOnly || slide.kind === 'hotspot',
+          p => set({ position: p }))),
+      h('div', { class:'bb-place__pad' },
+        bbStep('Padding block', r.padBlock, BB_PAD, x => set({ padBlock: x })),
+        bbStep('Padding inline', r.padInline, BB_PAD, x => set({ padInline: x })),
+        proposed ? bbStep('Line spacing', r.gap || 'spacing-xxs', BB_GAP, x => set({ gap: x }), bbNew()) : null,
+        proposed ? bbStep('Max width', r.maxWidth || 'full', BB_MAXW, x => set({ maxWidth: x }), bbNew()) : null
+      )
+    ),
+    others ? h('button', { type:'button', class:'bb-apply-link', onClick:()=>applyAll(proposed ? ['position','padBlock','padInline','gap','maxWidth'] : ['position','padBlock','padInline']) },
+      icon('done_all'), proposed ? 'Apply the same position and spacing to all slides' : 'Apply the same position to all slides') : null,
+  ];
+}
+
+// ── V2: Colors and Position & spacing as their own sections ──────────────────
+function bbApplyToAll(slideId, pick, desktop) {
+  bbUpdate(val => ({ ...val, slides: val.slides.map(o => {
+    if (o.id === slideId || !o.liveText) return o;
+    return { ...o, liveText: desktop && o.liveText.desktop ? { ...o.liveText, desktop: { ...o.liveText.desktop, ...pick } } : { ...o.liveText, ...pick } };
+  }) }));
+}
+// V2: colors are one set for both devices — no Desktop split
+function bbColorsV2(s, slide) {
+  const lt = slide.liveText;
+  const textOnly = slide.kind === 'text';
+  const others = bbVal(s).slides.filter(o => o.id !== slide.id && o.liveText).length;
+  const setBase = patch => bbDisplay(slide.id, false, patch, null);
+  const pairPatch = next => 'background' in next ? { bg: next.background } : { color: next.text };
+  const row = (name, src, set) => textOnly
+    ? bbColorPair(name, { background: src.bg, text: src.color }, next => set(pairPatch(next)))
+    : bbColor(name, src.color, c => set({ color: c }));
+  const b = lt.button;
+  const setBtn = patch => bbLT(slide.id, cur => ({ button: { ...cur.button, ...patch } }));
+  return [
+    h('div', { class:'bb-colors__head' }, 'Text'),
+    row(textOnly ? 'Colors' : 'Text color', lt, setBase),
+    others ? h('button', { type:'button', class:'bb-apply-link', onClick:()=>bbApplyToAll(slide.id, { color: lt.color, bg: lt.bg }, false) },
+      icon('done_all'), 'Apply the same text colors to all slides') : null,
+    h('div', { class:'bb-colors__head bb-colors__head--divided' }, 'Button'),
+    b ? bbButtonColors(b, setBtn, true) : h('p', { class:'bb-layer__hint' }, 'Add a button above to set its colors.'),
+  ];
+}
+function bbLayoutV2(s, slide, device) {
+  const lt = slide.liveText;
+  const desktop = device === 'desktop';
+  const r = desktop ? { ...lt, ...lt.desktop } : lt;
+  const set = patch => bbDisplay(slide.id, desktop, patch, device);
+  const textOnly = slide.kind === 'text';
+  const others = bbVal(s).slides.filter(o => o.id !== slide.id && o.liveText).length;
+  return [
+    h('div', { class:'bb-place' },
+      h('div', { class:'bb-place__grid' },
+        h('span', { class:'bb-place__label' }, 'Position'),
+        bbPosGrid(r.position, textOnly ? null : (slide.art != null ? BB_ART[slide.art % BB_ART.length] : null), textOnly || slide.kind === 'hotspot', p => set({ position: p }))),
+      h('div', { class:'bb-place__pad' },
+        bbStep('Padding block', r.padBlock, BB_PAD, x => set({ padBlock: x })),
+        bbStep('Padding inline', r.padInline, BB_PAD, x => set({ padInline: x })),
+        bbStep('Line spacing', r.gap || 'spacing-xxs', BB_GAP, x => set({ gap: x }), bbNew()),
+        bbStep('Max width', r.maxWidth || 'full', BB_MAXW, x => set({ maxWidth: x }), bbNew()))),
+    others ? h('button', { type:'button', class:'bb-apply-link', onClick:()=>bbApplyToAll(slide.id, Object.fromEntries(BB_LAYOUT_KEYS.map(k => [k, r[k]])), desktop) },
+      icon('done_all'), 'Apply the same position and spacing to all slides') : null,
+  ];
+}
+function bbLiveTextTabV2(s, slide, copySwitch) {
+  const lt = slide.liveText;
+  const sep = lt.splitMode === 'separate' && !!lt.desktop;
+  const layoutSplit = sep && !!lt.layoutSplit;
+  const title = 'Position & spacing';
+  return [
+    copySwitch ? bbGroup(null, null, copySwitch) : null,
+    bbGroup(['Text lines', bbProtoSwitch(s)], null, bbTextLines(s, slide)),
+    bbGroup('Button', null, bbButtonBlock(s, slide)),
+    bbGroup(['Colors', bbNew()], null, ...bbColorsV2(s, slide)),
+    bbGroup(layoutSplit ? [bbDeviceLabel('mobile'), title] : title, null, ...bbLayoutV2(s, slide, layoutSplit ? 'mobile' : null)),
+    bbGroup(layoutSplit ? [bbDeviceLabel('desktop'), title] : null, null,
+      bbToggle('Different position & spacing on Desktop',
+        layoutSplit ? 'Colors stay the same on both devices.' : 'Desktop uses the Mobile position and spacing.',
+        layoutSplit, on => bbLT(slide.id, cur => on
+          ? { splitMode:'separate', layoutSplit:true, desktop: { ...bbEnsureDesktop(cur), ...Object.fromEntries(BB_LAYOUT_KEYS.map(k => [k, cur[k]])) } }
+          : { splitMode:'separate', layoutSplit:false })),
+      ...(layoutSplit ? bbLayoutV2(s, slide, 'desktop') : [])),
+  ];
+}
+
+function bbLiveTextTab(s, slide) {
+  const textOnly = slide.kind === 'text';
+  const lt = slide.liveText;
+  const setCopy = on => bbSlide(slide.id, { liveText: on ? (lt || {
+    content:[bbLine('', 'headline2')], button:null, position:'center', color:'#000000', bg: textOnly ? '#f3f3f5' : 'transparent',
+    padBlock:'spacing-sm', padInline:'spacing-sm', gap:'spacing-xxs', maxWidth:'full', desktop:null }) : null });
+  const copySwitch = textOnly ? null : bbToggle('Show live text', 'Live text over or beside the artwork.', !!lt, setCopy);
+  if (!lt) return [bbGroup(null, null, copySwitch || h('div', { class:'bb-button' },
+    h('button', { type:'button', class:'bb-layer__add', onClick:()=>setCopy(true) }, icon('add'), 'Add live text')))];
+  if (bbNew2(s)) return bbLiveTextTabV2(s, slide, copySwitch);
+  const split = !!lt.desktop;
+  const title = 'Text colors & position';
+  return [
+    copySwitch ? bbGroup(null, null, copySwitch) : null,
+    bbGroup(['Text lines', bbProtoSwitch(s)], null, bbTextLines(s, slide)),
+    bbGroup('Button', null, bbButtonBlock(s, slide)),
+    bbGroup(split ? [bbDeviceLabel('mobile'), title] : title, null, ...bbTextDisplay(s, slide, split ? 'mobile' : null)),
+    bbGroup(split ? [bbDeviceLabel('desktop'), title] : null, null,
+      bbToggle('Set different settings on Desktop',
+        split ? 'The lines and the button stay shared — only the display differs.' : 'Desktop inherits the display settings from Mobile.',
+        split, on => bbLT(slide.id, cur => ({ desktop: on
+          ? { position: cur.position, color: cur.color, bg: cur.bg, padBlock: cur.padBlock, padInline: cur.padInline, gap: cur.gap, maxWidth: cur.maxWidth }
+          : null }))),
+      ...(split ? bbTextDisplay(s, slide, 'desktop') : [])),
+  ];
+}
+
+function bbArtworkTab(s, slide) {
+  const media = slide.kind === 'video' ? 'Video' : 'Artwork';
+  return [
+    bbGroup(media, h('span', { class:'bb-artwork-dims' }, '1600 × 600'),
+      h('div', { class:'bb-artwork' },
+        h('div', { class:'bb-artwork__preview', style:{ background: slide.art != null ? BB_ART[slide.art % BB_ART.length] : 'var(--mui-palette-secondary-background)' }}),
+        h('div', { class:'bb-artwork__actions' },
+          h('button', { type:'button', class:'bb-layer__add', onClick:()=>bbSlide(slide.id, { art: slide.art == null ? 0 : (slide.art + 1) % BB_ART.length }) },
+            icon(slide.art == null ? 'add' : 'swap_horiz'), slide.art == null ? 'Add image' : 'Replace'),
+          h('span', { class:'bb-layer__hint' }, 'JPG, PNG or WebP'))),
+      slide.kind === 'video' ? h('div', { class:'text-setting-field' },
+        h('span', { class:'text-setting-field__label', style:{ fontSize:'0.6875rem', marginBottom:'4px' }}, 'Video URL'),
+        h('input', { type:'text', class:'text-setting-field__control', style:{ width:'100%', boxSizing:'border-box' }, placeholder:'https://…/hero.mp4', value: slide.video || '',
+          onInput: e => bbSlide(slide.id, { video: e.target.value }) })) : null),
+    bbGroup(null, null,
+      bbToggle(`Use another ${media.toLowerCase()} for Desktop`, slide.artDesktop ? 'Leave one empty and the slide is hidden on that device.' : `Desktop uses the same ${media.toLowerCase()} as Mobile.`,
+        slide.artDesktop, on => bbSlide(slide.id, { artDesktop: on }))),
+  ];
+}
+
+function bbLinkTab(s, slide) {
+  const klaviyo = slide.linkType === 'klaviyo';
+  return [bbGroup(null, null,
+    bbChoice('On tap', slide.linkType || 'url', [{ value:'url', label:'Open a link' }, { value:'klaviyo', label:'Open a Klaviyo form' }],
+      v => bbSlide(slide.id, { linkType: v }), { segmented:true, hint: slide.kind === 'hotspot' ? 'On shoppable slides only the CTA button opens it.' : null }),
+    klaviyo
+      ? bbTextField('Klaviyo form ID', slide.klaviyo || '', 'XXXXXX', v => bbSlide(slide.id, { klaviyo: v }))
+      : bbTextField('Link', slide.link || '', '/collections/…', v => bbSlide(slide.id, { link: v }))
+  )];
+}
+
+const BB_TAB_GLYPH = {
+  artwork: '<rect x="2" y="3.5" width="12" height="9" rx="1.5"/><circle cx="5.75" cy="6.75" r="1.1"/><path d="M2.5 11l3-2.75 2.5 2 2-1.75 3.5 3"/>',
+  pins: '<circle cx="8" cy="8" r="5.5"/><path d="M8 5.5v5M5.5 8h5"/>',
+  text: '<path d="M3 4.5h10M3 8h10M3 11.5h6"/>',
+  link: '<path d="M6.5 9.5l3-3"/><path d="M9 4.75l.75-.75a2.65 2.65 0 013.75 3.75l-.75.75"/><path d="M7 11.25l-.75.75A2.65 2.65 0 012.5 8.25L3.25 7.5"/>',
+};
+const BB_KIND_FIG = {
+  image: '<rect x="2" y="4" width="44" height="28" rx="2"/>',
+  video: '<rect x="2" y="4" width="44" height="28" rx="2"/><path d="M20 13l9 5-9 5z" fill="#fff" fill-opacity="0.9"/>',
+  text: '<rect x="2" y="4" width="44" height="28" rx="2" fill-opacity="0.14"/><rect x="9" y="13" width="30" height="3.5" rx="1.75"/><rect x="9" y="19" width="30" height="3.5" rx="1.75"/><rect x="9" y="25" width="18" height="3.5" rx="1.75"/>',
+  hotspot: '<rect x="2" y="4" width="44" height="28" rx="2"/><circle cx="17" cy="15" r="3.2" fill="#fff" fill-opacity="0.95"/><circle cx="32" cy="24" r="3.2" fill="#fff" fill-opacity="0.95"/>',
+};
+function bbSlideTabs(s, slide) {
+  const tabs = [['artwork','Artwork'],['pins','Products'],['text','Live text'],['link','Link']].filter(([id]) =>
+    !(id === 'pins' && slide.kind !== 'hotspot') && !(id === 'artwork' && slide.kind === 'text'));
+  const active = tabs.some(([id]) => id === s.bb_tab) ? s.bb_tab : 'text';
+  return { active, el: h('div', { class:'bb-tabs', role:'tablist', 'aria-label':'Slide sections' },
+    ...tabs.map(([id, label]) => h('button', { type:'button', role:'tab', class:'bb-tabs__tab', 'aria-selected':String(active === id), onClick:()=>setState({ bb_tab:id }) },
+      bbSvg('bb-tabs__glyph', '0 0 16 16', BB_TAB_GLYPH[id]), label))) };
+}
+
+function bbInspector(s) {
+  const v = bbVal(s);
+  const slide = v.slides.find(sl => sl.id === s.bb_sel);
+  if (s.bb_sel === 'header') {
+    const set = patch => bbUpdate(val => ({ ...val, header: { ...val.header, ...patch } }));
+    return h('aside', { class:'bb-inspector scroll', 'aria-label':'Header settings' },
+      h('header', { class:'bb-inspector__head' }, h('span', { class:'bb-inspector__name' }, 'Header settings')),
+      bbGroup('Title', null,
+        bbTextField('Text', v.header.text, 'Shop the edit', x => set({ text: x })),
+        bbChoice('Typography', v.header.variant, BB_TYPO.map(x => ({ value:x, label: bbTypoLabel(x) })), x => set({ variant: x }), { menu:true, labelAfter: bbThemeLink() }),
+        bbChoice('Alignment', v.header.align, [{ value:'start', label:'Start' }, { value:'center', label:'Center' }], x => set({ align: x }), { segmented:true })),
+      bbGroup('CTA button', null,
+        bbTextField('Label', v.header.cta, 'View all', x => set({ cta: x })),
+        bbTextField('Link', v.header.ctaLink, '/collections/…', x => set({ ctaLink: x })))
+    );
+  }
+  if (!slide) {
+    const setView = (d, n) => bbUpdate(val => ({ ...val, perView: { ...val.perView, [d]: n } }));
+    const counts = [['1','1'],['2','2'],['3','3'],['4','4']];
+    return h('aside', { class:'bb-inspector scroll', 'aria-label':'Display settings' },
+      h('header', { class:'bb-inspector__head' }, h('span', { class:'bb-inspector__name' }, 'Display settings')),
+      bbGroup('Show as', null,
+        bbChoice('', v.displayType, [{ value:'carousel', label:'Carousel' }, { value:'grid', label:'Grid' }], x => bbUpdate(val => ({ ...val, displayType: x })), { segmented:true })),
+      bbGroup(v.displayType === 'carousel' ? 'Carousel settings' : 'Grid settings', null,
+        ...['mobile','desktop'].map(d => bbStep(`${d === 'mobile' ? 'Mobile' : 'Desktop'} · ${v.displayType === 'carousel' ? 'Slides per view' : 'Columns'}`,
+          String(v.perView[d]), counts, x => setView(d, Number(x))))),
+      v.displayType === 'carousel' ? bbGroup('Motion', null,
+        bbToggle('Autoplay', null, v.autoplay, x => bbUpdate(val => ({ ...val, autoplay: x }))),
+        bbToggle('Loop', null, v.loop, x => bbUpdate(val => ({ ...val, loop: x })))) : null
+    );
+  }
+  const index = v.slides.indexOf(slide);
+  const tabs = bbSlideTabs(s, slide);
+  return h('aside', { class:'bb-inspector scroll', 'aria-label':'Slide settings' },
+    h('header', { class:'bb-inspector__head' },
+      h('input', { class:'bb-inspector__rename', value: slide.name || '', placeholder:`Slide ${index + 1}`, 'aria-label':'Slide name',
+        onInput: e => bbSlide(slide.id, { name: e.target.value }) }),
+      h('button', { type:'button', class:'bb-inspector__delete', title:'Delete slide', 'aria-label':'Delete slide', disabled: v.slides.length <= 1 || null,
+        onClick:()=>{ const next = v.slides[index + 1] || v.slides[index - 1]; bbUpdate(val => ({ ...val, slides: val.slides.filter(x => x.id !== slide.id) }), { bb_sel: next ? next.id : 'display' }); } },
+        icon('delete', { fontSize:'18px' }))),
+    bbGroup('This slide is', null,
+      h('div', { class:'bb-kind', role:'group', 'aria-label':'Slide kind' },
+        ...BB_KINDS.map(([id, label, note]) => h('button', { type:'button', class:'bb-kind__option', 'aria-pressed':String(slide.kind === id), title: note,
+            onClick:()=>bbSlide(slide.id, sl => ({ kind: id, art: id === 'text' ? null : (sl.art == null ? 0 : sl.art),
+              liveText: id === 'text' && !sl.liveText ? { content:[bbLine('', 'headline2')], button:null, position:'center', color:'#ffffff', bg:'#7a4b3a', padBlock:'spacing-md', padInline:'spacing-md', gap:'spacing-xxs', maxWidth:'full', desktop:null } : sl.liveText })) },
+          bbSvg('bb-kind__figure', '0 0 48 36', BB_KIND_FIG[id]), h('b', {}, label))))),
+    tabs.el,
+    ...(tabs.active === 'artwork' ? bbArtworkTab(s, slide)
+      : tabs.active === 'text' ? bbLiveTextTab(s, slide)
+      : tabs.active === 'link' ? bbLinkTab(s, slide)
+      : [bbGroup('Products', null, h('p', { class:'bb-gap' }, 'Product pins are edited in the shoppable image editor — not part of this reference.'))])
+  );
+}
+
+// ── the full-screen dialog ────────────────────────────────────────────────────
+function bbDialog(s) {
+  const variant = s.variants.find(x => x.id === s.selectedVariantId);
+  return h('div', { class:'bb-scope billboard-dialog', role:'dialog', 'aria-modal':'true', 'aria-label':`${s.componentTitle} editor` },
+    h('div', { class:'billboard-dialog__head' },
+      h('button', { type:'button', class:'billboard-dialog__close', 'aria-label':'Close editor', onClick:()=>setState({ bb_open:false }) }, '✕'),
+      h('span', { class:'billboard-dialog__title' }, s.componentTitle, variant && variant.name ? h('span', {}, ` · ${variant.name}`) : null),
+      h('span', { class:'billboard-dialog__actions' },
+        h('button', { type:'button', class:'billboard-dialog__button billboard-dialog__button--primary', disabled: !s.hero_dirty || null, onClick:()=>saveVariant() }, s.saveLabel))
+    ),
+    h('div', { class:'bb-editor' }, bbRail(s), bbStage(s), bbInspector(s))
+  );
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && state.bb_open && !state.hs) setState({ bb_open:false });
+});
 
 // ─── SHOPPABLE HOTSPOT EDITOR ─────────────────────────────────────────────────
 // The modal behind "Edit Shoppable Image", ported from site-experience-manager's
