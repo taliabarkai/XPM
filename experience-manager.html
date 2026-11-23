@@ -497,6 +497,28 @@
   .billboard-view__row { display: grid; gap: 8px; align-items: start; }
   .billboard-view__face { cursor: pointer; border-radius: 4px; outline: 2px solid transparent; outline-offset: 2px; }
   .billboard-view__face:hover { outline-color: rgba(25,118,210,0.4); }
+  .billboard-view__screen--true { position: relative; display: block; padding: 0; container-type: inline-size; }
+  .billboard-view__track { display: grid; align-items: start; overflow: hidden; }
+  .billboard-view__margin { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed rgba(124,77,223,0.6); pointer-events: none; z-index: 2; }
+  .billboard-view__margin i { position: absolute; top: 6px; right: 5px; font-style: normal; font-size: 10px; font-weight: 500; white-space: nowrap; color: #6a3fd1; background: rgba(255,255,255,0.9); padding: 1px 5px; border-radius: 4px; }
+  .bb-devices { display: grid; grid-template-columns: minmax(128px, 1.3fr) minmax(96px, 1fr) minmax(96px, 1fr); align-items: center; column-gap: var(--mui-spacing-2); row-gap: 14px; }
+  .bb-devices__row { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: center; }
+  .bb-devices__corner { display: block; }
+  .bb-devices__head { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mui-palette-text-secondary); }
+  .bb-devices__label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .bb-devices__name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.8125rem; font-weight: 500; }
+  .bb-devices__name .bb-proto { margin-left: 0; }
+  .bb-devices__hint { font-size: 0.6875rem; line-height: 1.35; color: var(--mui-palette-text-secondary); }
+  .bb-devices__cell { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .bb-devices__cell .bb-choice { gap: 0; }
+  .bb-devices__cell .bb-choice__labels, .bb-devices__cell .toggle-setting-field__labels { display: none; }
+  .bb-devices__cell .bb-choice__segments { flex-wrap: wrap; max-width: 100%; box-sizing: border-box; }
+  .bb-devices__cell .bb-choice__segment { padding: 3px 6px; font-size: 0.6875rem; }
+  .bb-devices__name { gap: 4px; }
+  .bb-devices__tip { display: inline-flex; cursor: help; color: rgba(0,0,0,0.5); }
+  .bb-devices__tip::after { left: -10px; transform: none; text-align: left; }
+  .bb-devices__off { font-size: 0.75rem; color: var(--mui-palette-text-secondary); }
+  .setting-group__header .bb-proto { margin-left: auto; }
   .bb-stage .billboard-view { width: 100%; max-width: 940px; }
   .bb-stage .billboard-view--mobile { width: 330px; }
 
@@ -523,7 +545,7 @@
   .bb-stage__deviceWidth { font-size: 0.5625rem; font-style: normal; font-variant-numeric: tabular-nums; opacity: 0.6; }
   .bb-stage__devices button[aria-pressed="true"] .bb-stage__deviceWidth { opacity: 0.85; }
   .bb-stage__deviceGlyph { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
-  .bb-stage__view { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 var(--mui-spacing-3); overflow: hidden; }
+  .bb-stage__view { flex: 1; min-height: 0; display: flex; align-items: safe center; justify-content: center; padding: var(--mui-spacing-2) var(--mui-spacing-3); overflow-x: hidden; overflow-y: auto; }
   .bb-stage__hint { flex-shrink: 0; margin: 0; padding: var(--mui-spacing-1-half) var(--mui-spacing-2) var(--mui-spacing-2); text-align: center; font-size: 0.6875rem; color: #8b909b; }
 
   /* rail */
@@ -3628,6 +3650,38 @@ const BB_GAP = [['none','0',0],['spacing-xxxs','2px',2],['spacing-xxs','4px',4],
 // Proposed: narrowest first, so "−" narrows the block
 const BB_MAXW = [['20','20%'],['30','30%'],['40','40%'],['50','50%'],['60','60%'],['70','70%'],['80','80%'],['90','90%'],['full','Full']];
 const BB_CURRENT_GAP_PX = 8; // liveTextBlock.css hard-codes `gap: 8px`
+// Display settings (displayForm.tsx): gap between slides, with production's px labels
+const BB_GRID_GAP = [['none','0',0],['spacing-xxxs','4px',4],['spacing-xxs','8px',8],['spacing-xs','12px',12],['spacing-sm','16px',16],['spacing-md','24px',24],['spacing-lg','32px',32]];
+// storefront --layout-page-margin: spacing-sm on mobile, spacing-lg from md up
+const BB_PAGE_MARGIN = { mobile: 16, desktop: 32 };
+// New: the padding size scale (storefront spacing tokens); defaults to the page margin
+const BB_SIDE_PAD = [['spacing-xxxs','4px',4],['spacing-xxs','8px',8],['spacing-xs','12px',12],['spacing-sm','16px',16],['spacing-md','24px',24],['spacing-lg','32px',32],['spacing-xl','40px',40],['spacing-xxl','60px',60],['spacing-xxxl','72px',72]];
+const BB_PEEK = [['0','None'],['0.125','1/8'],['0.25','1/4'],['0.5','1/2']];
+const BB_ARROWS = [['none','None'],['block','Sides'],['header','Header']];
+const BB_DOTS = [['none','None'],['block-start','Top'],['block-end','Bottom'],['inline-start','Left'],['inline-end','Right']];
+const BB_SPEED = Array.from({ length: 10 }, (_, i) => [String((i + 1) * 1000), `${i + 1}s`]);
+const BB_DEVICES = [['both','Mobile & Desktop'],['mobile','Mobile only'],['desktop','Desktop only']];
+const bbOpts = t => t.map(([value, label]) => ({ value, label }));
+function bbLayoutDefaults(d) {
+  return d === 'mobile'
+    ? { gap:'spacing-xs', padding:false, padSize:'spacing-sm', peek:'0', arrows:'none', dots:'none' }
+    : { gap:'spacing-md', padding:false, padSize:'spacing-lg', peek:'0', arrows:'block', dots:'none' };
+}
+function bbLay(v, d) { return { ...bbLayoutDefaults(d), ...((v.layout || {})[d] || {}) }; }
+// the billboard's frame in device px. Current: outer padding = the gap (carousel
+// with peek leaves the trailing side open). New: its own size on the sides,
+// starting at the page margin.
+function bbFrame(s, v, device) {
+  const L = bbLay(v, device), carousel = v.displayType === 'carousel';
+  const gap = bbPx(BB_GRID_GAP, L.gap, 0);
+  const peek = carousel ? Number(L.peek) || 0 : 0;
+  let pad = { top:0, bottom:0, start:0, end:0 };
+  if (L.padding) {
+    if (s.bb_pad === 'new') { const m = bbPx(BB_SIDE_PAD, L.padSize, BB_PAGE_MARGIN[device]); pad = { top:0, bottom:0, start:m, end: peek ? 0 : m }; }
+    else pad = { top:gap, bottom:gap, start:gap, end: peek ? 0 : gap };
+  }
+  return { gap, peek, pad, carousel, cols: Math.max(1, v.perView[device] || 1) };
+}
 const bbPx = (table, id, fallback) => { const r = table.find(t => t[0] === id); return r ? r[2] : fallback; };
 
 const BB_OVERLAY = ['top-left','top-center','top-right','middle-left','center','middle-right','bottom-left','bottom-center','bottom-right'];
@@ -3670,6 +3724,9 @@ function bbSeed(mode) {
   return {
     displayType: 'carousel',
     perView: { mobile: 1, desktop: 1 },
+    devices: 'both',
+    layout: { mobile: bbLayoutDefaults('mobile'), desktop: bbLayoutDefaults('desktop') },
+    dotsInteractive: true, autoplaySpeed: '4000',
     autoplay: true, loop: true,
     header: { text: '', variant: 'headline4', align: 'start', cta: '', ctaLink: '' },
     slides: [
@@ -3696,7 +3753,7 @@ function bbSeedV2() {
   return v;
 }
 function bbDefaults() {
-  return { bb_open:false, bb_mode:'current', bb_device:'desktop', bb_sel:'s1', bb_tab:'text',
+  return { bb_open:false, bb_mode:'current', bb_pad:'current', bb_device:'desktop', bb_sel:'s1', bb_tab:'text',
     bb_values: { current: bbSeed('current'), proposed: bbSeed('proposed'), new2: bbSeedV2() } };
 }
 // a new variant opens with no slides, as in production
@@ -3929,9 +3986,10 @@ function bbSheet(s, slide, device, opts) {
 function bbBillboardView(s, device, opts) {
   opts = opts || {};
   const v = bbVal(s);
-  const cols = opts.cols || (v.displayType === 'grid' ? v.perView[device] : v.perView[device]);
-  const shown = opts.all ? v.slides : v.slides.slice(0, Math.max(cols, 1));
-  const span = Math.max(1, Math.min(shown.length || 1, opts.all ? shown.length : cols));
+  if (!opts.all) return bbTrueView(s, v, device, opts);
+  const cols = v.perView[device];
+  const shown = v.slides;
+  const span = Math.max(1, shown.length);
   return h('div', { class:`billboard-view billboard-view--${device}` },
     opts.label ? h('span', { class:'billboard-view__label' }, opts.label) : null,
     h('div', { class:'billboard-view__screen', style: opts.height ? { minHeight: opts.height } : null },
@@ -3940,6 +3998,34 @@ function bbBillboardView(s, device, opts) {
       h('div', { class:'billboard-view__row', style:{ gridTemplateColumns:`repeat(${span}, minmax(0, 1fr))` }},
         ...shown.map(sl => h('div', { class:'billboard-view__face', onClick: opts.onSelect ? () => opts.onSelect(sl.id) : null },
           bbSheet(s, sl, device, { face:true, slideW: BB_DEVICE_W[device] / (opts.all ? 1 : cols) }))))
+    )
+  );
+}
+
+// The stage view at true proportions: the screen is the device width, so the
+// gap, the outer padding and the page-margin guides scale with it.
+function bbTrueView(s, v, device, opts) {
+  const W = BB_DEVICE_W[device];
+  const u = n => `calc(${n} * 100cqw / ${W})`;
+  const f = bbFrame(s, v, device);
+  const innerW = W - f.pad.start - f.pad.end;
+  const slideW = (innerW - f.gap * (f.cols - 1)) / (f.cols + f.peek);
+  const shown = f.carousel ? v.slides.slice(0, f.cols + (f.peek ? 1 : 0)) : v.slides;
+  const track = f.carousel
+    ? { gridAutoFlow:'column', gridAutoColumns: u(slideW), gap: u(f.gap) }
+    : { gridTemplateColumns:`repeat(${f.cols}, minmax(0, 1fr))`, gap: u(f.gap) };
+  const margin = BB_PAGE_MARGIN[device];
+  return h('div', { class:`billboard-view billboard-view--${device}` },
+    opts.label ? h('span', { class:'billboard-view__label' }, opts.label) : null,
+    h('div', { class:'billboard-view__screen billboard-view__screen--true' },
+      h('div', { class:'billboard-view__frame', style:{ paddingTop: u(f.pad.top), paddingBottom: u(f.pad.bottom), paddingLeft: u(f.pad.start), paddingRight: u(f.pad.end) }},
+        v.header.text ? h('div', { class:'billboard-view__header', style:{ textAlign: v.header.align === 'center' ? 'center' : 'left', paddingBottom: u(16) }}, v.header.text) : null,
+        v.slides.length === 0 ? h('p', { class:'billboard-summary__none' }, 'No slides yet.') :
+        h('div', { class:'billboard-view__track', style: track },
+          ...shown.map(sl => h('div', { class:'billboard-view__face', onClick: opts.onSelect ? () => opts.onSelect(sl.id) : null },
+            bbSheet(s, sl, device, { face:true, slideW }))))),
+      h('span', { class:'billboard-view__margin', style:{ left: u(margin) }, 'aria-hidden':'true' }),
+      h('span', { class:'billboard-view__margin billboard-view__margin--end', style:{ right: u(margin) }, 'aria-hidden':'true' }, h('i', {}, `Page margin ${margin}px`))
     )
   );
 }
@@ -3955,7 +4041,7 @@ function buildBillboardTemplate(s) {
     v.slides.length === 0 ? h('p', { class:'billboard-summary__none' }, 'No slides yet.') :
       h('div', { class:'billboard-summary__views' }, bbBillboardView(s, 'desktop', { label:'Slides', all:true })),
     h('p', { style:{ margin:'14px 0 0', fontSize:'12px', color:'var(--mui-palette-text-secondary)' }},
-      'Prototype: in the editor, the Live text tab has a Current / V1 / V2 switch next to the Text lines title.')
+      'Prototype: in the editor, the Live text tab has a Current / V1 / V2 switch next to the Text lines title, and Display settings has a Current / New padding switch beside Show as.')
   );
 }
 
@@ -4093,6 +4179,27 @@ function bbStage(s) {
 function bbProtoSwitch(s) {
   const opt = (mode, label) => h('button', { type:'button', class:'bb-proto__opt', 'aria-pressed':String(s.bb_mode === mode), onClick:()=>setState({ bb_mode: mode }) }, label);
   return h('div', { class:'bb-proto', role:'group', 'aria-label':'Prototype: text lines' }, opt('current', 'Current'), opt('proposed', 'V1'), opt('new2', 'V2'));
+}
+
+// prototype-only: beside the "Show as" title in Display settings. Shared by every
+// text-lines mode, since it only changes what the toggle does.
+function bbPadSwitch(s) {
+  const opt = (mode, label) => h('button', { type:'button', class:'bb-proto__opt', 'aria-pressed':String(s.bb_pad === mode), onClick:()=>setState({ bb_pad: mode }) }, label);
+  return h('div', { class:'bb-proto', role:'group', 'aria-label':'Prototype: outer padding' }, opt('current', 'Current'), opt('new', 'New'));
+}
+// displayForm's DeviceTable: a label column, then one column per device
+function bbDeviceTable(title, rows) {
+  return h('div', { class:'bb-devices' },
+    h('span', { class:'bb-devices__corner setting-group__title' }, title),
+    h('span', { class:'bb-devices__head' }, 'Mobile'),
+    h('span', { class:'bb-devices__head' }, 'Desktop'),
+    ...rows.map(row => h('div', { class:'bb-devices__row' },
+      h('span', { class:'bb-devices__label' },
+        h('span', { class:'bb-devices__name' }, row.label,
+          row.tip ? h('span', { class:'hero-tip bb-devices__tip', 'data-tooltip': row.tip, tabindex:'0', 'aria-label': row.tip }, icon('info', { fontSize:'16px' })) : null),
+        row.hint ? h('span', { class:'bb-devices__hint' }, row.hint) : null),
+      ...['mobile','desktop'].map(d => { const c = row.cell(d); return h('div', { class:'bb-devices__cell' }, ...(Array.isArray(c) ? c : [c])); })))
+  );
 }
 
 // ── inspector: text lines ─────────────────────────────────────────────────────
@@ -4428,17 +4535,39 @@ function bbInspector(s) {
     );
   }
   if (!slide) {
+    const carousel = v.displayType === 'carousel';
+    const newPad = s.bb_pad === 'new';
     const setView = (d, n) => bbUpdate(val => ({ ...val, perView: { ...val.perView, [d]: n } }));
-    const counts = [['1','1'],['2','2'],['3','3'],['4','4']];
+    const setLay = (d, patch) => bbUpdate(val => ({ ...val, layout: { ...(val.layout || {}), [d]: { ...bbLay(val, d), ...patch } } }));
+    const counts = Array.from({ length: Math.max(6, v.perView.mobile + 1, v.perView.desktop + 1) }, (_, i) => [String(i + 1), String(i + 1)]);
+    const label = carousel ? 'Slides per view' : 'Columns';
+    const padHint = (newPad ? 'Space on the sides of the banner' : 'Same size as the gap') + (carousel ? '. With peek the trailing side stays open' : '');
+    const padOn = d => bbLay(v, d).padding;
+    // rows follow displayForm.tsx: Columns, (Peek), Gap, Outer padding, (Arrows, Dots)
+    const rows = [
+      { label, cell: d => bbStep(label, String(v.perView[d]), counts, x => setView(d, Number(x))) },
+      carousel ? { label:'Peek', hint:'Part of the next slide shown at the edge', cell: d => bbChoice('Peek', String(bbLay(v, d).peek), bbOpts(BB_PEEK), x => setLay(d, { peek: x }), { segmented:true }) } : null,
+      { label:'Gap', cell: d => bbStep('Gap', bbLay(v, d).gap, BB_GRID_GAP, x => setLay(d, { gap: x })) },
+      { label: newPad ? 'Padding' : 'Outer padding', tip: padHint,
+        cell: d => bbToggle(newPad ? 'Padding' : 'Outer padding', null, padOn(d), x => setLay(d, { padding: x })) },
+      newPad && (padOn('mobile') || padOn('desktop')) ? { label:'Padding size',
+        cell: d => padOn(d) ? bbStep('Padding size', bbLay(v, d).padSize, BB_SIDE_PAD, x => setLay(d, { padSize: x })) : h('span', { class:'bb-devices__off' }, 'Off') } : null,
+      carousel ? { label:'Arrows', cell: d => bbChoice('Arrows', bbLay(v, d).arrows, bbOpts(BB_ARROWS), x => setLay(d, { arrows: x }), { segmented:true }) } : null,
+      carousel ? { label:'Dots', cell: d => bbChoice('Dots', bbLay(v, d).dots, bbOpts(BB_DOTS), x => setLay(d, { dots: x }), { segmented:true }) } : null,
+    ].filter(Boolean);
+    const hasDots = carousel && ['mobile','desktop'].some(d => bbLay(v, d).dots !== 'none');
     return h('aside', { class:'bb-inspector scroll', 'aria-label':'Display settings' },
       h('header', { class:'bb-inspector__head' }, h('span', { class:'bb-inspector__name' }, 'Display settings')),
-      bbGroup('Show as', null,
+      bbGroup(null, null,
+        bbChoice('Show on devices', v.devices || 'both', bbOpts(BB_DEVICES), x => bbUpdate(val => ({ ...val, devices: x })), { segmented:true })),
+      bbGroup('Show as', bbPadSwitch(s),
         bbChoice('', v.displayType, [{ value:'carousel', label:'Carousel' }, { value:'grid', label:'Grid' }], x => bbUpdate(val => ({ ...val, displayType: x })), { segmented:true })),
-      bbGroup(v.displayType === 'carousel' ? 'Carousel settings' : 'Grid settings', null,
-        ...['mobile','desktop'].map(d => bbStep(`${d === 'mobile' ? 'Mobile' : 'Desktop'} · ${v.displayType === 'carousel' ? 'Slides per view' : 'Columns'}`,
-          String(v.perView[d]), counts, x => setView(d, Number(x))))),
-      v.displayType === 'carousel' ? bbGroup('Motion', null,
+      bbGroup(null, null,
+        bbDeviceTable(carousel ? 'Carousel settings' : 'Grid settings', rows),
+        hasDots ? bbToggle('Clickable dots', 'Off shows the dots as indicators only', v.dotsInteractive !== false, x => bbUpdate(val => ({ ...val, dotsInteractive: x }))) : null),
+      carousel ? bbGroup('Motion', null,
         bbToggle('Autoplay', null, v.autoplay, x => bbUpdate(val => ({ ...val, autoplay: x }))),
+        v.autoplay ? bbChoice('Delay', v.autoplaySpeed || '4000', bbOpts(BB_SPEED), x => bbUpdate(val => ({ ...val, autoplaySpeed: x })), { menu:true }) : null,
         bbToggle('Loop', null, v.loop, x => bbUpdate(val => ({ ...val, loop: x })))) : null
     );
   }
